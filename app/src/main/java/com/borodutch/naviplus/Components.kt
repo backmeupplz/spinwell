@@ -164,7 +164,7 @@ fun SongRow(
     var menu by remember { mutableStateOf(false) }
     val click = onClick ?: { if (queue != null && ctx != null) Audio.play(queue, index, ctx) else Audio.play(listOf(song), 0, Ctx("song", song.id, song.title)) }
     Row(
-        modifier.fillMaxWidth().alpha(if (locked) 0.4f else 1f).press(!locked, onLong = { menu = true }, onClick = click).padding(horizontal = 16.dp, vertical = 6.dp).heightIn(min = 52.dp),
+        modifier.fillMaxWidth().alpha(if (locked) 0.4f else 1f).press(!locked, onLong = { menu = true }, onClick = click).padding(horizontal = 16.dp, vertical = 2.dp).heightIn(min = 52.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (showCover) { CoverArt(song.coverArt, 150, Modifier.size(48.dp), 6.dp); Spacer(Modifier.width(12.dp)) }

@@ -81,8 +81,8 @@ fun BoxScope.PlayerSheet(exp: Animatable<Float, AnimationVector1D>, barH: Dp, mi
         val coverTop1 = px(statusTop) + px(64.dp)
         val titleY1 = coverTop1 + cs + px(22.dp)
         val seekY1 = titleY1 + px(96.dp)
-        val controlsY1 = seekY1 + px(64.dp)
-        val rowY1 = controlsY1 + px(96.dp)
+        val controlsY1 = seekY1 + px(100.dp)
+        val rowY1 = controlsY1 + px(88.dp)
         val sidePad = px(28.dp)
         val miniMargin = px(8.dp)
 
@@ -100,8 +100,8 @@ fun BoxScope.PlayerSheet(exp: Animatable<Float, AnimationVector1D>, barH: Dp, mi
                     layout(w, h) { p.place(0, 0) }
                 }
                 .graphicsLayer {
-                    val r = lerp(px(14.dp), 0f, exp.value)
-                    shape = RoundedCornerShape(topStart = r, topEnd = r, bottomStart = lerp(px(14.dp), 0f, exp.value), bottomEnd = lerp(px(14.dp), 0f, exp.value)); clip = true
+                    val r = lerp(px(14.dp), 0f, exp.value).coerceAtLeast(0f) // the spring can overshoot past 1
+                    shape = RoundedCornerShape(r); clip = true
                 }
                 .draggable(drag, Orientation.Vertical, onDragStopped = { v ->
                     val to = if (v < -700f) 1f else if (v > 700f) 0f else if (exp.value > 0.5f) 1f else 0f
