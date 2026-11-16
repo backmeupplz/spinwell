@@ -69,6 +69,8 @@ whose project layout, cover cache and download design we reuse.
 - **And back off, by itself:** while offline the app re-pings every 20 s and whenever it returns to the foreground; any ping or
   request that gets an answer (even a refused login) means online: the banner disappears, the outbox flushes, downloads resume,
   open screens refresh. Overlapping pings collapse into one.
+  iOS also pings every 10 s while online and in front (flipping offline only after a second failed ping a second later), so a
+  server that goes away while nothing is being requested is noticed; Android relies on requests and network callbacks.
 - Playback: if a streamed song fails because the server is gone, the app marks offline and skips to the next downloaded song of
   the queue (wrapping when repeating all) instead of stopping with an error; consecutive failures are capped at the queue length.
 - Offline: a slim banner under the top bar ("Offline · showing downloads", tap to retry). Browsing uses the JSON cache plus
@@ -98,7 +100,7 @@ on every screen. Settings open from a gear on Home.
   (`frequent`), Favorite albums (`starred`), Rediscover (`random`, size 20). Shelves with nothing are hidden. Pull to refresh.
 - **Library:** segmented chips Artists · Albums · Playlists · Songs · Favorites.
   Artists: A–Z index list with artist image circles + album count, with a fast-scroll letter rail.
-  Albums: grid of ~100 dp+ cards, 3 across on a phone (sort menu: name / artist / recently added / year / most played), paged 60 at a time.
+  Albums: grid of ~100 dp+ cards, 3 across on Android and 2 on iPhone (sort menu: name / artist / recently added / year / most played), paged 60 at a time.
   Playlists: list with cover + song count + duration. Songs: `search3` with empty query paged.
   Favorites: starred artists, albums and songs. **Songs, Favorites' songs, Downloads, search song results and every
   album/playlist/artist page have Play and Shuffle.**

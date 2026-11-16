@@ -6,7 +6,7 @@ app/build/
 keystore.properties
 *.jks
 /shots/
-ios/build/
+ios/build*/
 ios/shots/
 xcuserdata/
 DerivedData/
