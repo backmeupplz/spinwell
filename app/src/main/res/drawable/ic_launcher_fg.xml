@@ -1,4 +1,29 @@
-<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
-    <path android:fillColor="#A798FF" android:pathData="M60,30 L60,58.5 C58.1,57.5 55.9,57 53.5,57 C47.7,57 43,60.6 43,65 C43,69.4 47.7,73 53.5,73 C59.3,73 64,69.4 64,65 L64,38 L74,40 L74,30 Z"/>
-    <path android:fillColor="#FFFFFF" android:pathData="M30,50 h4 v-4 h4 v4 h4 v4 h-4 v4 h-4 v-4 h-4 z"/>
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Spinwell record, kept inside the 66 dp adaptive-icon safe circle (r = 30 of 108) so no launcher mask clips it. Master: tools/icon.svg -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
+    <path android:fillColor="#15111D" android:strokeColor="#5A4A6E" android:strokeWidth="0.5"
+        android:pathData="M54,24a30,30 0 1,0 0.01,0z"/>
+    <path android:strokeColor="#33293F" android:strokeWidth="0.3"
+        android:pathData="M54,26.6a27.4,27.4 0 1,0 0.01,0z M54,29.3a24.7,24.7 0 1,0 0.01,0z M54,32.1a21.9,21.9 0 1,0 0.01,0z M54,34.8a19.2,19.2 0 1,0 0.01,0z M54,37.5a16.5,16.5 0 1,0 0.01,0z"/>
+    <path android:pathData="M54,24 A30,30 0 0,1 77.2,35 L54,54 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="linear" android:startX="54" android:startY="30" android:endX="78" android:endY="30">
+                <item android:offset="0" android:color="#00FFFFFF"/>
+                <item android:offset="0.5" android:color="#24FFFFFF"/>
+                <item android:offset="1" android:color="#00FFFFFF"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path android:pathData="M54,40.45a13.55,13.55 0 1,0 0.01,0z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="linear" android:startX="40.5" android:startY="40.5" android:endX="67.5" android:endY="67.5">
+                <item android:offset="0" android:color="#FF7A45"/>
+                <item android:offset="0.55" android:color="#FF3D81"/>
+                <item android:offset="1" android:color="#8B5CF6"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path android:strokeColor="#4D0D0B14" android:strokeWidth="0.5" android:pathData="M54,44.5a9.5,9.5 0 1,0 0.01,0z"/>
+    <path android:fillColor="#0D0B14" android:pathData="M54,52.4a1.6,1.6 0 1,0 0.01,0z"/>
 </vector>
