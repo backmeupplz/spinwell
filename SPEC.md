@@ -35,7 +35,7 @@ whose project layout, cover cache and download design we reuse.
 - **iOS codecs:** AVPlayer can't play Ogg Opus/Vorbis (the real library has 276 `.opus` songs) or WMA/APE/etc.
   On iOS, any song whose `suffix` is not one of `mp3 m4a m4b aac alac flac wav aif aiff caf` always streams and
   downloads as `stream?format=aac&maxBitRate=256` (verified: Navidrome answers `audio/aac` ADTS), saved as `.aac`.
-- Artist images: `getArtistInfo2.largeImageUrl` (absolute URL from the server); fall back to the first album's cover.
+- Artist images: iOS draws `getCoverArt` of the artist's own `coverArt` id (`ar-…`, goes through the authenticated cover cache, works offline) and falls back to the first album's cover; `getArtistInfo2.largeImageUrl` is not used (it embeds the server's own idea of its host name).
 
 ## Local data
 
@@ -51,8 +51,9 @@ whose project layout, cover cache and download design we reuse.
   enqueues their songs and remembers the container as "pinned" (so the Downloads screen can list albums/playlists and
   newly added playlist songs get picked up on the next refresh). Queue persisted, one file at a time, `<id>.part` +
   `Range` resume, exponential backoff 2 s → 60 s while the server is unreachable. Android: foreground service
-  (`dataSync`) with a progress notification, like `DlService`. iOS: foreground `URLSession` download tasks with resume
-  data (like ABS+); a background session is fine too if simpler since auth is in the query string.
+  (`dataSync`) with a progress notification, like `DlService`. iOS: a foreground `URLSession` data task per song appending to
+  `<id>.part` with `Range` resume (ignored ranges restart from zero), wrapped in a background task so a download finishes after
+  the app is backgrounded; no background `URLSession`.
   Files: `<files>/media/<sha256(server|user)>/<songId>.<ext>`, plus `downloads.json` holding each downloaded song's full
   song JSON + pinned containers, so offline mode can list and play them with full metadata. iOS excludes the media
   directory from iCloud backup.

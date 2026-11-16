@@ -136,7 +136,10 @@ struct Pending: Codable { var kind: String; var id: String; var at: Double }
         var r = URLRequest(url: url); r.timeoutInterval = 4
         do {
             let (d, _) = try await session.data(for: r)
-            if let env = try? JSONDecoder().decode(Envelope<Empty>.self, from: d), env.status == "ok" { reachable() } else { unreachable = true }
+            if let env = try? JSONDecoder().decode(Envelope<Empty>.self, from: d), env.status == "ok" {
+                serverVersion = [env.type?.capitalized, env.serverVersion?.split(separator: " ").first.map(String.init)].compactMap { $0 }.joined(separator: " ")
+                reachable()
+            } else { unreachable = true }
         } catch { unreachable = true }
     }
 

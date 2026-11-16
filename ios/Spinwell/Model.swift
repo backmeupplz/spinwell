@@ -87,13 +87,17 @@ struct Err: Decodable { var code: Int?; var message: String? }
 struct Envelope<T: Decodable>: Decodable {
     var status: String
     var error: Err?
+    var serverVersion: String?
+    var type: String?
     var body: T?
     private enum K: String, CodingKey { case resp = "subsonic-response" }
-    private enum I: String, CodingKey { case status, error }
+    private enum I: String, CodingKey { case status, error, serverVersion, type }
     init(from d: Decoder) throws {
         let inner = try d.container(keyedBy: K.self).nestedContainer(keyedBy: I.self, forKey: .resp)
         status = try inner.decode(String.self, forKey: .status)
         error = try inner.decodeIfPresent(Err.self, forKey: .error)
+        serverVersion = try inner.decodeIfPresent(String.self, forKey: .serverVersion)
+        type = try inner.decodeIfPresent(String.self, forKey: .type)
         body = status == "ok" ? try T(from: try d.container(keyedBy: K.self).superDecoder(forKey: .resp)) : nil
     }
 }

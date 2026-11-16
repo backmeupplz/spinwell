@@ -1,0 +1,40 @@
+name: iOS
+# Compile check of the iPhone app and its unit-test bundle on PRs and main (run the tests locally:
+# `xcodebuild test -scheme Spinwell -destination "platform=iOS Simulator,name=iPhone 17 Pro"`: they need a booted Simulator on
+# the shared Mac). Android has its own workflow.
+on:
+  pull_request:
+    paths: ['ios/**', '.forgejo/workflows/ios.yml']
+  push:
+    branches: [main]
+    paths: ['ios/**', '.forgejo/workflows/ios.yml']
+permissions:
+  contents: read
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+jobs:
+  ios:
+    name: iOS
+    runs-on: macos-26
+    # Mac only, and only for our own PRs: outsiders' PRs (bridged from GitHub by the `github` user) never run on it.
+    if: github.event_name != 'pull_request' || contains(fromJSON('["backmeupplz","renovate","claude","radiant"]'), github.event.pull_request.user.login)
+    timeout-minutes: 20
+    steps:
+      # A per-runner git checkout of ios/ instead of actions/checkout: no action to download, and Xcode only rebuilds what
+      # changed while the path stays the same and unchanged files keep their inode and time (git rewrites only changed files).
+      # xcodebuild runs with a clean environment because it reads every variable as a build setting. The generic simulator
+      # destination needs no booted device, and no index store: nothing reads it here.
+      - name: Build
+        run: |
+          stage="${PWD%%/work/*}/ci/spinwell-ios"
+          mkdir -p "$stage" && cd "$stage"
+          rm -f .git/index.lock .git/shallow.lock # left by a cancelled run
+          [ -d .git ] || { git init -q && git sparse-checkout set ios; }
+          # Blobs up to 128 KB (every source file, not the store images) come with the fetch, so checkout fetches nothing more
+          git fetch -q --no-tags --depth=1 --filter=blob:limit=128k "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" "$GITHUB_SHA"
+          git checkout -q -f FETCH_HEAD
+          echo "Sources at $(git rev-parse --short HEAD)"
+          env -i HOME="$HOME" PATH="$PATH" TMPDIR="${TMPDIR:-/tmp}" \
+            xcodebuild -quiet -project ios/Spinwell.xcodeproj -scheme Spinwell -derivedDataPath "$stage/DerivedData" \
+            -destination 'generic/platform=iOS Simulator' ARCHS=arm64 COMPILER_INDEX_STORE_ENABLE=NO build-for-testing

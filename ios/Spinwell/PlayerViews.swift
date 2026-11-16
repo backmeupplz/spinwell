@@ -119,6 +119,7 @@ struct FullPlayer: View {
                 cover(s)
                 Spacer(minLength: 12)
                 titleRow(s).padding(.horizontal, 28)
+                if let e = player.error { Text(e).font(.caption).foregroundStyle(.orange).lineLimit(2).padding(.horizontal, 28).padding(.top, 6) }
                 SeekBar().padding(.horizontal, 28).padding(.top, 14)
                 transport.padding(.top, 8)
                 bottomRow(s).padding(.horizontal, 28).padding(.top, 8).padding(.bottom, 8)

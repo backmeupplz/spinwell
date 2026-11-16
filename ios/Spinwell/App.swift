@@ -3,6 +3,7 @@ import SwiftUI
 @main struct SpinwellApp: App {
     init() {
         // test hooks: `-server URL -user U -pass P` signs in at launch, `-offline 1` forces offline mode
+        app.downloads.reload() // files + metadata before anything draws or the player restores
         let d = UserDefaults.standard
         if d.bool(forKey: "signout") { app.signOut() }
         if let s = d.string(forKey: "server"), let u = d.string(forKey: "user"), let p = d.string(forKey: "pass"), !app.signedIn {
@@ -35,6 +36,7 @@ struct Root: View {
             await app.ping()
             player.launched()
             await Hooks.playIfRequested()
+            await Hooks.runScript()
         }
     }
 

@@ -228,7 +228,7 @@ struct Saved: Codable { var queue: QueueState; var position: Double; var wasPlay
             }
             pos = 0; scrobbled = nil; revision += 1
             preloadNext(); changed()
-        } else if q.repeatMode == .one { pos = 0 }
+        } else if q.repeatMode == .one { pos = 0; scrobbled = nil; preloadNext() }
         duration = q.current?.song.seconds ?? 0
         if let s = current { app.scrobble(s.id, submission: false) }
         failedRun = 0
@@ -244,10 +244,15 @@ struct Saved: Codable { var queue: QueueState; var position: Double; var wasPlay
     }
 
     private func endOfQueue() {
-        // The player ran out of items: the queue ended.
-        if q.repeatMode == .all || q.index + 1 < q.items.count { return }
+        // The player ran out of items: carry on with the next playable song (offline skips what isn't downloaded), or stop.
+        for _ in 0..<max(q.items.count, 1) {
+            guard q.advance(auto: true) else { break }
+            if playable(q.current) { rebuild(play: true); changed(); return }
+        }
+        q.index = max(0, q.items.count - 1)
         pos = 0
         rebuild(play: false)
+        changed()
     }
 
     private func tick() {
