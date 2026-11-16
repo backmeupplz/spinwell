@@ -154,16 +154,16 @@ object Audio {
     private fun finishFill() { while (true) { val f = fill ?: return; if (!f()) fill = null } }
 
     /**
-     * Loads [q] into the player: the playing song and its neighbours at once (playback starts, the first frame isn't held up),
-     * the rest in chunks of 12 on the following frames. Building a few hundred MediaItems in one go took ~250 ms on the main thread.
+     * Loads [q] into the player: the playing song at once (playback starts, the first frame isn't held up),
+     * the rest in chunks of 6 on the following frames. Building a few hundred MediaItems in one go took ~250 ms on the main thread.
      */
     private fun load(startPos: Long) {
         finishFill()
         val items = q.items; val i = q.index
-        val from = (i - 1).coerceAtLeast(0); val to = minOf(i + 3, items.lastIndex)
+        val from = i; val to = i // just the song to play: every extra item cost ~1.5 ms inside the tap
         player.setMediaItems(mediaItems(items.subList(from, to + 1)), i - from, startPos)
-        val after = ArrayDeque(items.subList(to + 1, items.size).chunked(12))
-        val before = ArrayDeque(items.subList(0, from).chunked(12).reversed()) // nearest the window first
+        val after = ArrayDeque(items.subList(to + 1, items.size).chunked(6))
+        val before = ArrayDeque(items.subList(0, from).chunked(6).reversed()) // nearest the window first
         if (after.isEmpty() && before.isEmpty()) return
         fill = {
             if (after.isNotEmpty()) player.addMediaItems(mediaItems(after.removeFirst()))

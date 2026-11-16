@@ -120,7 +120,8 @@ fun Shell() {
     }
     val exp = remember { Animatable(0f) }
     val scope = rememberCoroutineScope()
-    val hasPlayer = Audio.q.items.isNotEmpty()
+    // derived: a queue edit must not recompose the whole shell, only a real "there is / isn't a player" flip
+    val hasPlayer by remember { derivedStateOf { Audio.q.items.isNotEmpty() } }
     // restored while playing: open the full player once
     LaunchedEffect(Unit) { if (Audio.restoredWasPlaying && Audio.q.items.isNotEmpty()) exp.animateTo(1f, tween(450)) }
     BackHandler(exp.value > 0.5f) { scope.launch { exp.animateTo(0f, tween(300)) } }

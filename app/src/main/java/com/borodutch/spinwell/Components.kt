@@ -224,7 +224,8 @@ fun SongRow(
     song: Song, modifier: Modifier = Modifier, number: Int? = null, showCover: Boolean = false, subtitle: String? = null,
     queue: List<Song>? = null, index: Int = 0, ctx: Ctx? = null, onClick: (() -> Unit)? = null, showAlbum: Boolean = true,
 ) {
-    val playing = Audio.q.current?.song?.id == song.id
+    // derived, so a queue change recomposes only the rows whose "is playing" flips, not every visible row
+    val playing by remember(song.id) { derivedStateOf { Audio.q.current?.song?.id == song.id } }
     val locked = Net.offline && !Downloads.has(song.id)
     var menu by remember { mutableStateOf(false) }
     val click = onClick ?: { if (queue != null && ctx != null) Audio.play(queue, index, ctx) else Audio.play(listOf(song), 0, Ctx("song", song.id, song.title)) }

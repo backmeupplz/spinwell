@@ -50,7 +50,12 @@ private fun Modifier.scaledBox(width: () -> Float, scale: () -> Float) = layout 
 
 @Composable
 fun BoxScope.PlayerSheet(exp: Animatable<Float, AnimationVector1D>, barH: Dp, miniH: Dp, statusTop: Dp, navBottom: Dp) {
-    val cur = Audio.q.current ?: return
+    // everything below reads these derived values, so queue edits (index, added items, persist) don't recompose the whole sheet
+    val curState = remember { derivedStateOf { Audio.q.current } }
+    val ctxName by remember { derivedStateOf { Audio.q.ctx.name } }
+    val shuffleOn by remember { derivedStateOf { Audio.q.shuffle } }
+    val repeatMode by remember { derivedStateOf { Audio.q.repeat } }
+    val cur = curState.value ?: return
     val song = cur.song
     val scope = rememberCoroutineScope()
     val d = LocalDensity.current
@@ -209,7 +214,7 @@ fun BoxScope.PlayerSheet(exp: Animatable<Float, AnimationVector1D>, barH: Dp, mi
                     IconBtn(Ic.Down, "Minimize player") { collapse() }
                     Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("PLAYING FROM", fontSize = 10.sp, color = Muted, letterSpacing = 1.sp)
-                        Text(Audio.q.ctx.name.ifBlank { song.album }, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.labelLarge)
+                        Text(ctxName.ifBlank { song.album }, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.labelLarge)
                     }
                     var menu by remember { mutableStateOf(false) }
                     Box {
@@ -234,11 +239,11 @@ fun BoxScope.PlayerSheet(exp: Animatable<Float, AnimationVector1D>, barH: Dp, mi
                     Modifier.offset { IntOffset(0, (controlsY1 - px(32.dp)).roundToInt()) }.fillMaxWidth().height(64.dp).padding(horizontal = 20.dp),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    ToggleBtn(Ic.Shuffle, "Shuffle", Audio.q.shuffle) { Audio.toggleShuffle() }
+                    ToggleBtn(Ic.Shuffle, "Shuffle", shuffleOn) { Audio.toggleShuffle() }
                     IconBtn(Ic.Prev, "Previous", size = 56.dp, glyph = 36.dp) { Audio.prev() }
                     Spacer(Modifier.size(72.dp))
                     IconBtn(Ic.Next, "Next", size = 56.dp, glyph = 36.dp) { Audio.next() }
-                    ToggleBtn(if (Audio.q.repeat == 2) Ic.RepeatOne else Ic.Repeat, when (Audio.q.repeat) { 1 -> "Repeat all"; 2 -> "Repeat one"; else -> "Repeat off" }, Audio.q.repeat > 0) { Audio.cycleRepeat() }
+                    ToggleBtn(if (repeatMode == 2) Ic.RepeatOne else Ic.Repeat, when (repeatMode) { 1 -> "Repeat all"; 2 -> "Repeat one"; else -> "Repeat off" }, repeatMode > 0) { Audio.cycleRepeat() }
                 }
                 // quality, lyrics, up next, output
                 Row(

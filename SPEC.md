@@ -192,8 +192,8 @@ on every screen. Settings open from a gear on Home.
   saved on every change, independently of the queue, so they survive relaunches and an emptied queue. Android: the lock screen /
   notification / Auto session carries shuffle and repeat buttons in the app's state (media3 custom commands), and a controller
   changing repeat is mirrored into the app. iOS: `MPRemoteCommandCenter` shuffle/repeat commands mirror the same state.
-- **Starting playback is cheap:** the player gets the current song and its neighbours at once and the rest of the queue in
-  chunks on the following frames (building hundreds of items in one go stalled the main thread for ~250 ms); queue JSON is written off the
+- **Starting playback is cheap:** the player gets just the song to play at once and the rest of the queue in
+  chunks of 6 on the following frames (building a 60-song queue in the tap handler held the first frame for ~70 ms on the OnePlus 8, ~250 ms in a debug build; it is now ~12 ms there); queue JSON is written off the
   main thread; the cover (600 and 1200 px) and its color are prefetched when a song is pressed.
 - Previous: restarts the song if more than 3 s in, else goes back.
 - **Restore on launch:** persist queue + index + position (every 5 s while playing, and on pause/background/track change)
