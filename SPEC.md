@@ -1,22 +1,22 @@
-# Navi+ spec
+# Spinwell spec
 
-Navi+ (working name) is a small, fast, beautiful Navidrome / OpenSubsonic player, native on both phones:
+Spinwell is a small, fast, beautiful Navidrome / OpenSubsonic player, native on both phones:
 Android at the repo root (`app/`, Kotlin, Jetpack Compose + Material 3, media3) and iPhone in `ios/` (SwiftUI, AVFoundation).
 Both apps follow this document; when a platform has to differ, it says so here. Sister app: ABS+ (`~/code/absplus`),
 whose project layout, cover cache and download design we reuse.
 
-- Android: package `com.borodutch.naviplus`, minSdk 29, target/compile 36, AGP/Gradle versions as ABS+. Dependencies:
+- Android: package `com.borodutch.spinwell`, minSdk 29, target/compile 36, AGP/Gradle versions as ABS+. Dependencies:
   Compose BOM + material3 + activity-compose + navigation-compose (or hand-rolled nav), media3-exoplayer +
   media3-session. Nothing else (no Coil, no Retrofit, no Room, no kotlinx-serialization: `org.json` + `HttpURLConnection`
   are enough). R8 on for release.
-- iOS: bundle `com.borodutch.naviplus`, team `ACWP4F58HZ`, iOS 26.1+, iPhone only, Swift 5 mode, no packages.
+- iOS: bundle `com.borodutch.spinwell`, team `ACWP4F58HZ`, iOS 26.1+, iPhone only, Swift 5 mode, no packages.
   Project file like ABS+ (`PBXFileSystemSynchronizedRootGroup`, so new files need no pbxproj edits). Info.plist:
   `UIBackgroundModes = [audio]`, `NSAllowsArbitraryLoads = true` (home servers are often plain http on the LAN).
 - English only for now. Dark theme only (music app; art carries the color).
 
 ## Server API (OpenSubsonic, tested against Navidrome 0.64.2)
 
-- Base `<server>/rest/<method>?u=<user>&t=<md5(password+salt)>&s=<salt>&v=1.16.1&c=NaviPlus&f=json`.
+- Base `<server>/rest/<method>?u=<user>&t=<md5(password+salt)>&s=<salt>&v=1.16.1&c=Spinwell&f=json`.
   At sign-in, generate a random salt, compute the token, call `ping`, and store server + user + token + salt
   (never the password). iOS: Keychain. Android: app-private SharedPreferences.
 - Server URL normalization: trim spaces and trailing `/`, add `https://` when no scheme is given.

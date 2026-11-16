@@ -1,6 +1,6 @@
-# Navi+
+# Spinwell
 
-Navi+ is a small, fast player for your own [Navidrome](https://www.navidrome.org) (or any OpenSubsonic) server, native on Android and iPhone. Browse artists, albums, playlists and favorites, download music for offline listening, and pick up exactly where you left off. Free and open source, no ads, no analytics. It's an independent app, not affiliated with the Navidrome project.
+Spinwell is a small, fast player for your own [Navidrome](https://www.navidrome.org) (or any OpenSubsonic) server, native on Android and iPhone. Browse artists, albums, playlists and favorites, download music for offline listening, and pick up exactly where you left off. Free and open source, no ads, no analytics. It's an independent app, not affiliated with the Navidrome project.
 
 What the apps do and how they behave is in [SPEC.md](SPEC.md).
 
@@ -8,7 +8,7 @@ What the apps do and how they behave is in [SPEC.md](SPEC.md).
 
 Android (JDK 21 + Android SDK): `./gradlew testDebugUnitTest assembleDebug`
 
-iPhone (Xcode 27): `xcodebuild -project ios/NaviPlus.xcodeproj -scheme NaviPlus -destination 'generic/platform=iOS Simulator' build`
+iPhone (Xcode 27): `xcodebuild -project ios/Spinwell.xcodeproj -scheme Spinwell -destination 'generic/platform=iOS Simulator' build`
 
 ## Test server
 
