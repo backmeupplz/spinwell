@@ -67,7 +67,7 @@ fun HomeScreen() {
                     Pill("Favorites", Ic.Heart, false, Modifier.weight(1f)) { Nav.libraryTab = 4; Nav.go(Route.Library) }
                 }
             }
-            if (!any && have.isEmpty() && offline) item { Empty("Offline. Open Downloads to play what you saved.") }
+            if (!any && have.isEmpty() && offline) item { Empty("Offline. Open Downloads to play what you saved.", icon = Ic.CloudOff) }
             if (have.isNotEmpty()) item(key = "shelf-downloaded") { Shelf("Downloaded albums", have, "home-dl") }
             states.forEachIndexed { i, st ->
                 val list = st.value.orEmpty()
@@ -147,7 +147,7 @@ fun CollectionScreen(id: String, playlist: Boolean, share: String, routeCover: S
             item {
                 PlayShuffle(songs, ctx) {
                     if (c != null) {
-                        DownloadButton(c)
+                        DownloadButton(c.kind, c.id, c.name, c.coverArt, c.songs)
                         if (!playlist) Heart(Fav.on(id, c.starred), size = 44.dp) { Fav.toggle(id, c.starred, "albumId") }
                         var menu by remember { mutableStateOf(false) }
                         Box {
@@ -198,15 +198,30 @@ fun RepeatMenuItem(kind: String, id: String, songs: List<Song>, ctx: Ctx, dismis
 
 fun stripHtml(s: String) = s.replace(Regex("<[^>]*>"), "").replace("&amp;", "&").replace("&quot;", "\"").replace("&#39;", "'").trim()
 
+/**
+ * Download for an album, playlist or artist: arrow, ring while its songs arrive, check when all are saved.
+ * Tapping it once saved (or downloading) offers Remove download. [load] fetches the songs when they aren't in hand (an artist's).
+ */
 @Composable
-fun DownloadButton(c: Coll) {
-    val pin = Downloads.pinnedOf(c.kind, c.id)
-    val p = Downloads.progress(c.songs)
-    val busy = pin != null && p < 1f && c.songs.any { s -> Downloads.queue.any { it.id == s.id } }
+fun DownloadButton(kind: String, id: String, name: String, cover: String, songs: List<Song>, load: (suspend () -> List<Song>)? = null) {
+    val pin = Downloads.pinnedOf(kind, id)
+    val have = if (pin != null) pin.songIds.mapNotNull { Downloads.done[it]?.song ?: Downloads.queue.firstOrNull { q -> q.id == it } } else songs
+    val p = Downloads.progress(have)
+    val busy = pin != null && p < 1f && have.any { s -> Downloads.queue.any { it.id == s.id } }
+    var menu by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
     Box(Modifier.size(44.dp), contentAlignment = Alignment.Center) {
         if (busy) CircularProgressIndicator({ p.coerceAtLeast(0.03f) }, Modifier.size(28.dp), Accent, strokeWidth = 2.5.dp)
-        IconBtn(if (pin != null && p >= 1f) Ic.DownloadDone else Ic.Download, if (pin != null) "Remove download" else "Download", tint = if (pin != null) Accent else LocalContentColor.current, size = 44.dp, glyph = if (busy) 16.dp else 22.dp) {
-            if (pin != null) Downloads.removeContainer(pin) else if (c.songs.isNotEmpty()) Downloads.add(c.songs, Pinned(c.kind, c.id, c.name, c.coverArt, c.songs.map { it.id }))
+        IconBtn(if (pin != null && p >= 1f) Ic.DownloadDone else Ic.Download, if (pin != null) "Downloaded, tap to remove" else "Download", tint = if (pin != null) Accent else LocalContentColor.current, size = 44.dp, glyph = if (busy) 16.dp else 22.dp) {
+            if (pin != null) menu = true
+            else if (!Net.offline) scope.launch {
+                val l = if (songs.isNotEmpty() || load == null) songs else load()
+                if (l.isNotEmpty()) Downloads.add(l, Pinned(kind, id, name, cover, l.map { it.id }))
+            }
+        }
+        DropdownMenu(menu, { menu = false }, containerColor = Surface2) {
+            val bytes = have.sumOf { Downloads.done[it.id]?.bytes ?: 0L }
+            DropdownMenuItem({ Text(if (busy) "Cancel download" else "Remove download" + if (bytes > 0) " · ${fmtBytes(bytes)}" else "") }, { menu = false; pin?.let { Downloads.removeContainer(it) } })
         }
     }
 }
@@ -242,12 +257,7 @@ fun ArtistScreen(id: String, share: String) {
     val songsShown = if (offline) mine else top
     val shown = if (allTop) songsShown else songsShown.take(5)
 
-    suspend fun allSongs(): List<Song> = if (offline) mine else withContext(Dispatchers.IO) {
-        albums.flatMap { al ->
-            (Api.cached("getAlbum", mapOf("id" to al.id)) ?: runCatching { Api.call("getAlbum", mapOf("id" to al.id)) }.getOrNull())
-                ?.optJSONObject("album")?.let { Album.of(it).songs }.orEmpty()
-        }.filter { Audio.playable(it) }
-    }
+    suspend fun allSongs(): List<Song> = if (offline) mine else withContext(Dispatchers.IO) { allArtistSongs(albums).filter { Audio.playable(it) } }
 
     val list = rememberLazyListState()
     Box(Modifier.fillMaxSize()) {
@@ -263,6 +273,7 @@ fun ArtistScreen(id: String, share: String) {
                 PlayShuffle({ scope.launch { val l = if (!offline && top.isNotEmpty()) top else allSongs(); if (l.isNotEmpty()) Audio.play(l, 0, ctx) } },
                     { scope.launch { val l = allSongs(); if (l.isNotEmpty()) Audio.shuffleAll(l, ctx) } }) {
                     var menu by remember { mutableStateOf(false) }
+                    if (a != null && !(offline && mine.isEmpty())) DownloadButton("artist", id, name, fallback.orEmpty(), emptyList(), load = { withContext(Dispatchers.IO) { allArtistSongs(albums) } })
                     if (a != null) Heart(Fav.on(id, a.starred), size = 44.dp) { Fav.toggle(id, a.starred, "artistId") }
                     Box {
                         IconBtn(Ic.More, "More", size = 44.dp) { menu = true }
@@ -301,6 +312,12 @@ fun ArtistScreen(id: String, share: String) {
         StatusScrim(Modifier.align(Alignment.TopCenter), LocalTop.current, visible = { list.firstVisibleItemIndex > 0 || list.firstVisibleItemScrollOffset > 300 })
         BackButton(Modifier.padding(top = LocalTop.current))
     }
+}
+
+/** every song on [albums]: the cached album pages first, the network for the ones not seen yet */
+fun allArtistSongs(albums: List<Album>): List<Song> = albums.flatMap { al ->
+    (Api.cached("getAlbum", mapOf("id" to al.id)) ?: runCatching { Api.call("getAlbum", mapOf("id" to al.id)) }.getOrNull())
+        ?.optJSONObject("album")?.let { Album.of(it).songs }.orEmpty()
 }
 
 @Composable

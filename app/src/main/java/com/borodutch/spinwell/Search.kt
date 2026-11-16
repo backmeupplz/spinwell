@@ -120,7 +120,7 @@ fun SearchScreen() {
         val f = s.found
         LazyColumn(Modifier.fillMaxSize().nestedScroll(hideKeys), contentPadding = PaddingValues(bottom = LocalBottom.current + 16.dp)) {
             if (q.isEmpty()) {
-                if (s.recents.isEmpty()) item { Empty("Find anything in your library.") }
+                if (s.recents.isEmpty()) item { Empty("Find anything in your library.", icon = Ic.Search) }
                 else {
                     item { SectionTitle("Recent searches") { TextButton({ s.clear() }) { Text("Clear", color = Accent) } } }
                     items(s.recents.size, key = { "r-${s.recents[it]}" }) { i ->
@@ -141,7 +141,7 @@ fun SearchScreen() {
 }
 
 private fun androidx.compose.foundation.lazy.LazyListScope.results(f: Found, q: String) {
-    if (f.empty) { item { Empty("Nothing found for “$q”.") }; return }
+    if (f.empty) { item { Empty("Nothing found for “$q”.", icon = Ic.Search) }; return }
     val ctx = Ctx("search", q, "Search: $q")
     topResult(q, f)?.let { top ->
         item(key = "top") {

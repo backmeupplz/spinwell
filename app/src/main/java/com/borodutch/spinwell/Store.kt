@@ -80,7 +80,9 @@ object Store {
 
     /** the signed-in account's private directories */
     val owner get() = session?.owner ?: "none"
-    fun dir(name: String) = File(app.filesDir, "$name/$owner").apply { mkdirs() }
+    private val dirs = HashMap<String, File>()
+    fun dir(name: String): File = synchronized(dirs) { dirs.getOrPut("$name/$owner") { File(app.filesDir, "$name/$owner").apply { mkdirs() } } }
+        .also { if (!it.exists()) it.mkdirs() } // cleared behind our back (Clear cache): make it again
 
     suspend fun signIn(serverIn: String, user: String, password: String) {
         val server = normalizeServer(serverIn)

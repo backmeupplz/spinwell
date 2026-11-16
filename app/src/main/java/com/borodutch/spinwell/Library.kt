@@ -74,7 +74,7 @@ private fun ArtistsTab() {
                 item(key = "h-$letter") { Text(letter, color = if (letter == NOT_DOWNLOADED) Muted else Accent, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(start = 16.dp, top = 10.dp, bottom = 0.dp)) }
                 items(artists, key = { it.id }) { ArtistRow(it, "lib", dim = offline && letter == NOT_DOWNLOADED) }
             }
-            if (groups.isEmpty()) item { Empty(if (st.loading) "Loading…" else if (offline) "No downloaded artists yet." else "No artists.") }
+            if (groups.isEmpty()) item { Empty(if (st.loading) "Loading…" else if (offline) "No downloaded artists yet." else "No artists.", icon = if (offline) Ic.CloudOff else Ic.Library) }
         }
         val letters = groups.map { it.first }.filter { it.length == 1 }
         if (letters.size > 1) LetterRail(letters, Modifier.align(Alignment.CenterEnd).padding(vertical = 24.dp)) { l ->
@@ -113,7 +113,7 @@ private fun AlbumsTab() {
             }
             if (offline && downloaded > 0) Text("Downloaded first", color = Muted, style = MaterialTheme.typography.bodySmall)
         }
-        LazyVerticalGrid(GridCells.Adaptive(112.dp), Modifier.fillMaxSize(), grid, contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = LocalBottom.current + 16.dp),
+        LazyVerticalGrid(GridCells.Adaptive(104.dp), Modifier.fillMaxSize(), grid, contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = LocalBottom.current + 16.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             itemsIndexed(shown, key = { _, a -> a.id }) { _, a -> AlbumCard(a, "lib", Modifier.fillMaxWidth()) { Nav.push(Route.Album(a.id, "lib", a.coverArt)) } }
             if (shown.isEmpty()) item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) { Empty(if (offline) "No downloaded albums yet." else "Loading…") }
@@ -144,7 +144,7 @@ private fun PlaylistsTab() {
                 Nav.push(Route.Playlist(p.id, "lib", p.coverArt))
             }
         }
-        if (list.isEmpty()) item { Empty(if (st.loading) "Loading…" else if (offline) "No downloaded playlists yet." else "No playlists yet.") }
+        if (list.isEmpty()) item { Empty(if (st.loading) "Loading…" else if (offline) "No downloaded playlists yet." else "No playlists yet.", icon = if (offline) Ic.CloudOff else Ic.Queue) }
     }
 }
 
@@ -161,7 +161,7 @@ private fun SongsTab() {
     LazyColumn(Modifier.fillMaxSize(), state, contentPadding = PaddingValues(bottom = LocalBottom.current + 16.dp)) {
         if (songs.isNotEmpty()) item(key = "ps") { PlayShuffle(songs, ctx) }
         itemsIndexed(songs, key = { i, s -> "$i-${s.id}" }) { i, s -> SongRow(s, showCover = true, queue = songs, index = i, ctx = ctx) }
-        if (songs.isEmpty()) item { Empty(if (offline) "No downloaded songs yet." else "Loading…") }
+        if (songs.isEmpty()) item { Empty(if (offline) "No downloaded songs yet." else "Loading…", icon = if (offline) Ic.CloudOff else Ic.Note) }
     }
 }
 
@@ -187,6 +187,6 @@ private fun FavoritesTab() {
             item { PlayShuffle(songs, ctx) }
             itemsIndexed(songs, key = { i, s -> "$i-${s.id}" }) { i, s -> SongRow(s, showCover = true, queue = songs, index = i, ctx = ctx) }
         }
-        if (artists.isEmpty() && albums.isEmpty() && songs.isEmpty()) item { Empty(if (st.loading) "Loading…" else "Tap the heart on anything to find it here.") }
+        if (artists.isEmpty() && albums.isEmpty() && songs.isEmpty()) item { Empty(if (st.loading) "Loading…" else "Tap the heart on anything to find it here.", icon = Ic.Heart) }
     }
 }

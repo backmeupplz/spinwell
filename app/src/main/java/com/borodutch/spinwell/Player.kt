@@ -211,7 +211,11 @@ fun BoxScope.PlayerSheet(exp: Animatable<Float, AnimationVector1D>, barH: Dp, mi
                         Text("PLAYING FROM", fontSize = 10.sp, color = Muted, letterSpacing = 1.sp)
                         Text(Audio.q.ctx.name.ifBlank { song.album }, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.labelLarge)
                     }
-                    Spacer(Modifier.size(48.dp))
+                    var menu by remember { mutableStateOf(false) }
+                    Box {
+                        IconBtn(Ic.More, "More") { menu = true }
+                        SongMenu(song, menu, onNavigate = { collapse() }) { menu = false }
+                    }
                 }
                 // favorite beside the title
                 Heart(Fav.on(song.id, song.starred), Modifier.offset { IntOffset((W - sidePad - px(48.dp)).roundToInt(), (titleY1 - px(8.dp)).roundToInt()) }) { Fav.toggle(song.id, song.starred) }

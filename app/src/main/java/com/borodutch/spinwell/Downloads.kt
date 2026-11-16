@@ -44,6 +44,8 @@ object Downloads {
     private fun index() = File(dir(), "downloads.json")
 
     fun has(id: String) = done.containsKey(id)
+    /** the downloaded file without touching the disk (load() already dropped entries whose file is gone) */
+    fun path(id: String): File? = done[id]?.let { File(dir(), "$id.${it.ext}") }
     fun file(id: String): File? = done[id]?.let { File(dir(), "$id.${it.ext}") }?.takeIf { it.isFile }
     fun totalBytes() = done.values.sumOf { it.bytes }
     fun pinnedOf(kind: String, id: String) = pinned.firstOrNull { it.kind == kind && it.id == id }

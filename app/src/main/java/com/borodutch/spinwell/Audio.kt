@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.view.Choreographer
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import androidx.media3.session.CommandButton
@@ -94,21 +95,22 @@ object Audio {
     fun ensureService(ctx: Context = Store.app) { runCatching { ctx.startService(Intent(ctx, PlayerService::class.java)) } }
 
     // ---- items ----
-    private fun artUri(s: Song): Uri? {
+    /** one lookup per cover id per batch: a 60-song album has one cover, not 60 x 4 file checks */
+    private fun artUri(s: Song, memo: MutableMap<String, Uri?>): Uri? {
         if (s.coverArt.isEmpty()) return null
-        for (px in intArrayOf(600, 1200, 300, 150)) {
-            val f = File(Store.app.cacheDir, "covers/${Store.owner}/${s.coverArt}_$px")
-            if (f.length() > 0) return Uri.fromFile(f)
+        return memo.getOrPut(s.coverArt) {
+            val dir = File(Store.app.cacheDir, "covers/${Store.owner}")
+            listOf(600, 1200, 300, 150).firstNotNullOfOrNull { px -> File(dir, "${s.coverArt}_$px").takeIf { it.length() > 0 } }?.let { Uri.fromFile(it) }
+                ?: Uri.parse(Store.session!!.cover(s.coverArt, 600))
         }
-        return Uri.parse(Store.session!!.cover(s.coverArt, 600))
     }
 
-    private fun mediaItem(i: QItem): MediaItem {
+    private fun mediaItem(i: QItem, memo: MutableMap<String, Uri?> = HashMap()): MediaItem {
         val s = i.song
-        val local = Downloads.file(s.id)
+        val local = Downloads.path(s.id)
         val uri = if (local != null) Uri.fromFile(local) else Uri.parse(Store.session!!.stream(s.id, Settings.streamKbps()))
         return MediaItem.Builder().setMediaId(i.key.toString()).setUri(uri).setMediaMetadata(
-            MediaMetadata.Builder().setTitle(s.title).setArtist(s.artist).setAlbumTitle(s.album).setArtworkUri(artUri(s))
+            MediaMetadata.Builder().setTitle(s.title).setArtist(s.artist).setAlbumTitle(s.album).setArtworkUri(artUri(s, memo))
                 .setTrackNumber(s.track.takeIf { it > 0 }).setIsPlayable(true).setIsBrowsable(false).build()
         ).build()
     }
@@ -134,17 +136,48 @@ object Audio {
         val idx = chosen?.let { c -> list.indexOfFirst { it.id == c.id }.coerceAtLeast(0) } ?: 0
         val repeat = q.repeat
         q = QueueState.start(list, idx, ctx, shuffle, System.nanoTime()).copy(repeat = repeat)
-        player.setMediaItems(q.items.map(::mediaItem), q.index, 0L)
+        load(0L)
         player.repeatMode = repeatMode()
         player.prepare(); player.play()
         ensureService()
         persist()
+        // the player sheet will want the big cover and its color: start that now, not when it first draws
+        q.current?.song?.coverArt?.takeIf { it.isNotEmpty() }?.let { c -> Store.scope.launch(Dispatchers.IO) { Covers.load(c, 600); Covers.load(c, 1200) } }
+    }
+
+    // ---- putting the queue into ExoPlayer without a hitch ----
+    private fun mediaItems(l: List<QItem>): List<MediaItem> { val memo = HashMap<String, Uri?>(); return l.map { mediaItem(it, memo) } }
+    private var fill: (() -> Boolean)? = null
+    private val fillFrame = Choreographer.FrameCallback { stepFill() }
+    private fun stepFill() { val f = fill ?: return; if (f()) Choreographer.getInstance().postFrameCallback(fillFrame) else fill = null }
+    /** edits to the queue need the player to hold all of it first */
+    private fun finishFill() { while (true) { val f = fill ?: return; if (!f()) fill = null } }
+
+    /**
+     * Loads [q] into the player: the playing song and its neighbours at once (playback starts, the first frame isn't held up),
+     * the rest in chunks of 12 on the following frames. Building a few hundred MediaItems in one go took ~250 ms on the main thread.
+     */
+    private fun load(startPos: Long) {
+        finishFill()
+        val items = q.items; val i = q.index
+        val from = (i - 1).coerceAtLeast(0); val to = minOf(i + 3, items.lastIndex)
+        player.setMediaItems(mediaItems(items.subList(from, to + 1)), i - from, startPos)
+        val after = ArrayDeque(items.subList(to + 1, items.size).chunked(12))
+        val before = ArrayDeque(items.subList(0, from).chunked(12).reversed()) // nearest the window first
+        if (after.isEmpty() && before.isEmpty()) return
+        fill = {
+            if (after.isNotEmpty()) player.addMediaItems(mediaItems(after.removeFirst()))
+            else if (before.isNotEmpty()) player.addMediaItems(0, mediaItems(before.removeFirst()))
+            after.isNotEmpty() || before.isNotEmpty()
+        }
+        Choreographer.getInstance().postFrameCallback(fillFrame)
     }
 
     fun shuffleAll(songs: List<Song>, ctx: Ctx) = play(songs, 0, ctx, shuffle = true)
 
     // ---- queue edits ----
     fun playNext(s: Song) {
+        finishFill()
         if (q.items.isEmpty()) return play(listOf(s), 0, Ctx("song", s.id, s.title))
         val key = Keys.next(); val at = q.index + 1
         q = q.playNext(s, key)
@@ -152,6 +185,7 @@ object Audio {
     }
 
     fun addToQueue(s: Song) {
+        finishFill()
         if (q.items.isEmpty()) return play(listOf(s), 0, Ctx("song", s.id, s.title))
         val at = q.index + 1 + q.nextRun.size
         q = q.addToQueue(s, Keys.next())
@@ -159,14 +193,16 @@ object Audio {
     }
 
     fun jump(i: Int) {
+        finishFill()
         if (i !in q.items.indices) return
         q = q.copy(index = i)
         player.seekTo(i, 0); player.play(); persist()
     }
 
-    fun removeAt(i: Int) { if (i in q.items.indices) { q = q.remove(i); player.removeMediaItem(i); persist() } }
-    fun move(from: Int, to: Int) { if (from != to) { q = q.move(from, to); player.moveMediaItem(from, to); persist() } }
+    fun removeAt(i: Int) { finishFill(); if (i in q.items.indices) { q = q.remove(i); player.removeMediaItem(i); persist() } }
+    fun move(from: Int, to: Int) { finishFill(); if (from != to) { q = q.move(from, to); player.moveMediaItem(from, to); persist() } }
     fun clearNext() {
+        finishFill()
         val n = q.nextRun.size
         if (n == 0) return
         val at = q.index + 1
@@ -174,6 +210,7 @@ object Audio {
     }
 
     fun toggleShuffle() {
+        finishFill()
         if (q.items.isEmpty()) { q = q.copy(shuffle = !q.shuffle); persist(); return }
         val old = q
         val n = old.withShuffle(!old.shuffle, System.nanoTime())
@@ -212,16 +249,27 @@ object Audio {
 
     // ---- persistence ----
     fun persist() {
-        Store.p.edit().putInt("repeat", q.repeat).putBoolean("shuffle", q.shuffle).apply()
+        val snap = q // immutable: serialised off the main thread (hundreds of songs of JSON), written in order
+        Store.p.edit().putInt("repeat", snap.repeat).putBoolean("shuffle", snap.shuffle).apply()
         updateButtons()
-        if (q.items.isNotEmpty()) Store.p.edit().putString("queue", q.toJson().toString()).apply() else Store.p.edit().remove("queue").apply()
+        writer.execute {
+            if (Store.session == null) return@execute
+            val e = Store.p.edit()
+            if (snap.items.isNotEmpty()) e.putString("queue", snap.toJson().toString()) else e.remove("queue")
+            e.apply()
+        }
     }
+    private val writer = java.util.concurrent.Executors.newSingleThreadExecutor()
 
     // ---- lock screen / notification buttons: shuffle and repeat, in the state the app shows ----
     val cmdShuffle = SessionCommand("shuffle", Bundle.EMPTY)
     val cmdRepeat = SessionCommand("repeat", Bundle.EMPTY)
     var session: MediaSession? = null
-    fun updateButtons() {
+    private var buttonsFor = -1
+    fun updateButtons(force: Boolean = false) {
+        val now = q.repeat * 2 + if (q.shuffle) 1 else 0
+        if (now == buttonsFor && !force) return
+        buttonsFor = now
         session?.setMediaButtonPreferences(listOf(
             CommandButton.Builder(if (q.shuffle) CommandButton.ICON_SHUFFLE_ON else CommandButton.ICON_SHUFFLE_OFF)
                 .setDisplayName("Shuffle").setSessionCommand(cmdShuffle).setSlots(CommandButton.SLOT_BACK).build(),
@@ -240,7 +288,7 @@ object Audio {
         val saved = runCatching { QueueState.of(JSONObject(j)) }.getOrNull() ?: return
         if (saved.items.isEmpty()) return
         q = saved.copy(index = saved.index.coerceIn(saved.items.indices))
-        player.setMediaItems(q.items.map(::mediaItem), q.index, Store.p.getLong("pos", 0))
+        load(Store.p.getLong("pos", 0))
         player.repeatMode = repeatMode()
         player.prepare()
         restoredWasPlaying = Store.p.getBoolean("wasPlaying", false)
@@ -287,7 +335,7 @@ class PlayerService : MediaSessionService() {
             })
             .build()
         Audio.session = session
-        Audio.updateButtons()
+        Audio.updateButtons(force = true)
     }
 
     override fun onGetSession(info: MediaSession.ControllerInfo) = session

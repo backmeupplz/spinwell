@@ -212,6 +212,13 @@ fun ArtistChip(a: Artist, onClick: () -> Unit) = Column(Modifier.width(88.dp).pr
     Text(a.name, style = MaterialTheme.typography.labelMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
 }
 
+/** download a song, or remove it when it's already saved (swipe action, menu) */
+fun toggleSongDownload(song: Song) {
+    if (Downloads.has(song.id) || Downloads.queue.any { it.id == song.id }) Downloads.removeSong(song.id)
+    else if (!Net.offline) Downloads.add(listOf(song))
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SongRow(
     song: Song, modifier: Modifier = Modifier, number: Int? = null, showCover: Boolean = false, subtitle: String? = null,
@@ -221,8 +228,25 @@ fun SongRow(
     val locked = Net.offline && !Downloads.has(song.id)
     var menu by remember { mutableStateOf(false) }
     val click = onClick ?: { if (queue != null && ctx != null) Audio.play(queue, index, ctx) else Audio.play(listOf(song), 0, Ctx("song", song.id, song.title)) }
+    val haptic = LocalHapticFeedback.current
+    val saved = Downloads.has(song.id) || Downloads.queue.any { it.id == song.id }
+    // swipe left to download (or remove); the row springs back, its download state icon shows what happened
+    val swipe = rememberSwipeToDismissBoxState(confirmValueChange = { v ->
+        if (v == SwipeToDismissBoxValue.EndToStart) { haptic.performHapticFeedback(HapticFeedbackType.LongPress); toggleSongDownload(song) }
+        false
+    })
+    SwipeToDismissBox(
+        swipe, modifier = modifier, enableDismissFromStartToEnd = false, enableDismissFromEndToStart = !locked || saved,
+        backgroundContent = {
+            Row(Modifier.fillMaxSize().background(Accent.copy(alpha = 0.18f)).padding(end = 20.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.End) {
+                Text(if (saved) "Remove download" else "Download", color = Accent, style = MaterialTheme.typography.labelLarge)
+                Spacer(Modifier.width(8.dp))
+                Icon(if (saved) Ic.Delete else Ic.Download, null, Modifier.size(20.dp), Accent)
+            }
+        },
+    ) {
     Row(
-        modifier.fillMaxWidth().alpha(if (locked) 0.4f else 1f).press(!locked, onLong = { menu = true }, onClick = click).padding(start = 16.dp, end = 4.dp).heightIn(min = 56.dp),
+        Modifier.fillMaxWidth().background(Bg).alpha(if (locked) 0.4f else 1f).press(!locked, onLong = { menu = true }, onClick = click).padding(start = 16.dp, end = 4.dp).heightIn(min = 56.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (showCover) { CoverArt(song.coverArt, 150, Modifier.size(40.dp), 6.dp); Spacer(Modifier.width(12.dp)) }
@@ -243,10 +267,11 @@ fun SongRow(
             SongMenu(song, menu) { menu = false }
         }
     }
+    }
 }
 
 @Composable
-fun SongMenu(song: Song, show: Boolean, onDismiss: () -> Unit) {
+fun SongMenu(song: Song, show: Boolean, onNavigate: () -> Unit = {}, onDismiss: () -> Unit) {
     var info by remember { mutableStateOf(false) }
     val starred = Fav.on(song.id, song.starred)
     val dl = Downloads.has(song.id) || Downloads.queue.any { it.id == song.id }
@@ -254,10 +279,10 @@ fun SongMenu(song: Song, show: Boolean, onDismiss: () -> Unit) {
         @Composable fun item(t: String, f: () -> Unit) = DropdownMenuItem({ Text(t) }, onClick = { onDismiss(); f() })
         item("Play next") { Audio.playNext(song) }
         item("Add to queue") { Audio.addToQueue(song) }
-        if (song.albumId.isNotEmpty()) item("Go to album") { Nav.push(Route.Album(song.albumId, "song", song.coverArt)) }
-        if (song.artistId.isNotEmpty()) item("Go to artist") { Nav.push(Route.Artist(song.artistId, "song")) }
+        item(if (dl) "Remove download" else "Download") { toggleSongDownload(song) }
         item(if (starred) "Unfavorite" else "Favorite") { Fav.toggle(song.id, song.starred) }
-        item(if (dl) "Remove download" else "Download") { if (dl) Downloads.removeSong(song.id) else Downloads.add(listOf(song)) }
+        if (song.albumId.isNotEmpty()) item("Go to album") { onNavigate(); Nav.push(Route.Album(song.albumId, "song", song.coverArt)) }
+        if (song.artistId.isNotEmpty()) item("Go to artist") { onNavigate(); Nav.push(Route.Artist(song.artistId, "song")) }
         item("Song info") { info = true }
     }
     if (info) AlertDialog(
@@ -301,8 +326,14 @@ fun Badge(text: String, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun Empty(text: String, modifier: Modifier = Modifier) =
-    Box(modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) { Text(text, color = Muted, style = MaterialTheme.typography.bodyMedium) }
+fun Empty(text: String, modifier: Modifier = Modifier, icon: ImageVector? = Ic.Note) =
+    Column(modifier.fillMaxWidth().padding(horizontal = 32.dp, vertical = 28.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        if (icon != null) {
+            Box(Modifier.size(44.dp).background(Surface1, CircleShape), contentAlignment = Alignment.Center) { Icon(icon, null, Modifier.size(22.dp), Muted) }
+            Spacer(Modifier.height(12.dp))
+        }
+        Text(text, color = Muted, style = MaterialTheme.typography.bodyMedium, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+    }
 
 /** page padding that clears the status bar (+offline banner) and the mini player + tab bar */
 @Composable
