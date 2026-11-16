@@ -21,9 +21,14 @@ struct CollectionPage: View {
     @State private var loaded = false
     @State private var confirmRemove = false
 
+    /// Disc, then track; songs without numbers keep the server's order. Play and the list then agree.
+    static func inDiscOrder(_ l: [Song]) -> [Song] {
+        l.enumerated().sorted { ($0.element.discNumber ?? 1, $0.element.track ?? 0, $0.offset) < ($1.element.discNumber ?? 1, $1.element.track ?? 0, $1.offset) }.map(\.element)
+    }
+
     private var ref: Ref { Ref(kind: kind, id: id, name: title) }
     private var discs: [(Int, [Song])] {
-        Dictionary(grouping: songs) { $0.discNumber ?? 1 }.sorted { $0.key < $1.key }.map { ($0.key, $0.value.sorted { ($0.track ?? 0) < ($1.track ?? 0) }) }
+        Dictionary(grouping: songs) { $0.discNumber ?? 1 }.sorted { $0.key < $1.key }.map { ($0.key, $0.value) }
     }
 
     var body: some View {
@@ -70,7 +75,7 @@ struct CollectionPage: View {
                 } else { Text(artist).font(.headline).foregroundStyle(.tint) }
             }
             Text(meta).font(.footnote).foregroundStyle(.secondary).multilineTextAlignment(.center)
-            if let b = albumBadge(songs) {
+            if kind == "album", let b = albumBadge(songs) {
                 Text(b).font(.caption2.weight(.semibold)).padding(.horizontal, 8).padding(.vertical, 3)
                     .background(.white.opacity(0.14), in: .capsule).padding(.top, 2)
             }
@@ -135,14 +140,14 @@ struct CollectionPage: View {
             let e = await app.load("getAlbum", [("id", id)], AlbumR.self) { r in
                 let a = r.album
                 title = a.title; artist = a.artist; artistId = a.artistId; coverArt = a.coverArt
-                songs = a.song ?? []; starred = app.isStarred(id, a.starred != nil)
+                songs = Self.inDiscOrder(a.song ?? []); starred = app.isStarred(id, a.starred != nil)
                 let genre = a.genre.map { [$0] } ?? []
                 meta = ([a.year.map(String.init)].compactMap { $0 } + genre + ["\(songs.count) songs", minutes(a.duration ?? Int(songs.reduce(0) { $0 + $1.seconds }))]).joined(separator: " · ")
                 loaded = true
             }
             if songs.isEmpty, app.offline, let a = app.downloads.albums.first(where: { $0.id == id }) {
                 title = a.title; artist = a.artist; artistId = a.artistId; coverArt = a.coverArt
-                songs = app.downloads.songs(album: id)
+                songs = Self.inDiscOrder(app.downloads.songs(album: id))
                 meta = ([a.year.map(String.init)].compactMap { $0 } + ["\(songs.count) songs"]).joined(separator: " · ")
                 loaded = true
             } else if let e { error = e.localizedDescription }

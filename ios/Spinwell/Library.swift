@@ -3,7 +3,7 @@ import SwiftUI
 enum LibTab: String, CaseIterable { case artists = "Artists", albums = "Albums", playlists = "Playlists", songs = "Songs", favorites = "Favorites" }
 
 struct LibraryView: View {
-    @State private var tab: LibTab = LibTab(rawValue: (UserDefaults.standard.string(forKey: "libtab") ?? "").capitalized) ?? .albums
+    @State private var tab: LibTab = LibTab(rawValue: (Hooks.string("libtab") ?? "").capitalized) ?? .albums
     var body: some View {
         VStack(spacing: 0) {
             ScrollView(.horizontal, showsIndicators: false) {

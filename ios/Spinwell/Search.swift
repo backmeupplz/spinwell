@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct SearchView: View {
-    @State private var query = UserDefaults.standard.string(forKey: "query") ?? ""
+    @State private var query = Hooks.string("query") ?? ""
     @State private var artists: [Artist] = []
     @State private var albums: [Album] = []
     @State private var songs: [Song] = []

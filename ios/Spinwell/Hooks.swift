@@ -3,8 +3,30 @@ import Foundation
 /// Launch arguments for driving screens without taps (screenshots, device checks): `-open album:ID`, `-playalbum ID`
 /// (`-shuffle 1`, `-startat N`, `-paused 1`), `-playsong ID`, `-download ALBUMID`, `-player 1`, `-upnext 1`, `-lyrics 1`, `-info <settingId>`, `-tab library|downloads|search`,
 /// `-libtab artists|albums|playlists|songs|favorites`, `-query text`, `-offline 1`, `-server/-user/-pass`.
+///
+/// Compiled only in Debug: in Release every hook is a no-op and the launch arguments are ignored.
 @MainActor enum Hooks {
+#if !DEBUG
+    static func string(_ k: String) -> String? { nil }
+    static func flag(_ k: String) -> Bool { false }
+    static func openIfRequested(_ nav: Nav) {}
+    static func signInIfRequested() {}
+    static func playIfRequested() async {}
+    static func runScript() async {}
+#else
+    static func string(_ k: String) -> String? { UserDefaults.standard.string(forKey: k) }
+    static func flag(_ k: String) -> Bool { UserDefaults.standard.bool(forKey: k) }
     private static var opened = false
+
+    /// `-signout 1`, `-server URL -user U -pass P` (when signed out), `-offline 0|1`.
+    static func signInIfRequested() {
+        let d = UserDefaults.standard
+        if d.bool(forKey: "signout") { app.signOut() }
+        if let s = d.string(forKey: "server"), let u = d.string(forKey: "user"), let p = d.string(forKey: "pass"), !app.signedIn {
+            Task { await app.signIn(server: s, user: u, password: p) }
+        }
+        if d.object(forKey: "offline") != nil { app.settings.offlineMode = d.bool(forKey: "offline") }
+    }
 
     static func route(_ s: String) -> Route? {
         let p = s.split(separator: ":", maxSplits: 1).map(String.init)
@@ -71,4 +93,5 @@ import Foundation
             log(step)
         }
     }
+#endif
 }

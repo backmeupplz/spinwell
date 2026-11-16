@@ -4,12 +4,7 @@ import SwiftUI
     init() {
         // test hooks: `-server URL -user U -pass P` signs in at launch, `-offline 1` forces offline mode
         app.downloads.reload() // files + metadata before anything draws or the player restores
-        let d = UserDefaults.standard
-        if d.bool(forKey: "signout") { app.signOut() }
-        if let s = d.string(forKey: "server"), let u = d.string(forKey: "user"), let p = d.string(forKey: "pass"), !app.signedIn {
-            Task { await app.signIn(server: s, user: u, password: p) }
-        }
-        if d.object(forKey: "offline") != nil { app.settings.offlineMode = d.bool(forKey: "offline") }
+        Hooks.signInIfRequested()
     }
     var body: some Scene {
         WindowGroup { Root().preferredColorScheme(.dark).tint(Color(red: 0.55, green: 0.62, blue: 1)) }
@@ -20,7 +15,7 @@ enum AppTab: Hashable { case home, library, downloads, search }
 
 struct Root: View {
     @State private var tab: AppTab = {
-        switch UserDefaults.standard.string(forKey: "tab") { case "library": .library; case "downloads": .downloads; case "search": .search; default: .home }
+        switch Hooks.string("tab") { case "library": .library; case "downloads": .downloads; case "search": .search; default: .home }
     }()
     @State private var showPlayer = false
     @Namespace private var ns
@@ -53,7 +48,7 @@ struct Root: View {
         .fullScreenCover(isPresented: $showPlayer) {
             FullPlayer().navigationTransition(.zoom(sourceID: "player", in: ns))
         }
-        .onAppear { if player.restoredWasPlaying { showPlayer = true } else if ["player", "upnext", "lyrics"].contains(where: UserDefaults.standard.bool(forKey:)) { showPlayer = true } }
+        .onAppear { if player.restoredWasPlaying { showPlayer = true } else if ["player", "upnext", "lyrics"].contains(where: Hooks.flag) { showPlayer = true } }
     }
 }
 

@@ -93,8 +93,8 @@ struct RoutePicker: UIViewRepresentable {
 
 struct FullPlayer: View {
     @Environment(\.dismiss) private var dismiss
-    @State private var showQueue = UserDefaults.standard.bool(forKey: "upnext")
-    @State private var showLyrics = UserDefaults.standard.bool(forKey: "lyrics")
+    @State private var showQueue = Hooks.flag("upnext")
+    @State private var showLyrics = Hooks.flag("lyrics")
     @State private var dx: CGFloat = 0
     @State private var forward = true
     @State private var tint = Color(white: 0.2)

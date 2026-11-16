@@ -1,3 +1,4 @@
+import CryptoKit
 import SwiftUI
 import UIKit
 
@@ -20,7 +21,8 @@ import UIKit
     static func clearAll() { clearMemory(); try? FileManager.default.removeItem(at: URL.cachesDirectory.appending(path: "covers")) }
 
     private static func file(_ id: String, _ size: Int) -> URL {
-        dir.appending(path: (id.addingPercentEncoding(withAllowedCharacters: .alphanumerics) ?? "x") + "_\(size)")
+        let name = id.count > 80 ? SHA256.hash(data: Data(id.utf8)).map { String(format: "%02x", $0) }.joined() : (id.addingPercentEncoding(withAllowedCharacters: .alphanumerics) ?? "x")
+        return dir.appending(path: name + "_\(size)")
     }
 
     /// Whatever is cached for this cover, any size, biggest first: instant stand-in while the right size loads.
@@ -32,7 +34,8 @@ import UIKit
         if let i = cache.object(forKey: k as NSString) { return i }
         if let t = loading[k] { return await t.value }
         let f = file(id, size)
-        let url = app.offline ? nil : app.cover(id, size: size)
+        // an id that is a full URL (an artist photo from getArtistInfo2) is fetched as is
+        let url = app.offline ? nil : id.hasPrefix("http") ? URL(string: id) : app.cover(id, size: size)
         let session = app.session
         let t = Task { () -> UIImage? in
             let img: UIImage? = await Task.detached(priority: .userInitiated) {

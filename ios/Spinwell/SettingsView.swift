@@ -10,7 +10,7 @@ struct SettingRow<Content: View>: View {
 
     init(_ title: String, info: String, id: String, @ViewBuilder content: () -> Content) {
         self.title = title; self.info = info; self.id = id; self.content = content()
-        _showInfo = State(initialValue: UserDefaults.standard.string(forKey: "info") == id)
+        _showInfo = State(initialValue: false)
     }
 
     var body: some View {
@@ -18,13 +18,29 @@ struct SettingRow<Content: View>: View {
             Text(title)
             Button { showInfo = true } label: { Image(systemName: "info.circle").foregroundStyle(.secondary).padding(6) }
                 .buttonStyle(.plain).accessibilityLabel("About \(title)").accessibilityIdentifier("info-\(id)")
-                .popover(isPresented: $showInfo, attachmentAnchor: .point(.center)) {
-                    Text(info).font(.callout).padding(16).frame(width: 290, alignment: .leading)
-                        .presentationCompactAdaptation(.popover)
-                }
+                .sheet(isPresented: $showInfo) { InfoSheet(title: title, text: info) }
             Spacer(minLength: 8)
             content.foregroundStyle(.secondary)
         }
+        .task { if Hooks.string("info") == id { try? await Task.sleep(for: .seconds(1)); showInfo = true } } // screenshot hook
+    }
+}
+
+/// The ⓘ explanation: a small bottom sheet sized to its text, on a dimmed backdrop.
+struct InfoSheet: View {
+    let title: String
+    let text: String
+    @State private var height: CGFloat = 220
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(title).font(.headline)
+            Text(text).font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .padding(.horizontal, 24).padding(.top, 28).padding(.bottom, 16)
+        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height = $0 }
+        .presentationDetents([.height(height)])
+        .presentationDragIndicator(.visible)
     }
 }
 

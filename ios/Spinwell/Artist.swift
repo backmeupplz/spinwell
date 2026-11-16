@@ -10,11 +10,13 @@ struct ArtistPage: View {
     @State private var bioOpen = false
     @State private var error: String?
     @State private var tint: Color?
+    @State private var photo: String?
     @State private var busy = false
 
     private var albums: [Album] { (artist?.album ?? []).sorted { ($0.year ?? 0) > ($1.year ?? 0) } }
     private func isSingle(_ a: Album) -> Bool { (a.releaseTypes ?? []).contains { ["single", "ep"].contains($0.lowercased()) } }
-    private var cover: String? { artist?.coverArt ?? albums.first?.coverArt }
+    /// The artist's own picture (Navidrome serves it as the artist cover id), else `largeImageUrl`, else their newest album's cover.
+    private var cover: String? { artist?.coverArt ?? photo ?? albums.first?.coverArt }
     private var ref: Ref { Ref(kind: "artist", id: id, name: artist?.title ?? "") }
 
     var body: some View {
@@ -111,7 +113,7 @@ struct ArtistPage: View {
         let params = app.extensions.contains("topSongsByArtistId") ? [("id", id), ("count", "20")] : [("artist", name), ("count", "20")]
         await app.load("getTopSongs", params, TopSongsR.self) { top = $0.topSongs?.song ?? [] }
         await app.load("getArtistInfo2", [("id", id)], ArtistInfoR.self) { r in
-            bio = r.artistInfo2?.biography.map(plain); similar = r.artistInfo2?.similarArtist ?? []
+            bio = r.artistInfo2?.biography.map(plain); photo = r.artistInfo2?.largeImageUrl.flatMap { $0.isEmpty ? nil : $0 }; similar = r.artistInfo2?.similarArtist ?? []
         }
     }
 
