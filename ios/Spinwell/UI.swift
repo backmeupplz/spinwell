@@ -36,11 +36,11 @@ struct Stack<Root: View>: View {
 
     var body: some View {
         NavigationStack(path: $nav.path) {
-            root
+            root.safeAreaInset(edge: .top, spacing: 0) { OfflineBanner() } // under the top bar
                 .navigationDestination(for: Route.self) { r in
                     switch r {
-                    case .album(let id, let src): AlbumPage(id: id).zoomDestination(src, ns)
-                    case .playlist(let id, let src): PlaylistPage(id: id).zoomDestination(src, ns)
+                    case .album(let id, let src): AlbumPage(id: id).safeAreaInset(edge: .top, spacing: 0) { OfflineBanner() }.zoomDestination(src, ns)
+                    case .playlist(let id, let src): PlaylistPage(id: id).safeAreaInset(edge: .top, spacing: 0) { OfflineBanner() }.zoomDestination(src, ns)
                     case .artist(let id, let src): ArtistPage(id: id).zoomDestination(src, ns)
                     case .favorites: FavoritesView().navigationTitle("Favorites").navigationBarTitleDisplayMode(.inline)
                     case .settings: SettingsView()
@@ -50,7 +50,6 @@ struct Stack<Root: View>: View {
         }
         .environment(nav)
         .onAppear { Nav.active = nav; Hooks.openIfRequested(nav) }
-        .safeAreaInset(edge: .top, spacing: 0) { OfflineBanner() }
     }
 }
 
@@ -64,8 +63,9 @@ struct OfflineBanner: View {
                     Image(systemName: "wifi.slash").font(.caption.weight(.semibold))
                     Text(app.settings.offlineMode ? "Offline mode · tap to go online" : "Offline · showing downloads").font(.footnote.weight(.medium))
                 }
-                .frame(maxWidth: .infinity).padding(.vertical, 6)
-                .background(.orange.opacity(0.9)).foregroundStyle(.black)
+                .padding(.horizontal, 14).padding(.vertical, 7)
+                .background(Color.orange.opacity(0.92), in: .capsule).foregroundStyle(.black)
+                .frame(maxWidth: .infinity).padding(.vertical, 4)
             }
             .buttonStyle(.plain)
             .transition(.move(edge: .top).combined(with: .opacity))
