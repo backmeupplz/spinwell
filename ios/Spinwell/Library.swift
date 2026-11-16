@@ -114,7 +114,7 @@ struct AlbumsGrid: View {
             LazyVGrid(columns: cols, spacing: 18) {
                 ForEach(albums) { a in
                     AlbumCard(album: a, width: nil, source: "grid-\(a.id)")
-                        .onAppear { if a.id == albums.last?.id, more { Task { await load(pages.keys.max()! + 1) } } }
+                        .onAppear { if a.id == albums.last?.id, more, !pages.isEmpty { Task { await load((pages.keys.max() ?? -1) + 1) } } }
                 }
             }.padding(.horizontal, 20)
             Color.clear.frame(height: 90)
@@ -174,7 +174,7 @@ struct AllSongs: View {
                 ForEach(Array(songs.enumerated()), id: \.element.id) { i, s in
                     SongRow(song: s, cover: true) { player.play(songs, from: s, context: Ref(kind: "songs", id: "all", name: "Songs")) }
                         .padding(.horizontal, 20)
-                        .onAppear { if i == songs.count - 1, more { Task { await load(pages.keys.max()! + 1) } } }
+                        .onAppear { if i == songs.count - 1, more, !pages.isEmpty { Task { await load((pages.keys.max() ?? -1) + 1) } } }
                 }
                 Color.clear.frame(height: 90)
             }
