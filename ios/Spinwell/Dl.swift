@@ -134,6 +134,19 @@ struct DlState: Codable {
     func has(_ id: String) -> Bool { state.songs[id] != nil }
     func queued(_ id: String) -> Bool { state.queue[id] != nil }
     var songs: [Song] { state.songs.values.sorted { ($0.artist ?? "", $0.album ?? "", $0.discNumber ?? 1, $0.track ?? 0) < ($1.artist ?? "", $1.album ?? "", $1.discNumber ?? 1, $1.track ?? 0) } }
+    /// Library views built from what is on the phone, for offline browsing with a cold JSON cache.
+    var albums: [Album] {
+        Dictionary(grouping: state.songs.values.filter { $0.albumId != nil }, by: { $0.albumId! }).map { id, l in
+            let f = l[0]
+            return Album(id: id, name: f.album, artist: f.displayAlbumArtist ?? f.artist, artistId: f.artistId, coverArt: f.coverArt, songCount: l.count, duration: Int(l.reduce(0) { $0 + $1.seconds }), year: f.year, genre: f.genre)
+        }.sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
+    }
+    var artists: [Artist] {
+        Dictionary(grouping: state.songs.values.filter { $0.artistId != nil }, by: { $0.artistId! }).map { id, l in
+            Artist(id: id, name: l[0].artist, coverArt: l[0].coverArt, albumCount: Set(l.compactMap(\.albumId)).count)
+        }
+    }
+    func songs(album id: String) -> [Song] { songs.filter { $0.albumId == id } }
     var pending: Int { state.order.count }
     var active: Bool { !state.order.isEmpty }
 

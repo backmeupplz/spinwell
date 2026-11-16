@@ -9,14 +9,14 @@ whose project layout, cover cache and download design we reuse.
   Compose BOM + material3 + activity-compose + navigation-compose (or hand-rolled nav), media3-exoplayer +
   media3-session. Nothing else (no Coil, no Retrofit, no Room, no kotlinx-serialization: `org.json` + `HttpURLConnection`
   are enough). R8 on for release.
-- iOS: bundle `com.borodutch.naviplus`, team `ACWP4F58HZ`, iOS 26.1+, iPhone only, Swift 5 mode, no packages.
+- iOS: bundle `com.borodutch.spinwell`, team `ACWP4F58HZ`, iOS 26.1+, iPhone only, Swift 5 mode, no packages.
   Project file like ABS+ (`PBXFileSystemSynchronizedRootGroup`, so new files need no pbxproj edits). Info.plist:
   `UIBackgroundModes = [audio]`, `NSAllowsArbitraryLoads = true` (home servers are often plain http on the LAN).
 - English only for now. Dark theme only (music app; art carries the color).
 
 ## Server API (OpenSubsonic, tested against Navidrome 0.64.2)
 
-- Base `<server>/rest/<method>?u=<user>&t=<md5(password+salt)>&s=<salt>&v=1.16.1&c=NaviPlus&f=json`.
+- Base `<server>/rest/<method>?u=<user>&t=<md5(password+salt)>&s=<salt>&v=1.16.1&c=Spinwell&f=json`.
   At sign-in, generate a random salt, compute the token, call `ping`, and store server + user + token + salt
   (never the password). iOS: Keychain. Android: app-private SharedPreferences.
 - Server URL normalization: trim spaces and trailing `/`, add `https://` when no scheme is given.

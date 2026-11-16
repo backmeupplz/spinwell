@@ -34,8 +34,9 @@ struct LibraryView: View {
 }
 
 struct ArtistsList: View {
-    @State private var artists: [Artist] = []
+    @State private var loaded: [Artist] = []
     @State private var error: String?
+    private var artists: [Artist] { loaded.isEmpty && app.offline ? app.downloads.artists : loaded }
     private var groups: [(String, [Artist])] {
         let g = Dictionary(grouping: artists) { a -> String in
             let c = String((a.title.folding(options: .diacriticInsensitive, locale: .current).first ?? "#").uppercased())
@@ -80,7 +81,7 @@ struct ArtistsList: View {
                 }.padding(.trailing, 2)
             }
         }
-        .task { error = (await app.load("getArtists", [], Artists.self) { artists = $0.list })?.localizedDescription }
+        .task { error = (await app.load("getArtists", [], Artists.self) { loaded = $0.list })?.localizedDescription }
     }
 }
 
@@ -95,7 +96,10 @@ struct AlbumsGrid: View {
     @State private var more = true
     @State private var error: String?
     private let size = 60
-    private var albums: [Album] { pages.keys.sorted().flatMap { pages[$0]! } }
+    private var albums: [Album] {
+        let l = pages.keys.sorted().flatMap { pages[$0]! }
+        return l.isEmpty && app.offline ? app.downloads.albums : l
+    }
 
     var body: some View {
         ScrollView {
@@ -106,7 +110,7 @@ struct AlbumsGrid: View {
                 } label: { Label(sort.rawValue, systemImage: "arrow.up.arrow.down").font(.footnote.weight(.semibold)) }
                 Spacer()
             }.padding(.horizontal, 20)
-            if let error, albums.isEmpty { ErrorLine(text: error) }
+            if let error, albums.isEmpty, !app.offline { ErrorLine(text: error) }
             LazyVGrid(columns: cols, spacing: 18) {
                 ForEach(albums) { a in
                     AlbumCard(album: a, width: nil, source: "grid-\(a.id)")
@@ -159,7 +163,10 @@ struct AllSongs: View {
     @State private var more = true
     @State private var error: String?
     private let size = 60
-    private var songs: [Song] { pages.keys.sorted().flatMap { pages[$0]! } }
+    private var songs: [Song] {
+        let l = pages.keys.sorted().flatMap { pages[$0]! }
+        return l.isEmpty && app.offline ? app.downloads.songs : l
+    }
     var body: some View {
         ScrollView {
             LazyVStack(spacing: 0) {

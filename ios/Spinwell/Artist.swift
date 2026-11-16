@@ -104,7 +104,9 @@ struct ArtistPage: View {
 
     private func load() async {
         let e = await app.load("getArtist", [("id", id)], ArtistR.self) { artist = $0.artist }
-        if let e { error = e.localizedDescription }
+        if artist == nil, app.offline, let a = app.downloads.artists.first(where: { $0.id == id }) {
+            var a = a; a.album = app.downloads.albums.filter { $0.artistId == id }; artist = a
+        } else if let e { error = e.localizedDescription }
         guard let name = artist?.name else { return }
         let params = app.extensions.contains("topSongsByArtistId") ? [("id", id), ("count", "20")] : [("artist", name), ("count", "20")]
         await app.load("getTopSongs", params, TopSongsR.self) { top = $0.topSongs?.song ?? [] }

@@ -140,7 +140,12 @@ struct CollectionPage: View {
                 meta = ([a.year.map(String.init)].compactMap { $0 } + genre + ["\(songs.count) songs", minutes(a.duration ?? Int(songs.reduce(0) { $0 + $1.seconds }))]).joined(separator: " · ")
                 loaded = true
             }
-            if let e { error = e.localizedDescription }
+            if songs.isEmpty, app.offline, let a = app.downloads.albums.first(where: { $0.id == id }) {
+                title = a.title; artist = a.artist; artistId = a.artistId; coverArt = a.coverArt
+                songs = app.downloads.songs(album: id)
+                meta = ([a.year.map(String.init)].compactMap { $0 } + ["\(songs.count) songs"]).joined(separator: " · ")
+                loaded = true
+            } else if let e { error = e.localizedDescription }
             if !app.offline, let n = try? await app.fetch("getAlbumInfo2", [("id", id)], AlbumInfoR.self) { notes = n.albumInfo?.notes }
         } else {
             let e = await app.load("getPlaylist", [("id", id)], PlaylistR.self) { r in
@@ -150,7 +155,11 @@ struct CollectionPage: View {
                 meta = [p.owner, "\(p.songCount ?? songs.count) songs", minutes(p.duration ?? Int(songs.reduce(0) { $0 + $1.seconds }))].compactMap { $0 }.joined(separator: " · ")
                 loaded = true
             }
-            if let e { error = e.localizedDescription }
+            if songs.isEmpty, app.offline, let p = app.downloads.state.pinned.first(where: { $0.id == "playlist:" + id }) {
+                title = p.name; coverArt = p.coverArt
+                songs = p.songIds.compactMap { app.downloads.state.songs[$0] }
+                meta = "\(songs.count) songs"; loaded = true
+            } else if let e { error = e.localizedDescription }
         }
     }
 }

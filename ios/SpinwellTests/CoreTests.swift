@@ -1,5 +1,5 @@
 import XCTest
-@testable import NaviPlus
+@testable import Spinwell
 
 private func song(_ id: String, artist: String, album: String = "A", suffix: String = "mp3") -> Song {
     Song(id: id, title: id, album: album, albumId: album, artist: artist, artistId: artist, suffix: suffix)
@@ -18,7 +18,7 @@ final class AuthTests: XCTestCase {
     func testURLBuilding() throws {
         let a = Account(server: "http://h:4533", user: "admin", salt: "s", token: "t")
         let u = try XCTUnwrap(a.url("getAlbum", [("id", "x y")]))
-        XCTAssertTrue(u.absoluteString.hasPrefix("http://h:4533/rest/getAlbum?id=x%20y&u=admin&t=t&s=s&v=1.16.1&c=NaviPlus&f=json"))
+        XCTAssertTrue(u.absoluteString.hasPrefix("http://h:4533/rest/getAlbum?id=x%20y&u=admin&t=t&s=s&v=1.16.1&c=Spinwell&f=json"))
         XCTAssertFalse(u.absoluteString.contains("p="))
     }
 

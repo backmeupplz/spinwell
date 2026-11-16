@@ -12,25 +12,25 @@
 			containerPortal = AB0000000000000000000001 /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = AB0000000000000000000010;
-			remoteInfo = NaviPlus;
+			remoteInfo = Spinwell;
 		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		AB0000000000000000000004 /* NaviPlus.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NaviPlus.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		AB0000000000000000000005 /* NaviPlusTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NaviPlusTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		AB0000000000000000000004 /* Spinwell.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Spinwell.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		AB0000000000000000000005 /* SpinwellTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SpinwellTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		AB0000000000000000000006 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		AB0000000000000000000007 /* NaviPlus */ = {
+		AB0000000000000000000007 /* Spinwell */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = NaviPlus;
+			path = Spinwell;
 			sourceTree = "<group>";
 		};
-		AB0000000000000000000008 /* NaviPlusTests */ = {
+		AB0000000000000000000008 /* SpinwellTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = NaviPlusTests;
+			path = SpinwellTests;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -57,8 +57,8 @@
 			isa = PBXGroup;
 			children = (
 				AB0000000000000000000006 /* Info.plist */,
-				AB0000000000000000000007 /* NaviPlus */,
-				AB0000000000000000000008 /* NaviPlusTests */,
+				AB0000000000000000000007 /* Spinwell */,
+				AB0000000000000000000008 /* SpinwellTests */,
 				AB0000000000000000000003 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -66,8 +66,8 @@
 		AB0000000000000000000003 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				AB0000000000000000000004 /* NaviPlus.app */,
-				AB0000000000000000000005 /* NaviPlusTests.xctest */,
+				AB0000000000000000000004 /* Spinwell.app */,
+				AB0000000000000000000005 /* SpinwellTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -75,9 +75,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		AB0000000000000000000010 /* NaviPlus */ = {
+		AB0000000000000000000010 /* Spinwell */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = AB0000000000000000000043 /* Build configuration list for PBXNativeTarget "NaviPlus" */;
+			buildConfigurationList = AB0000000000000000000043 /* Build configuration list for PBXNativeTarget "Spinwell" */;
 			buildPhases = (
 				AB0000000000000000000011 /* Sources */,
 				AB0000000000000000000012 /* Frameworks */,
@@ -88,16 +88,16 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				AB0000000000000000000007 /* NaviPlus */,
+				AB0000000000000000000007 /* Spinwell */,
 			);
-			name = NaviPlus;
-			productName = NaviPlus;
-			productReference = AB0000000000000000000004 /* NaviPlus.app */;
+			name = Spinwell;
+			productName = Spinwell;
+			productReference = AB0000000000000000000004 /* Spinwell.app */;
 			productType = "com.apple.product-type.application";
 		};
-		AB0000000000000000000020 /* NaviPlusTests */ = {
+		AB0000000000000000000020 /* SpinwellTests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = AB0000000000000000000046 /* Build configuration list for PBXNativeTarget "NaviPlusTests" */;
+			buildConfigurationList = AB0000000000000000000046 /* Build configuration list for PBXNativeTarget "SpinwellTests" */;
 			buildPhases = (
 				AB0000000000000000000021 /* Sources */,
 				AB0000000000000000000022 /* Frameworks */,
@@ -109,11 +109,11 @@
 				AB0000000000000000000031 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				AB0000000000000000000008 /* NaviPlusTests */,
+				AB0000000000000000000008 /* SpinwellTests */,
 			);
-			name = NaviPlusTests;
-			productName = NaviPlusTests;
-			productReference = AB0000000000000000000005 /* NaviPlusTests.xctest */;
+			name = SpinwellTests;
+			productName = SpinwellTests;
+			productReference = AB0000000000000000000005 /* SpinwellTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
 /* End PBXNativeTarget section */
@@ -135,7 +135,7 @@
 					};
 				};
 			};
-			buildConfigurationList = AB0000000000000000000040 /* Build configuration list for PBXProject "NaviPlus" */;
+			buildConfigurationList = AB0000000000000000000040 /* Build configuration list for PBXProject "Spinwell" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -149,8 +149,8 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				AB0000000000000000000010 /* NaviPlus */,
-				AB0000000000000000000020 /* NaviPlusTests */,
+				AB0000000000000000000010 /* Spinwell */,
+				AB0000000000000000000020 /* SpinwellTests */,
 			);
 		};
 /* End PBXProject section */
@@ -192,7 +192,7 @@
 /* Begin PBXTargetDependency section */
 		AB0000000000000000000031 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = AB0000000000000000000010 /* NaviPlus */;
+			target = AB0000000000000000000010 /* Spinwell */;
 			targetProxy = AB0000000000000000000030 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
@@ -254,7 +254,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Navi+";
+				INFOPLIST_KEY_CFBundleDisplayName = "Spinwell";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.music";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -264,7 +264,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.borodutch.naviplus;
+				PRODUCT_BUNDLE_IDENTIFIER = com.borodutch.spinwell;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				TARGETED_DEVICE_FAMILY = 1;
@@ -281,7 +281,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Navi+";
+				INFOPLIST_KEY_CFBundleDisplayName = "Spinwell";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.music";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -291,7 +291,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.borodutch.naviplus;
+				PRODUCT_BUNDLE_IDENTIFIER = com.borodutch.spinwell;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				TARGETED_DEVICE_FAMILY = 1;
@@ -304,11 +304,11 @@
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = ACWP4F58HZ;
 				GENERATE_INFOPLIST_FILE = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = com.borodutch.naviplus.tests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.borodutch.spinwell.tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				TARGETED_DEVICE_FAMILY = 1;
 				BUNDLE_LOADER = "$(TEST_HOST)";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/NaviPlus.app/NaviPlus";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Spinwell.app/Spinwell";
 			};
 			name = Debug;
 		};
@@ -318,18 +318,18 @@
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = ACWP4F58HZ;
 				GENERATE_INFOPLIST_FILE = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = com.borodutch.naviplus.tests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.borodutch.spinwell.tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				TARGETED_DEVICE_FAMILY = 1;
 				BUNDLE_LOADER = "$(TEST_HOST)";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/NaviPlus.app/NaviPlus";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Spinwell.app/Spinwell";
 			};
 			name = Release;
 		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		AB0000000000000000000040 /* Build configuration list for PBXProject "NaviPlus" */ = {
+		AB0000000000000000000040 /* Build configuration list for PBXProject "Spinwell" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				AB0000000000000000000041 /* Debug */,
@@ -338,7 +338,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		AB0000000000000000000043 /* Build configuration list for PBXNativeTarget "NaviPlus" */ = {
+		AB0000000000000000000043 /* Build configuration list for PBXNativeTarget "Spinwell" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				AB0000000000000000000044 /* Debug */,
@@ -347,7 +347,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		AB0000000000000000000046 /* Build configuration list for PBXNativeTarget "NaviPlusTests" */ = {
+		AB0000000000000000000046 /* Build configuration list for PBXNativeTarget "SpinwellTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				AB0000000000000000000047 /* Debug */,

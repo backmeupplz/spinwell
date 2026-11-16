@@ -30,7 +30,7 @@ struct Account: Codable, Equatable {
     private static let authKeys: Set<String> = ["u", "t", "s", "v", "c", "f", "p"]
 
     func auth() -> [URLQueryItem] {
-        [("u", user), ("t", token), ("s", salt), ("v", "1.16.1"), ("c", "NaviPlus"), ("f", "json")].map { URLQueryItem(name: $0.0, value: $0.1) }
+        [("u", user), ("t", token), ("s", salt), ("v", "1.16.1"), ("c", "Spinwell"), ("f", "json")].map { URLQueryItem(name: $0.0, value: $0.1) }
     }
 
     func url(_ method: String, _ params: [(String, String)] = []) -> URL? {

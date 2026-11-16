@@ -88,7 +88,7 @@ struct SettingsView: View {
             }
             Section("About") {
                 LabeledContent("Version") { Text(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "").foregroundStyle(.secondary) }
-                Link("Source code", destination: URL(string: "https://git.borodutch.com/backmeupplz/naviplus")!)
+                Link("Source code", destination: URL(string: "https://git.borodutch.com/backmeupplz/spinwell")!)
             }
         }
         .navigationTitle("Settings").navigationBarTitleDisplayMode(.inline)

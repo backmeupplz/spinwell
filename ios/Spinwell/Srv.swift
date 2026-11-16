@@ -4,7 +4,7 @@ import Security
 import SwiftUI
 
 let supportDir: URL = {
-    let u = URL.applicationSupportDirectory.appending(path: "navi")
+    let u = URL.applicationSupportDirectory.appending(path: "spinwell")
     try? FileManager.default.createDirectory(at: u, withIntermediateDirectories: true)
     return u
 }()
@@ -279,7 +279,7 @@ struct Pending: Codable { var kind: String; var id: String; var at: Double }
 
     // MARK: Keychain
 
-    private static let kq: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: "naviplus", kSecAttrAccount as String: "account"]
+    private static let kq: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: "spinwell", kSecAttrAccount as String: "account"]
 
     private static func kcRead() -> Account? {
         var q = kq; q[kSecReturnData as String] = true

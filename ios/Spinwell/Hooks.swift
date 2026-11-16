@@ -1,7 +1,7 @@
 import Foundation
 
 /// Launch arguments for driving screens without taps (screenshots, device checks): `-open album:ID`, `-playalbum ID`
-/// (`-shuffle 1`, `-startat N`), `-player 1`, `-upnext 1`, `-lyrics 1`, `-info <settingId>`, `-tab library|downloads|search`,
+/// (`-shuffle 1`, `-startat N`, `-paused 1`), `-playsong ID`, `-download ALBUMID`, `-player 1`, `-upnext 1`, `-lyrics 1`, `-info <settingId>`, `-tab library|downloads|search`,
 /// `-libtab artists|albums|playlists|songs|favorites`, `-query text`, `-offline 1`, `-server/-user/-pass`.
 @MainActor enum Hooks {
     private static var opened = false
@@ -27,6 +27,12 @@ import Foundation
 
     static func playIfRequested() async {
         let d = UserDefaults.standard
+        if let id = d.string(forKey: "playsong"), let r = try? await app.fetch("getSong", [("id", id)], SongR.self) {
+            player.start([r.song], context: Ref(kind: "song", id: id, name: r.song.name))
+        }
+        if let id = d.string(forKey: "download"), let r = try? await app.fetch("getAlbum", [("id", id)], AlbumR.self) {
+            app.downloads.add(r.album.song ?? [], pin: Pinned(kind: "album", cid: id, name: r.album.title, coverArt: r.album.coverArt, songIds: []))
+        }
         guard let id = d.string(forKey: "playalbum") else { return }
         if let r = try? await app.fetch("getAlbum", [("id", id)], AlbumR.self) {
             let songs = r.album.song ?? []

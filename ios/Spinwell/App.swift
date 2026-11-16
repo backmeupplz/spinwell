@@ -1,9 +1,10 @@
 import SwiftUI
 
-@main struct NaviPlusApp: App {
+@main struct SpinwellApp: App {
     init() {
         // test hooks: `-server URL -user U -pass P` signs in at launch, `-offline 1` forces offline mode
         let d = UserDefaults.standard
+        if d.bool(forKey: "signout") { app.signOut() }
         if let s = d.string(forKey: "server"), let u = d.string(forKey: "user"), let p = d.string(forKey: "pass"), !app.signedIn {
             Task { await app.signIn(server: s, user: u, password: p) }
         }
@@ -70,7 +71,7 @@ struct SignIn: View {
                 VStack(spacing: 14) {
                     Image(systemName: "waveform").font(.system(size: 44, weight: .semibold)).foregroundStyle(.white)
                         .frame(width: 96, height: 96).glassEffect(.regular, in: .rect(cornerRadius: 28))
-                    Text("Navi+").font(.system(size: 40, weight: .bold, design: .rounded))
+                    Text("Spinwell").font(.system(size: 40, weight: .bold, design: .rounded))
                     Text("Your Navidrome, beautifully.").font(.subheadline).foregroundStyle(.secondary)
                 }
                 VStack(spacing: 12) {

@@ -8,7 +8,7 @@ What the apps do and how they behave is in [SPEC.md](SPEC.md).
 
 Android (JDK 21 + Android SDK): `./gradlew testDebugUnitTest assembleDebug`
 
-iPhone (Xcode 27): `xcodebuild -project ios/NaviPlus.xcodeproj -scheme NaviPlus -destination 'generic/platform=iOS Simulator' build`
+iPhone (Xcode 27): `xcodebuild -project ios/Spinwell.xcodeproj -scheme Spinwell -destination 'generic/platform=iOS Simulator' build`
 
 ## Test server
 

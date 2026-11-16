@@ -1,6 +1,6 @@
 import Network
 import XCTest
-@testable import NaviPlus
+@testable import Spinwell
 
 /// Loopback HTTP server serving `body` with optional Range support; `dropFirstAfter` cuts the first response short.
 final class RangeServer: @unchecked Sendable {
