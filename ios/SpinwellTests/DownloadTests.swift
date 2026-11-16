@@ -44,7 +44,7 @@ final class RangeServer: @unchecked Sendable {
             var drop = false
             if let d = dropFirstAfter, ranges.count == 1 { payload = payload.prefix(d); drop = true }
             c.send(content: Data((head + "Connection: close\r\n\r\n").utf8) + payload, completion: .contentProcessed { _ in
-                if drop { c.cancel() } else { c.send(content: nil, isComplete: true, completion: .contentProcessed { _ in c.cancel() }) }
+                if drop { self.q.asyncAfter(deadline: .now() + 0.3) { c.cancel() } } else { c.send(content: nil, isComplete: true, completion: .contentProcessed { _ in c.cancel() }) }
             })
         }
     }
