@@ -88,12 +88,15 @@ struct Pending: Codable { var kind: String; var id: String; var at: Double }
             }
         }
         monitor.start(queue: .main)
-        // while offline, look again every 20 s; coming to the foreground checks right away
+        // while offline, look again every 20 s; while online and in front every 10 s, to notice a server that went away when nothing is being
+        // requested; coming to the foreground checks right away
         Task { @MainActor [weak self] in
+            var n = 0
             while true {
-                try? await Task.sleep(for: .seconds(20))
+                try? await Task.sleep(for: .seconds(5))
                 guard let self else { return }
-                if self.unreachable { await self.ping() }
+                n += 1
+                if self.unreachable ? n % 4 == 0 : (n % 2 == 0 && UIApplication.shared.applicationState == .active) { await self.ping() }
             }
         }
         NotificationCenter.default.addObserver(forName: UIApplication.willEnterForegroundNotification, object: nil, queue: .main) { [weak self] _ in

@@ -105,7 +105,7 @@ struct FullPlayer: View {
             LinearGradient(colors: [tint, tint.opacity(0.45), .black], startPoint: .top, endPoint: .bottom).ignoresSafeArea()
             VStack(spacing: 0) {
                 HStack {
-                    Button { dismiss() } label: { Image(systemName: "chevron.down").font(.title3.weight(.semibold)).frame(width: 44, height: 44) }
+                    Button { dismiss() } label: { Image(systemName: "chevron.down").font(.title3.weight(.semibold)).frame(width: 44, height: 44) }.accessibilityLabel("Close player").accessibilityIdentifier("player-close")
                     Spacer()
                     VStack(spacing: 1) {
                         Text("PLAYING FROM").font(.system(size: 10, weight: .semibold)).tracking(1).foregroundStyle(.white.opacity(0.6))

@@ -40,7 +40,16 @@ final class Drive: XCTestCase {
             let e = find(arg)
             if e.waitForExistence(timeout: 15) { e.tap() } else { XCTFail("missing \(arg)"); shot("zz-missing") }
         case "tapid": let e = app.descendants(matching: .any)[arg].firstMatch; if e.waitForExistence(timeout: 15) { e.tap() } else { XCTFail("missing id \(arg)") }
+        case "tapidopt": let e = app.descendants(matching: .any)[arg].firstMatch; if e.waitForExistence(timeout: 3) { e.tap() } // only if it is there
+        case "home": XCUIDevice.shared.press(.home)
         case "longpressid": let e = app.descendants(matching: .any)[arg]; if e.waitForExistence(timeout: 15) { e.press(forDuration: 1.2) } else { XCTFail("missing id \(arg)") }
+        case "block": try? "refused".write(toFile: "/tmp/spinwell-block", atomically: true, encoding: .utf8) // Debug app sends every request to a dead address
+        case "blackhole": try? "blackhole".write(toFile: "/tmp/spinwell-block", atomically: true, encoding: .utf8)
+        case "unblock": try? FileManager.default.removeItem(atPath: "/tmp/spinwell-block")
+        case "taprow": // tap the Nth song row: `taprow 0`
+            let rows = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'song-'"))
+            let e = rows.element(boundBy: Int(arg) ?? 0); if e.waitForExistence(timeout: 15) { e.tap() } else { XCTFail("no song row \(arg)") }
+        case "rmlog": try? FileManager.default.removeItem(atPath: arg)
         case "shotnow": shot(arg)
         case "exists": print("EXISTS \(arg): \(find(arg).waitForExistence(timeout: 5))")
         case "shot": sleep(2); shot(arg)

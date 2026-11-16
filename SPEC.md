@@ -12,6 +12,7 @@ whose project layout, cover cache and download design we reuse.
 - iOS: bundle `com.borodutch.spinwell`, team `ACWP4F58HZ`, iOS 26.1+, iPhone only, Swift 5 mode, no packages.
   Project file like ABS+ (`PBXFileSystemSynchronizedRootGroup`, so new files need no pbxproj edits). Info.plist:
   `UIBackgroundModes = [audio]`, `NSAllowsArbitraryLoads = true` (home servers are often plain http on the LAN).
+- App icon: the record from `tools/icon.svg` (same master on both platforms; iOS icon is that SVG rendered at 1024 px, opaque and full-bleed). The sign-in screen shows the same record on a transparent background (`Logo.imageset`).
 - English only for now. Dark theme only (music app; art carries the color).
 
 ## Server API (OpenSubsonic, tested against Navidrome 0.64.2)
@@ -105,7 +106,7 @@ on every screen. Settings open from a gear on Home.
 - **Search:** field focused whenever the tab shows; results appear while typing (`search3` debounced 200 ms, the previous request is cancelled and the previous results stay up until the new ones arrive, no empty flash). Sections: Top result (the first artist, album or song whose name equals the query, else starts with it), Artists, Albums, Songs (5 + "See all N songs", with Play and Shuffle; the queue is all song results; each row has the full song menu). Empty field: the last 10 searches (recorded on submit or when a result is tapped), with Clear. Case and accents are folded (Cyrillic, ё/е locally; the server already matches Cyrillic in any case); offline the same search runs over downloads. The keyboard dismisses on scroll.
 - **Downloads:** storage used and Play/Shuffle at the top; "Downloading" section (current song progress, queued count, pause/resume
   all); then pinned albums/playlists and loose songs; swipe or menu to remove. Empty state explains how to download.
-- **Songs and downloading:** every song row shows its state (downloaded check, spinner, queued dot); swiping a row left downloads it (or removes the download), the same item is in the row menu, in the full player's `…` menu and in Song row menu below. Tapping a song starts decoding its big cover and color on press-down, so nothing is computed while the player expands.
+- **Songs and downloading:** every song row shows its state (downloaded check, spinner, queued dot); swiping a row left downloads it (or removes the download), the same item is in the row menu (which the full player's `…` menu shows too). Tapping a song starts decoding its big cover and color on press-down, so nothing is computed while the player expands.
 - **Song row menu** (long-press or `…`): Play next, Add to queue, Go to album, Go to artist, Favorite/Unfavorite,
   Download / Remove download, Song info (format, bitrate, sample rate, bit depth, size, path, play count).
 - **Mini player:** cover thumb, title + artist, play/pause, thin progress line along its bottom edge; swipe left/right

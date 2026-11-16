@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 
 /// Launch arguments for driving screens without taps (screenshots, device checks): `-open album:ID`, `-playalbum ID`
 /// (`-shuffle 1`, `-startat N`, `-paused 1`), `-playsong ID`, `-download ALBUMID`, `-player 1`, `-upnext 1`, `-lyrics 1`, `-info <settingId>`, `-tab library|downloads|search`,
@@ -26,6 +27,7 @@ import Foundation
             Task { await app.signIn(server: s, user: u, password: p) }
         }
         if d.object(forKey: "offline") != nil { app.settings.offlineMode = d.bool(forKey: "offline") }
+        if let p = d.string(forKey: "hitchlog") { HitchLog.start(p) }
     }
 
     static func route(_ s: String) -> Route? {
@@ -71,7 +73,7 @@ import Foundation
         guard let script = d.string(forKey: "script") else { return }
         let path = d.string(forKey: "log") ?? NSTemporaryDirectory() + "spinwell-hook.log"
         func log(_ s: String) {
-            let line = "\(s) | now=\(player.current?.name ?? "-") idx=\(player.q.index)/\(player.q.items.count) pos=\(Int(player.pos)) playing=\(player.playing) shuffle=\(player.q.shuffle) next=\(player.q.upcoming?.song.name ?? "-")\n"
+            let line = "\(s) | now=\(player.current?.name ?? "-") idx=\(player.q.index)/\(player.q.items.count) pos=\(Int(player.pos)) playing=\(player.playing) shuffle=\(player.q.shuffle) repeat=\(player.q.repeatMode.rawValue) offline=\(app.offline) err=\(player.error ?? "-") next=\(player.q.upcoming?.song.name ?? "-")\n"
             if let h = FileHandle(forWritingAtPath: path) { h.seekToEndOfFile(); h.write(Data(line.utf8)); try? h.close() } else { try? line.write(toFile: path, atomically: true, encoding: .utf8) }
         }
         for step in script.split(separator: ",").map(String.init) {
@@ -85,6 +87,8 @@ import Foundation
             case "repeat": player.cycleRepeat()
             case "pause": player.pause()
             case "play": player.play()
+            case "block": try? "refused".write(toFile: "/tmp/spinwell-block", atomically: true, encoding: .utf8) // dead-server simulation, see Account.url
+            case "unblock": try? FileManager.default.removeItem(atPath: "/tmp/spinwell-block")
             case "playnext": if let r = try? await app.fetch("getSong", [("id", p[1])], SongR.self) { player.playNext([r.song]) }
             case "jump": if player.q.items.indices.contains(Int(p[1]) ?? 0) { player.jump(to: player.q.items[Int(p[1])!].id) }
             default: break
@@ -95,3 +99,28 @@ import Foundation
     }
 #endif
 }
+
+#if DEBUG
+/// `-hitchlog /tmp/x.log`: appends a line for every frame that took more than 24 ms (a missed 60 Hz frame is 16.7 ms), so a tap -> player
+/// open can be judged without Instruments. Gaps over 1 s (idle app, no animation) are skipped.
+final class HitchLog: NSObject {
+    private static var link: CADisplayLink?
+    private static var last = 0.0
+    private static var path = ""
+    static func start(_ p: String) {
+        path = p
+        let l = CADisplayLink(target: HitchLog(), selector: #selector(tick(_:)))
+        l.preferredFrameRateRange = CAFrameRateRange(minimum: 60, maximum: 60, preferred: 60) // else an idle app is ticked at a few Hz
+        l.add(to: .main, forMode: .common)
+        link = l
+    }
+    @objc func tick(_ l: CADisplayLink) {
+        let now = l.timestamp
+        defer { Self.last = now }
+        let gap = (now - Self.last) * 1000
+        guard Self.last > 0, gap > 24, gap < 1000 else { return }
+        let line = String(format: "%.2f gap=%.0fms\n", now, gap)
+        if let h = FileHandle(forWritingAtPath: Self.path) { h.seekToEndOfFile(); h.write(Data(line.utf8)); try? h.close() } else { try? line.write(toFile: Self.path, atomically: true, encoding: .utf8) }
+    }
+}
+#endif

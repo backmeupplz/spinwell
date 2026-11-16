@@ -132,15 +132,17 @@ struct SettingsView: View {
             Section {
                 UsageBar(parts: [("Downloads", dl, Color.accentColor), ("Cache", cacheBytes, Color.gray)]).padding(.vertical, 4)
                 SettingRow("Downloads", symbol: "internaldrive.fill", tint: .indigo, info: "Songs saved for offline listening. Removing them frees the space; you can download them again any time.", id: "downloads") {
-                    HStack(spacing: 10) {
-                        Text("\(bytes(dl)) · \(app.downloads.state.songs.count) songs").font(.footnote)
-                        Button("Remove", role: .destructive) { confirmRemove = true }.buttonStyle(.bordered).controlSize(.small).disabled(app.downloads.state.songs.isEmpty)
+                    HStack(spacing: 8) {
+                        Text(app.downloads.state.songs.isEmpty ? "None" : bytes(dl)).font(.footnote).lineLimit(1)
+                        if !app.downloads.state.songs.isEmpty {
+                            Button("Remove", role: .destructive) { confirmRemove = true }.buttonStyle(.bordered).controlSize(.small).fixedSize()
+                        }
                     }
                 }
                 SettingRow("Cache", symbol: "photo.stack.fill", tint: .gray, info: "Album covers and library pages kept on your phone so screens open instantly and you can browse offline. Clearing it is safe; it fills up again as you browse.", id: "cache") {
                     HStack(spacing: 10) {
                         Text(bytes(cacheBytes)).font(.footnote)
-                        Button("Clear") { app.clearCache(); cacheBytes = app.cacheSize() }.buttonStyle(.bordered).controlSize(.small)
+                        Button("Clear") { app.clearCache(); cacheBytes = app.cacheSize() }.buttonStyle(.bordered).controlSize(.small).fixedSize()
                     }
                 }
             } header: { Text("Storage") } footer: { if free > 0 { Text("\(bytes(free)) free on this iPhone") } }

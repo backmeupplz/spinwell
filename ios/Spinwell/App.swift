@@ -66,8 +66,7 @@ struct SignIn: View {
             VStack(spacing: 28) {
                 Spacer()
                 VStack(spacing: 14) {
-                    Image(systemName: "waveform").font(.system(size: 44, weight: .semibold)).foregroundStyle(.white)
-                        .frame(width: 96, height: 96).glassEffect(.regular, in: .rect(cornerRadius: 28))
+                    Image("Logo").resizable().scaledToFit().frame(width: 96, height: 96).shadow(color: .black.opacity(0.4), radius: 12, y: 6)
                     Text("Spinwell").font(.system(size: 40, weight: .bold, design: .rounded))
                     Text("Your Navidrome, beautifully.").font(.subheadline).foregroundStyle(.secondary)
                 }

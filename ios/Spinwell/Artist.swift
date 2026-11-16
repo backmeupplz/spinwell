@@ -125,7 +125,8 @@ struct ArtistPage: View {
             let minY = g.frame(in: .global).minY
             ZStack(alignment: .bottomLeading) {
                 Cover(id: cover, size: 400, radius: 0, symbol: "person.fill")
-                    .frame(width: g.size.width, height: g.size.height + max(0, minY)).clipped()
+                    .frame(width: g.size.width, height: g.size.width) // a full-width square, cropped to the hero's height
+                    .frame(height: g.size.height + max(0, minY), alignment: .center).clipped()
                     .offset(y: -max(0, minY))
                 LinearGradient(colors: [.clear, .black.opacity(0.35), .black], startPoint: .center, endPoint: .bottom)
                 VStack(alignment: .leading, spacing: 0) {
