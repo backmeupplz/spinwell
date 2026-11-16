@@ -61,10 +61,26 @@ whose project layout, cover cache and download design we reuse.
 ## Connectivity and offline mode
 
 - "Online" means the server answers, not that there is internet (Tailscale off on Wi-Fi is the common case).
-  On launch and when the network changes: `ping` with a 4 s timeout. Failure → offline. Any later successful request → online.
-- Offline: a slim banner under the top bar ("Offline · showing downloads", tap to retry). Browsing uses the JSON cache.
-  Songs that aren't downloaded are dimmed and can't be played; albums/playlists with no downloaded songs are dimmed.
-  The Downloads tab works fully. Play queue skips non-downloaded songs.
+- **Offline switches itself on, quickly:** at launch the screens render from the cache at once while `ping` (4 s hard timeout,
+  DNS included) runs in the background; a failed ping means offline. Any later request that fails with a connection error, timeout,
+  DNS failure or a 502/503/504 flips offline immediately and the current screen reloads from cache/downloads. Platform network
+  callbacks (Android `ConnectivityManager` default-network callback incl. VPN/transport changes; iOS `NWPathMonitor`) re-ping.
+  A request we cancel ourselves (search typing) never counts as a failure.
+- **And back off, by itself:** while offline the app re-pings every 20 s and whenever it returns to the foreground; any ping or
+  request that gets an answer (even a refused login) means online: the banner disappears, the outbox flushes, downloads resume,
+  open screens refresh. Overlapping pings collapse into one.
+- Playback: if a streamed song fails because the server is gone, the app marks offline and skips to the next downloaded song of
+  the queue (wrapping when repeating all) instead of stopping with an error; consecutive failures are capped at the queue length.
+- Offline: a slim banner under the top bar ("Offline · showing downloads", tap to retry). Browsing uses the JSON cache plus
+  `downloads.json`, which holds every downloaded song's full metadata, so:
+  - Library › **Artists**: every artist with at least one downloaded song, A to Z (photo/album count from the cached artist list
+    when there is one), then the rest of the cached list dimmed under "Not downloaded".
+  - Library › **Albums**: downloaded albums first (built from downloads, enriched from the cache), the cached rest dimmed.
+    **Playlists**: pinned (downloaded) playlists first, even when never cached, the rest dimmed. **Songs**: the downloaded songs.
+  - **Artist page**: hero + Play/Shuffle over the downloaded songs ("Downloaded songs", expandable) and "Downloaded albums"
+    (from cache + downloads; works for artists whose page was never cached). Album/playlist pages never cached are rebuilt from downloads.
+  - Home gets a "Downloaded albums" shelf; search runs locally over downloaded songs, albums and artists.
+  - Songs that aren't downloaded are dimmed and can't be played; the play queue skips them. The Downloads tab works fully.
 - Manual "Offline mode" setting forces offline (no network calls at all, not even covers not on disk).
 
 ## Screens
@@ -74,47 +90,66 @@ on every screen. Settings open from a gear on Home.
 
 - **Sign in:** app name + glyph, fields Server (placeholder `https://music.example.ts.net`), Username, Password
   (masked), Sign in button with progress; clear error text (unreachable / wrong password / not a Subsonic server).
-- **Home:** big "Shuffle all" pill (getRandomSongs size=200; offline: all downloads shuffled) and "Favorites" pill;
-  then horizontal shelves of album cards: Recently played (`recent`), Recently added (`newest`), Most played
+- **Density:** the app is compact, in the way of Apple Music / Spotify lists: list rows 56 dp/pt with 40 dp thumbnails and 16 side
+  padding; section titles 20 sp; screen titles 24 sp; body 15 sp; pills and buttons 40 dp tall (touch targets stay 44/48);
+  covers 6 (thumbs), 8 (cards), 10-12 (heroes); spacing steps 4/8/12/16/24; empty states are an icon and one sentence.
+- **Home:** "Shuffle all" pill (getRandomSongs size=200; offline: all downloads shuffled) and "Favorites" pill;
+  then horizontal shelves of ~140 dp album cards: Recently played (`recent`), Recently added (`newest`), Most played
   (`frequent`), Favorite albums (`starred`), Rediscover (`random`, size 20). Shelves with nothing are hidden. Pull to refresh.
 - **Library:** segmented chips Artists · Albums · Playlists · Songs · Favorites.
   Artists: A–Z index list with artist image circles + album count, with a fast-scroll letter rail.
-  Albums: 2-column grid (sort menu: name / artist / recently added / year / most played), paged 60 at a time.
+  Albums: grid of ~100 dp+ cards, 3 across on a phone (sort menu: name / artist / recently added / year / most played), paged 60 at a time.
   Playlists: list with cover + song count + duration. Songs: `search3` with empty query paged.
-  Favorites: starred artists, albums and songs.
-- **Artist:** hero (artist image, darkened gradient into the background color, name over it), Play + Shuffle buttons,
-  Top songs (5, expandable), Albums grid sorted newest first (singles/EPs after albums when `releaseTypes` says so),
+  Favorites: starred artists, albums and songs. **Songs, Favorites' songs, Downloads, search song results and every
+  album/playlist/artist page have Play and Shuffle.**
+- **Artist:** ~240 dp hero (artist image cropped, darkened gradient into the background color, name over it), action row Play +
+  Shuffle + **Download** (all their songs, pinned like an album; ring while downloading, tap again to remove) + Favorite + `…`,
+  Top songs (5, expandable), Albums as rows sorted newest first (singles/EPs after albums when `releaseTypes` says so),
   "Similar artists" row, bio from `getArtistInfo2.biography` (HTML stripped, 3 lines, tap to expand).
-- **Album:** backdrop = cover's dominant color fading into the background; large cover with soft shadow; title,
+- **Album:** backdrop = cover's dominant color fading into the background; ~208 dp cover with soft shadow (the first tracks are visible without scrolling on a 6.1" phone); title,
   artist (tappable → artist), meta line `2019 · Synthpop · 8 songs · 34 min`, a quality badge from the songs
   (`FLAC 24/96`, `FLAC 16/44.1`, `MP3 320`, `OPUS`; mixed → highest); action row: Play (filled), Shuffle, Download
-  (with ring progress / check when done), Favorite heart, `…` menu. Track list grouped by disc ("Disc 2" headers only
+  (with ring progress / check when done; tapping it again offers Remove download), Favorite heart, `…` menu (Play next, Add to queue,
+  **Repeat album/playlist/artist** = play it with repeat-all on, or stop repeating it, Go to artist). Track list grouped by disc ("Disc 2" headers only
   when >1 disc), row = track number (or animated equalizer bars when it's the playing song), title, featured artists
   when they differ from the album artist, duration, small download state icon. Album notes from `getAlbumInfo2` at
   the bottom if present.
 - **Playlist:** like Album, cover = playlist cover; meta = owner · N songs · duration.
-- **Search:** field auto-focused, `search3` debounced 250 ms, sections Artists (row), Albums (row), Songs (list).
-  Offline: searches downloaded songs locally.
+- **Search:** a compact field, auto-focused on every visit; results appear while typing (`search3`, 200 ms debounce; a newer
+  keystroke cancels the stale request, the previous results stay on screen under a thin progress line, no empty flash).
+  Query, results and recents survive visiting a result and coming back. Sections: **Top result** (an exact, else prefix, name
+  match), Artists (3, "See all"), Albums (4, "See all"), Songs (5 + "See all", with Play/Shuffle). Matching ignores case and
+  accents (and folds ё), so Cyrillic and mixed case work; every word must match. Tapping a song plays it with the song results
+  as the queue; the song row menu is there. **Recent searches** (last 10, clearable, tap to reuse, x to forget one) show
+  when the field is empty; a search counts once it shows results for 1.5 s, on the keyboard's search key, or when you open
+  a result. The keyboard hides when you scroll. Offline: searches downloaded songs, albums and artists locally.
 - **Downloads:** storage used at the top; "Downloading" section (current song progress, queued count, pause/resume
   all); then pinned albums/playlists and loose songs; swipe or menu to remove. Empty state explains how to download.
-- **Song row menu** (long-press or `…`): Play next, Add to queue, Go to album, Go to artist, Favorite/Unfavorite,
-  Download / Remove download, Song info (format, bitrate, sample rate, bit depth, size, path, play count).
+- **Song rows** show their download state (ring while queued/downloading, check when saved). **Swipe a row left** to download it
+  (or remove it when saved); the row springs back. **Song row menu** (long-press or `…`; also the `…` in the full player's top
+  bar): Play next, Add to queue, Download / Remove download, Favorite/Unfavorite, Go to album, Go to artist, Song info (format,
+  bitrate, sample rate, bit depth, size, path, play count).
 - **Mini player:** cover thumb, title + artist, play/pause, thin progress line along its bottom edge; swipe left/right
   skips; tap or swipe up expands into the full player.
 - **Full player:** background = vertical gradient from the cover's dominant color to near-black, crossfading on
   track change. Large cover (rounded 12, shadow) that shrinks to ~85 % with a spring when paused; swipe the cover
   left/right to skip with a parallax slide. Title (2 lines max) + artist (tappable) + favorite heart; seek bar with
   elapsed/remaining, draggable with haptics; transport: shuffle, previous, play/pause (large, morphing icon), next,
-  repeat (off/all/one). Bottom row: quality badge, Lyrics, Up next, output picker (iOS AVRoutePickerView; Android
+  repeat (off/all/one). Shuffle and repeat show their state with the accent color plus a dot under the icon, and give a short haptic tick.
+  The layout is built from the bottom up (controls, seek bar, title) and the cover takes the rest, so it fits a 5.4" phone without clipping. Bottom row: quality badge, Lyrics, Up next, output picker (iOS AVRoutePickerView; Android
   system output switcher intent). Drag down to dismiss.
-- **Up next** (sheet from the player, Spotify style): "Now playing" row; "Next in queue" (songs added with Play
+- **Up next** (sheet from the player, Spotify style): header has Shuffle and Repeat toggles; "Now playing" row; "Next in queue" (songs added with Play
   next / Add to queue) with a Clear button; "Next from <context name>" (the rest of the album/playlist/shuffle).
   Drag handle to reorder, swipe to remove, tap to jump. Shuffle on/off animates the reorder.
 - **Lyrics** (sheet/page from the player): synced lyrics with the active line large and bright, others dim, smooth
-  auto-scroll; tap a line to seek there. Unsynced lyrics shown plain. "No lyrics" state.
-- **Settings:** every row has an ⓘ button that shows a short explanation (sheet or popover). Make the explanation a
-  **required** parameter of the settings-row component so a setting can't exist without one. Rows:
-  - Server: `user @ host`, version; Sign out (confirm; keeps downloads, which come back on signing in to the same account).
+  auto-scroll; tap a line to seek there. Unsynced lyrics shown plain. "No lyrics" state. Servers without `songLyrics` fall back to the plain legacy `getLyrics`
+  (artist + title); nothing is requested until the extension list has loaded.
+- **Settings:** grouped cards under small section headers (Playback, Downloads, Offline, Storage, About), a tinted rounded-square
+  icon per row, the current value on the right with a chevron for pickers, switches for toggles, and an ⓘ on every row that shows a short
+  explanation (sheet or popover). Make the explanation a **required** parameter of the settings-row component so a setting can't
+  exist without one. A header card shows the server host, `user · Navidrome version`, an online/offline status dot, and Sign out. The two storage
+  rows carry a small bar with their share of Spinwell's own storage. Rows:
+  - Server (header card): `user @ host`, version; Sign out (confirm; keeps downloads, which come back on signing in to the same account).
   - Streaming quality on Wi-Fi: Original / 320 / 256 / 192 / 128 kbps (default Original).
     ⓘ "How songs are sent when you're on Wi-Fi. Original plays the file as it is on your server, so FLAC stays lossless; a number asks the server to convert to MP3 at that bitrate, which uses less data but can't sound better than the original."
   - Streaming quality on mobile data: same options (default 192).
@@ -152,11 +187,21 @@ on every screen. Settings open from a gear on Home.
   adjacent songs share an artist (and, secondarily, an album) whenever the input allows it; `first` (current song)
   stays at position 0. Turning shuffle off restores context order and continues from the current song.
   Starting from a Shuffle button turns shuffle on and starts from a random song.
+- **Repeat** (off → all → one) lives in the full player, the Up next header, and as "Repeat album/playlist/artist" in a container's `…`
+  menu. Repeat all loops the whole queue (the context, plus anything queued); repeat one loops the song. Shuffle and repeat are
+  saved on every change, independently of the queue, so they survive relaunches and an emptied queue. Android: the lock screen /
+  notification / Auto session carries shuffle and repeat buttons in the app's state (media3 custom commands), and a controller
+  changing repeat is mirrored into the app. iOS: `MPRemoteCommandCenter` shuffle/repeat commands mirror the same state.
+- **Starting playback is cheap:** the player gets just the song to play at once and the rest of the queue in
+  chunks of 6 on the following frames (building a 60-song queue in the tap handler held the first frame for ~70 ms on the OnePlus 8, ~250 ms in a debug build; it is now ~12 ms there); queue JSON is written off the
+  main thread; the cover (600 and 1200 px) and its color are prefetched when a song is pressed.
 - Previous: restarts the song if more than 3 s in, else goes back.
 - **Restore on launch:** persist queue + index + position (every 5 s while playing, and on pause/background/track change)
   + `wasPlaying`. On launch load the queue into the player paused at the saved position, immediately, before any
   network call. If `wasPlaying`: open the full player (expanded), and start playing if "Resume playing on open" is on.
   If not playing: just show the mini player.
+- **Restore the screen:** the navigation stack (tab, library sub-tab, pushed album/playlist/artist pages) is saved when the
+  app stops and restored on launch, so a relaunch lands where you were.
 - **Scrobble:** `submission=false` when a song starts, `submission=true` once it has played 50 % or 4 min; outbox when offline.
 
 ## Motion and look

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- themed-icon silhouette: record with label ring and spindle hole -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
+    <path android:fillColor="#FFFFFF" android:fillType="evenOdd"
+        android:pathData="M54,24a30,30 0 1,0 0.01,0z M54,40.45a13.55,13.55 0 1,0 0.01,0z M54,43a11,11 0 1,0 0.01,0z M54,52.2a1.8,1.8 0 1,0 0.01,0z"/>
+</vector>
