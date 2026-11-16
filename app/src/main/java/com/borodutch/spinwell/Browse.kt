@@ -198,7 +198,8 @@ fun ArtistScreen(id: String, share: String) {
     fun isSingle(x: Album) = x.releaseTypes.any { t -> t.lowercase().let { "single" in it || "\"ep\"" in it || it == "ep" } }
     val main = albums.filter { !isSingle(it) }.sortedByDescending { it.year }
     val singles = albums.filter(::isSingle).sortedByDescending { it.year }
-    val img = a?.coverArt?.takeIf { it.isNotEmpty() } ?: albums.firstOrNull()?.coverArt
+    val fallback = a?.coverArt?.takeIf { it.isNotEmpty() } ?: albums.firstOrNull()?.coverArt
+    val img = info?.third?.takeIf { it.startsWith("http") } ?: fallback // the server's artist photo, else the cover id
     val ctx = Ctx("artist", id, a?.name.orEmpty())
 
     suspend fun allSongs(): List<Song> = withContext(Dispatchers.IO) {
@@ -212,7 +213,7 @@ fun ArtistScreen(id: String, share: String) {
         LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = LocalBottom.current + 16.dp)) {
             item {
                 Box(Modifier.fillMaxWidth()) {
-                    CoverArt(img, 600, Modifier.fillMaxWidth(), 0.dp, "cover-$share-$id", placeholderIcon = false)
+                    CoverArt(img, 1200, Modifier.fillMaxWidth(), 0.dp, "cover-$share-$id", placeholderIcon = false, behind = fallback)
                     Box(Modifier.matchParentSize().background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.25f), Color.Transparent, Bg), startY = 0f)))
                     Text(a?.name ?: " ", style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.BottomStart).padding(20.dp), maxLines = 2)
                 }

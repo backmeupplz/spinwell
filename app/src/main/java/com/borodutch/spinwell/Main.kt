@@ -38,13 +38,13 @@ class Main : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge(SystemBarStyle.dark(AColor.TRANSPARENT), SystemBarStyle.dark(AColor.TRANSPARENT))
-        if (Store.session != null) Audio.ensureService(this)
+        if (Store.session != null) { Audio.ensureService(this); if (Nav.stack.size == 1 && Nav.top == Route.Home) Nav.restore() }
         setContent { SpinwellTheme { Root() } }
     }
 
     override fun onStop() {
         super.onStop()
-        if (Store.session != null) Audio.savePos()
+        if (Store.session != null) { Audio.savePos(); Nav.save() }
     }
 }
 
@@ -158,12 +158,19 @@ fun Shell() {
                     }
                 }
             }
+            // rows scrolling under the clock and icons fade out instead of colliding with them
+            Box(Modifier.align(Alignment.TopCenter).fillMaxWidth().height(statusTop + 10.dp).background(androidx.compose.ui.graphics.Brush.verticalGradient(0.55f to Bg.copy(alpha = 0.85f), 1f to Color.Transparent)))
             OfflineBanner(statusTop)
 
+            // a soft fade under the mini player, so rows scrolling behind it don't show in the gap above the tab bar
+            if (hasPlayer) Box(
+                Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(barH + miniH + 24.dp).graphicsLayer { translationY = exp.value * size.height * 1.2f }
+                    .background(androidx.compose.ui.graphics.Brush.verticalGradient(0f to Color.Transparent, 0.16f to Bg)),
+            )
             // tab bar slides away as the full player opens
             Row(
                 Modifier.align(Alignment.BottomCenter).fillMaxWidth().graphicsLayer { translationY = exp.value * size.height * 1.2f }
-                    .background(Bg.copy(alpha = 0.97f)).padding(bottom = navBottom).height(60.dp),
+                    .background(Bg).padding(bottom = navBottom).height(60.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 tabs.forEach { (route, label, icon) ->

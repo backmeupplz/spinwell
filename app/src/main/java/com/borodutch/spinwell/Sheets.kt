@@ -154,8 +154,13 @@ fun LyricsSheet(song: Song, tint: Color, pos: () -> Long, onClose: () -> Unit) {
     LaunchedEffect(song.id, Store.ext.value) {
         val p = mapOf("id" to song.id)
         lyrics = withContext(Dispatchers.IO) { Api.cached("getLyricsBySongId", p)?.let(::parseLyrics) }
-        if (!Net.offline) withContext(Dispatchers.IO) {
-            runCatching { parseLyrics(Api.call("getLyricsBySongId", p)) }.getOrNull()
+        // the structured call only on servers that advertise songLyrics; others get the plain legacy getLyrics
+        if (!Net.offline && Store.ext.value.isNotEmpty()) withContext(Dispatchers.IO) {
+            runCatching {
+                if ("songLyrics" in Store.ext.value) parseLyrics(Api.call("getLyricsBySongId", p))
+                else Api.call("getLyrics", mapOf("artist" to song.artist, "title" to song.title)).optJSONObject("lyrics")?.optString("value").orEmpty()
+                    .lines().takeIf { it.any(String::isNotBlank) }?.let { ls -> Lyrics(false, ls.map { 0L to it }) }
+            }.getOrNull()
         }?.let { lyrics = it }
         loaded = true
     }

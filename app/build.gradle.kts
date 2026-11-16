@@ -33,7 +33,7 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            signingConfig = signingConfigs.findByName("upload")
+            signingConfig = signingConfigs.findByName("upload") ?: if (project.hasProperty("debugSign")) signingConfigs.getByName("debug") else null // -PdebugSign: quick installable build without the upload key
         }
     }
 }

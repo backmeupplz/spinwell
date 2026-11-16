@@ -261,11 +261,11 @@ fun LetterRail(letters: List<String>, modifier: Modifier = Modifier, onPick: (St
         if (l != last) { last = l; haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove); onPick(l) }
     }
     Column(
-        modifier.width(24.dp).height((letters.size * 18).dp.coerceAtMost(520.dp)).pointerInput(letters) { detectDragGestures(onDragStart = { pick(it.y) }) { c, _ -> pick(c.position.y) } }
+        modifier.width(28.dp).height((letters.size * 18).dp.coerceAtMost(520.dp)).pointerInput(letters) { detectDragGestures(onDragStart = { pick(it.y) }) { c, _ -> pick(c.position.y) } }
             .pointerInput(letters) { detectTapGestures { pick(it.y) } }
             .onSizeChangedPx { h = it.height.coerceAtLeast(1) },
-        verticalArrangement = Arrangement.SpaceEvenly, horizontalAlignment = Alignment.CenterHorizontally,
-    ) { letters.forEach { Text(it, fontSize = 10.sp, color = Accent, fontWeight = FontWeight.Bold) } }
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) { letters.forEach { Box(Modifier.weight(1f), contentAlignment = Alignment.Center) { Text(it, fontSize = 10.sp, lineHeight = 10.sp, color = Accent, fontWeight = FontWeight.Bold) } } }
 }
 
 fun Modifier.onSizeChangedPx(f: (androidx.compose.ui.unit.IntSize) -> Unit) = this.onSizeChanged(f)
