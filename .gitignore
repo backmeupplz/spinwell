@@ -1,0 +1,13 @@
+local.properties
+.gradle/
+.kotlin/
+build/
+app/build/
+keystore.properties
+*.jks
+/shots/
+ios/build/
+ios/shots/
+xcuserdata/
+DerivedData/
+__pycache__/
