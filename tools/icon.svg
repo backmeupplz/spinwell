@@ -1,17 +1,16 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+<!-- Spinwell app icon master. Same geometry as app/src/main/res/drawable/ic_launcher_{bg,fg}.xml (108-unit adaptive-icon grid);
+     the viewBox is the 72-unit area launchers show, so the iPhone icon (rendered from this at 1024 px) matches Android exactly. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="18 18 72 72" width="1024" height="1024">
   <defs>
-    <radialGradient id="bg" cx=".5" cy=".3" r=".85"><stop offset="0" stop-color="#6a2259"/><stop offset=".6" stop-color="#2a1236"/><stop offset="1" stop-color="#0d0b14"/></radialGradient>
-    <radialGradient id="vinyl" cx=".5" cy=".5" r=".5"><stop offset=".3" stop-color="#1d1727"/><stop offset="1" stop-color="#0f0c16"/></radialGradient>
-    <linearGradient id="label" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff7a45"/><stop offset=".55" stop-color="#ff3d81"/><stop offset="1" stop-color="#8b5cf6"/></linearGradient>
-    <linearGradient id="shine" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".14"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+    <radialGradient id="bg" gradientUnits="userSpaceOnUse" cx="54" cy="32" r="92"><stop offset="0" stop-color="#6A2259"/><stop offset=".6" stop-color="#2A1236"/><stop offset="1" stop-color="#0D0B14"/></radialGradient>
+    <linearGradient id="shine" gradientUnits="userSpaceOnUse" x1="54" y1="30" x2="78" y2="30"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".14"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+    <linearGradient id="label" gradientUnits="userSpaceOnUse" x1="40.5" y1="40.5" x2="67.5" y2="67.5"><stop offset="0" stop-color="#FF7A45"/><stop offset=".55" stop-color="#FF3D81"/><stop offset="1" stop-color="#8B5CF6"/></linearGradient>
   </defs>
-  <rect width="1024" height="1024" fill="url(#bg)"/>
-  <circle cx="512" cy="512" r="372" fill="url(#vinyl)" stroke="#5a4a6e" stroke-width="6"/>
-  <g fill="none" stroke="#33293f" stroke-width="3">
-    <circle cx="512" cy="512" r="340"/><circle cx="512" cy="512" r="306"/><circle cx="512" cy="512" r="272"/><circle cx="512" cy="512" r="238"/><circle cx="512" cy="512" r="204"/>
-  </g>
-  <path d="M512 140 A372 372 0 0 1 800 276 L512 512 Z" fill="url(#shine)"/>
-  <circle cx="512" cy="512" r="168" fill="url(#label)"/>
-  <circle cx="512" cy="512" r="118" fill="none" stroke="#0d0b14" stroke-opacity=".3" stroke-width="6"/>
-  <circle cx="512" cy="512" r="20" fill="#0d0b14"/>
+  <rect x="0" y="0" width="108" height="108" fill="url(#bg)"/>
+  <circle cx="54" cy="54" r="30" fill="#15111D" stroke="#5A4A6E" stroke-width=".5"/>
+  <g fill="none" stroke="#33293F" stroke-width=".3"><circle cx="54" cy="54" r="27.4"/><circle cx="54" cy="54" r="24.7"/><circle cx="54" cy="54" r="21.9"/><circle cx="54" cy="54" r="19.2"/><circle cx="54" cy="54" r="16.5"/></g>
+  <path d="M54,24 A30,30 0 0,1 77.2,35 L54,54 Z" fill="url(#shine)"/>
+  <circle cx="54" cy="54" r="13.55" fill="url(#label)"/>
+  <circle cx="54" cy="54" r="9.5" fill="none" stroke="#0D0B14" stroke-opacity=".3" stroke-width=".5"/>
+  <circle cx="54" cy="54" r="1.6" fill="#0D0B14"/>
 </svg>
