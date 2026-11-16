@@ -113,7 +113,7 @@ private fun AlbumsTab() {
             }
             if (offline && downloaded > 0) Text("Downloaded first", color = Muted, style = MaterialTheme.typography.bodySmall)
         }
-        LazyVerticalGrid(GridCells.Adaptive(104.dp), Modifier.fillMaxSize(), grid, contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = LocalBottom.current + 16.dp),
+        LazyVerticalGrid(GridCells.Adaptive(100.dp), Modifier.fillMaxSize(), grid, contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = LocalBottom.current + 16.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             itemsIndexed(shown, key = { _, a -> a.id }) { _, a -> AlbumCard(a, "lib", Modifier.fillMaxWidth()) { Nav.push(Route.Album(a.id, "lib", a.coverArt)) } }
             if (shown.isEmpty()) item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) { Empty(if (offline) "No downloaded albums yet." else "Loading…") }

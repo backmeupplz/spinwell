@@ -98,7 +98,7 @@ on every screen. Settings open from a gear on Home.
   (`frequent`), Favorite albums (`starred`), Rediscover (`random`, size 20). Shelves with nothing are hidden. Pull to refresh.
 - **Library:** segmented chips Artists · Albums · Playlists · Songs · Favorites.
   Artists: A–Z index list with artist image circles + album count, with a fast-scroll letter rail.
-  Albums: grid of ~104 dp+ cards, 3 across on a phone (sort menu: name / artist / recently added / year / most played), paged 60 at a time.
+  Albums: grid of ~100 dp+ cards, 3 across on a phone (sort menu: name / artist / recently added / year / most played), paged 60 at a time.
   Playlists: list with cover + song count + duration. Songs: `search3` with empty query paged.
   Favorites: starred artists, albums and songs. **Songs, Favorites' songs, Downloads, search song results and every
   album/playlist/artist page have Play and Shuffle.**
