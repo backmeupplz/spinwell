@@ -1,4 +1,4 @@
-package com.borodutch.naviplus
+package com.borodutch.spinwell
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory

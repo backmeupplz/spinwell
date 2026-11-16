@@ -1,4 +1,4 @@
-package com.borodutch.naviplus
+package com.borodutch.spinwell
 
 import android.content.Intent
 import android.provider.Settings as AndroidSettings

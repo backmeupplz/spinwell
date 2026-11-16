@@ -1,4 +1,4 @@
-package com.borodutch.naviplus
+package com.borodutch.spinwell
 
 import android.app.Application
 import android.content.Context
@@ -65,7 +65,7 @@ object Store {
 
     fun init(a: Application) {
         app = a
-        p = a.getSharedPreferences("navi", Context.MODE_PRIVATE)
+        p = a.getSharedPreferences("spinwell", Context.MODE_PRIVATE)
         val s = p.getString("server", null)
         val t = p.getString("token", null)
         if (s != null && t != null) session = Session(s, p.getString("user", "")!!, t, p.getString("salt", "")!!)

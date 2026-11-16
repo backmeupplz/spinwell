@@ -1,4 +1,4 @@
-package com.borodutch.naviplus
+package com.borodutch.spinwell
 
 import android.app.PendingIntent
 import android.content.Context

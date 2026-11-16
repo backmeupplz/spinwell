@@ -1,4 +1,4 @@
-package com.borodutch.naviplus
+package com.borodutch.spinwell
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor

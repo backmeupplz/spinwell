@@ -1,4 +1,4 @@
-package com.borodutch.naviplus
+package com.borodutch.spinwell
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
@@ -51,7 +51,7 @@ fun HomeScreen() {
         LazyColumn(Modifier.fillMaxSize(), Scroll.list("home"), contentPadding = pagePadding(4.dp)) {
             item {
                 Row(Modifier.padding(start = 20.dp, end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text("Navi+", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f))
+                    Text("Spinwell", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f))
                     IconBtn(Ic.Settings, "Settings") { Nav.push(Route.Settings) }
                 }
             }

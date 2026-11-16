@@ -1,4 +1,4 @@
-package com.borodutch.naviplus
+package com.borodutch.spinwell
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -33,6 +33,6 @@ private val type = Typography().run {
 }
 
 @Composable
-fun NaviTheme(content: @Composable () -> Unit) = MaterialTheme(colorScheme = scheme, typography = type) {
+fun SpinwellTheme(content: @Composable () -> Unit) = MaterialTheme(colorScheme = scheme, typography = type) {
     CompositionLocalProvider(LocalContentColor provides scheme.onBackground, content = content)
 }

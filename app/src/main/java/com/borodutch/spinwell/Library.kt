@@ -1,4 +1,4 @@
-package com.borodutch.naviplus
+package com.borodutch.spinwell
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll

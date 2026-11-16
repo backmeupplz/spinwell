@@ -1,4 +1,4 @@
-package com.borodutch.naviplus
+package com.borodutch.spinwell
 
 import org.json.JSONArray
 import org.json.JSONObject

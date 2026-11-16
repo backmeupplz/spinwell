@@ -1,5 +1,5 @@
 name: Android
-# The Android app (Navi+). iOS, site and Markdown changes skip it (ios.yml checks the iPhone app).
+# The Android app (Spinwell). iOS, site and Markdown changes skip it (ios.yml checks the iPhone app).
 on:
   pull_request:
     paths: ['app/**', 'gradle/**', '*.gradle.kts', 'gradle.properties', 'gradlew', '.forgejo/workflows/android.yml']
@@ -25,7 +25,7 @@ jobs:
       # retested. Only what the build reads (cone mode adds the root files): the full tree is 25 MB of store and site images.
       - name: Sources
         run: |
-          src="${PWD%%/work/*}/ci/naviplus-android-git"
+          src="${PWD%%/work/*}/ci/spinwell-android-git"
           mkdir -p "$src" && cd "$src"
           rm -f .git/index.lock .git/shallow.lock # left by a cancelled run
           [ -d .git ] || { git init -q && git sparse-checkout set app gradle; }
@@ -49,7 +49,7 @@ jobs:
           mkdir -p "$base/android-sdk/licenses"
           printf '\n24333f8a63b6825ea9c5514f83c2829b004d1fee' > "$base/android-sdk/licenses/android-sdk-license"
           echo "ANDROID_HOME=$base/android-sdk" >> "$GITHUB_ENV"
-      # A Gradle daemon per runner (shared by ABS+, Mesh+ and Navi+, stopped by Gradle after 3 idle hours) stays up between jobs,
+      # A Gradle daemon per runner (shared by ABS+, Mesh+ and Spinwell, stopped by Gradle after 3 idle hours) stays up between jobs,
       # so a job doesn't pay for a cold JVM, loading the Android plugin and reading the configuration cache. No file system
       # watching: the daemon must hash what git changed, never trust a file event it may have missed.
       - name: Test and build

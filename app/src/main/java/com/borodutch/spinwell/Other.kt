@@ -1,4 +1,4 @@
-package com.borodutch.naviplus
+package com.borodutch.spinwell
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -227,8 +227,8 @@ fun SettingsScreen() {
                     "Covers and library: ${fmtBytes(cacheBytes)}") { TextButton({ Api.clearCache(); dialog = "x" }) { Text("Clear", color = Accent) } }
                 SettingRow("Downloads", "Songs saved for offline listening. Removing them frees the space; you can download them again any time.",
                     "${fmtBytes(Downloads.totalBytes())} · ${Downloads.done.size} songs") { TextButton({ dialog = "rmdl" }, enabled = Downloads.done.isNotEmpty()) { Text("Remove all", color = Accent) } }
-                SettingRow("About", "Navi+ is a free, open source player for your own Navidrome or OpenSubsonic server. No ads, no analytics.",
-                    "Navi+ $version · git.borodutch.com/backmeupplz/naviplus")
+                SettingRow("About", "Spinwell is a free, open source player for your own Navidrome or OpenSubsonic server. No ads, no analytics.",
+                    "Spinwell $version · git.borodutch.com/backmeupplz/spinwell")
             }
         }
         BackButton(Modifier.padding(top = LocalTop.current))

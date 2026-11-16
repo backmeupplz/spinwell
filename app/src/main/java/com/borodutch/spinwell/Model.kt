@@ -1,4 +1,4 @@
-package com.borodutch.naviplus
+package com.borodutch.spinwell
 
 import org.json.JSONArray
 import org.json.JSONObject
@@ -21,7 +21,7 @@ fun normalizeServer(s: String): String {
 class Session(val server: String, val user: String, val token: String, val salt: String) {
     val owner get() = sha256("$server|$user")
     private fun enc(s: String) = URLEncoder.encode(s, "UTF-8")
-    fun auth() = "u=${enc(user)}&t=$token&s=$salt&v=1.16.1&c=NaviPlus&f=json"
+    fun auth() = "u=${enc(user)}&t=$token&s=$salt&v=1.16.1&c=Spinwell&f=json"
     fun url(method: String, params: Map<String, String> = emptyMap()): String =
         "$server/rest/$method?" + auth() + params.entries.joinToString("") { "&${it.key}=${enc(it.value)}" }
     fun cover(id: String, px: Int) = url("getCoverArt", mapOf("id" to id, "size" to px.toString()))

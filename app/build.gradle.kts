@@ -9,10 +9,10 @@ plugins {
 val keys = Properties().apply { rootProject.file("keystore.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) } }
 
 android {
-    namespace = "com.borodutch.naviplus"
+    namespace = "com.borodutch.spinwell"
     compileSdk = 36
     defaultConfig {
-        applicationId = "com.borodutch.naviplus"
+        applicationId = "com.borodutch.spinwell"
         minSdk = 29
         targetSdk = 36
         versionCode = 1

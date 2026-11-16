@@ -1,4 +1,4 @@
-package com.borodutch.naviplus
+package com.borodutch.spinwell
 
 import android.Manifest
 import android.content.pm.PackageManager
@@ -39,7 +39,7 @@ class Main : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge(SystemBarStyle.dark(AColor.TRANSPARENT), SystemBarStyle.dark(AColor.TRANSPARENT))
         if (Store.session != null) Audio.ensureService(this)
-        setContent { NaviTheme { Root() } }
+        setContent { SpinwellTheme { Root() } }
     }
 
     override fun onStop() {
@@ -76,7 +76,7 @@ fun SignIn() {
             Glyph(Ic.Note, Accent, 48.dp)
         }
         Spacer(Modifier.height(16.dp))
-        Text("Navi+", style = MaterialTheme.typography.headlineMedium)
+        Text("Spinwell", style = MaterialTheme.typography.headlineMedium)
         Text("Your own music, anywhere.", color = Muted, style = MaterialTheme.typography.bodyMedium)
         Spacer(Modifier.height(32.dp))
         val fieldColors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Accent, focusedLabelColor = Accent, cursorColor = Accent)

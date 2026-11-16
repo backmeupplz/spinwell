@@ -1,4 +1,4 @@
-package com.borodutch.naviplus
+package com.borodutch.spinwell
 
 import com.sun.net.httpserver.HttpServer
 import org.junit.Assert.*
@@ -15,7 +15,7 @@ class CoreTest {
 
     @Test fun urls() {
         val s = Session("http://h:4533", "admin", "tok", "salt")
-        assertEquals("http://h:4533/rest/stream?u=admin&t=tok&s=salt&v=1.16.1&c=NaviPlus&f=json&id=7&maxBitRate=0", s.stream("7", 0))
+        assertEquals("http://h:4533/rest/stream?u=admin&t=tok&s=salt&v=1.16.1&c=Spinwell&f=json&id=7&maxBitRate=0", s.stream("7", 0))
         assertTrue(s.stream("7", 192).endsWith("&id=7&maxBitRate=192&format=mp3"))
         assertTrue(s.download("7", 0).contains("rest/download?"))
         assertTrue(s.cover("al-1_x", 300).endsWith("id=al-1_x&size=300"))

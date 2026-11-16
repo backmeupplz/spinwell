@@ -1,4 +1,4 @@
-package com.borodutch.naviplus
+package com.borodutch.spinwell
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -147,7 +147,7 @@ object Downloads {
     fun run(s: DlService) = synchronized(lock) {
         if (worker?.isAlive == true) return
         worker = thread(name = "downloads") {
-            val wake = s.getSystemService(PowerManager::class.java).newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "naviplus:downloads")
+            val wake = s.getSystemService(PowerManager::class.java).newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "spinwell:downloads")
             wake.setReferenceCounted(false)
             var wait = 2_000L
             while (!paused) {

@@ -1,4 +1,4 @@
-package com.borodutch.naviplus
+package com.borodutch.spinwell
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
@@ -261,7 +261,7 @@ fun LetterRail(letters: List<String>, modifier: Modifier = Modifier, onPick: (St
         if (l != last) { last = l; haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove); onPick(l) }
     }
     Column(
-        modifier.width(24.dp).fillMaxHeight().pointerInput(letters) { detectDragGestures(onDragStart = { pick(it.y) }) { c, _ -> pick(c.position.y) } }
+        modifier.width(24.dp).height((letters.size * 18).dp.coerceAtMost(520.dp)).pointerInput(letters) { detectDragGestures(onDragStart = { pick(it.y) }) { c, _ -> pick(c.position.y) } }
             .pointerInput(letters) { detectTapGestures { pick(it.y) } }
             .onSizeChangedPx { h = it.height.coerceAtLeast(1) },
         verticalArrangement = Arrangement.SpaceEvenly, horizontalAlignment = Alignment.CenterHorizontally,

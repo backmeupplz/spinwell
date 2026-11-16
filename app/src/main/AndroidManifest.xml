@@ -10,7 +10,7 @@
 
     <application
         android:name=".App"
-        android:label="Navi+"
+        android:label="Spinwell"
         android:icon="@mipmap/ic_launcher"
         android:theme="@style/AppTheme"
         android:usesCleartextTraffic="true"
