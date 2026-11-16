@@ -29,14 +29,13 @@ struct Root: View {
             if app.signedIn { tabs } else { SignIn() }
         }
         .animation(.smooth, value: app.signedIn)
-        .task {
+        .task(id: app.signedIn) {
             guard app.signedIn else { return }
             app.didSignIn()
             await app.ping()
             player.launched()
             await Hooks.playIfRequested()
         }
-        .onChange(of: app.signedIn) { _, now in if now { app.didSignIn() } }
     }
 
     private var tabs: some View {
