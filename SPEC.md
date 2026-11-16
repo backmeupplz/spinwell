@@ -61,7 +61,7 @@ whose project layout, cover cache and download design we reuse.
 ## Connectivity and offline mode
 
 - "Online" means the server answers, not that there is internet (Tailscale off on Wi-Fi is the common case).
-  On launch and when the network changes: `ping` with a 4 s timeout. Failure → offline. Any later successful request → online.
+  On launch and when the network changes (a network gained or lost, so airplane mode shows the banner at once): `ping` with a 4 s timeout. Failure → offline. Any later successful request → online.
 - Offline: a slim banner under the top bar ("Offline · showing downloads", tap to retry). Browsing uses the JSON cache.
   Songs that aren't downloaded are dimmed and can't be played; albums/playlists with no downloaded songs are dimmed.
   The Downloads tab works fully. Play queue skips non-downloaded songs.
@@ -111,7 +111,8 @@ on every screen. Settings open from a gear on Home.
   next / Add to queue) with a Clear button; "Next from <context name>" (the rest of the album/playlist/shuffle).
   Drag handle to reorder, swipe to remove, tap to jump. Shuffle on/off animates the reorder.
 - **Lyrics** (sheet/page from the player): synced lyrics with the active line large and bright, others dim, smooth
-  auto-scroll; tap a line to seek there. Unsynced lyrics shown plain. "No lyrics" state.
+  auto-scroll; tap a line to seek there. Unsynced lyrics shown plain. "No lyrics" state. Servers without `songLyrics` fall back to the plain legacy `getLyrics`
+  (artist + title); nothing is requested until the extension list has loaded.
 - **Settings:** every row has an ⓘ button that shows a short explanation (sheet or popover). Make the explanation a
   **required** parameter of the settings-row component so a setting can't exist without one. Rows:
   - Server: `user @ host`, version; Sign out (confirm; keeps downloads, which come back on signing in to the same account).
@@ -157,6 +158,8 @@ on every screen. Settings open from a gear on Home.
   + `wasPlaying`. On launch load the queue into the player paused at the saved position, immediately, before any
   network call. If `wasPlaying`: open the full player (expanded), and start playing if "Resume playing on open" is on.
   If not playing: just show the mini player.
+- **Restore the screen:** the navigation stack (tab, library sub-tab, pushed album/playlist/artist pages) is saved when the
+  app stops and restored on launch, so a relaunch lands where you were.
 - **Scrobble:** `submission=false` when a song starts, `submission=true` once it has played 50 % or 4 min; outbox when offline.
 
 ## Motion and look

@@ -159,7 +159,8 @@ fun Shell() {
                 }
             }
             // rows scrolling under the clock and icons fade out instead of colliding with them
-            Box(Modifier.align(Alignment.TopCenter).fillMaxWidth().height(statusTop + 10.dp).background(androidx.compose.ui.graphics.Brush.verticalGradient(0.55f to Bg.copy(alpha = 0.85f), 1f to Color.Transparent)))
+            // (detail pages have a hero image up there, so they show it only once scrolled: see their StatusScrim)
+            if (Nav.top !is Route.Album && Nav.top !is Route.Playlist && Nav.top !is Route.Artist) StatusScrim(Modifier.align(Alignment.TopCenter), statusTop)
             OfflineBanner(statusTop)
 
             // a soft fade under the mini player, so rows scrolling behind it don't show in the gap above the tab bar

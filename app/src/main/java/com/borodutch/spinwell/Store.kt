@@ -60,7 +60,8 @@ object Store {
     lateinit var p: SharedPreferences
     val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     var session by mutableStateOf<Session?>(null)
-    val ext = mutableStateOf<Set<String>>(emptySet()) // OpenSubsonic extensions of this server
+    val ext = mutableStateOf<Set<String>>(emptySet()) // OpenSubsonic extensions of this server, remembered across launches
+    val extKnown = mutableStateOf(false) // true once the server has answered, so a launch offline still knows
     var serverVersion by mutableStateOf("")
     var signInNotice by mutableStateOf<String?>(null)
 
@@ -70,6 +71,7 @@ object Store {
         val s = p.getString("server", null)
         val t = p.getString("token", null)
         if (s != null && t != null) session = Session(s, p.getString("user", "")!!, t, p.getString("salt", "")!!)
+        p.getString("ext", null)?.let { e -> ext.value = e.split(',').filter { it.isNotEmpty() }.toSet(); extKnown.value = true }
     }
 
     /** the signed-in account's private directories */
@@ -89,6 +91,7 @@ object Store {
         }
         p.edit().putString("server", s.server).putString("user", s.user).putString("token", s.token).putString("salt", s.salt).apply()
         session = s
+        p.edit().remove("ext").apply(); ext.value = emptySet(); extKnown.value = false
         signInNotice = null
         Net.reachable = true
         Downloads.load()
@@ -107,10 +110,12 @@ object Store {
 
     fun loadExtensions() {
         scope.launch(Dispatchers.IO) {
-            runCatching {
-                val r = Api.call("getOpenSubsonicExtensions")
-                ext.value = r.list("openSubsonicExtensions").map { it.optString("name") }.toSet()
-            }
+            try {
+                val e = Api.call("getOpenSubsonicExtensions").list("openSubsonicExtensions").map { it.optString("name") }.toSet()
+                p.edit().putString("ext", e.joinToString(",")).apply(); ext.value = e; extKnown.value = true
+            } catch (e: ApiError) { // a plain Subsonic server: it answered, it just has no extensions
+                p.edit().putString("ext", "").apply(); ext.value = emptySet(); extKnown.value = true
+            } catch (_: Exception) { }
             runCatching { serverVersion = Api.call("ping").optString("serverVersion") }
         }
     }
@@ -136,6 +141,8 @@ object Net {
         ping()
         cm?.registerDefaultNetworkCallback(object : ConnectivityManager.NetworkCallback() {
             override fun onAvailable(network: Network) { ping() }
+            // airplane mode or leaving Wi-Fi: find out now instead of at the next failed request
+            override fun onLost(network: Network) { ping() }
         })
     }
 
@@ -146,7 +153,7 @@ object Net {
         Store.scope.launch(Dispatchers.IO) {
             val ok = runCatching { getJson(s.url("ping"), 4_000) }.exceptionOrNull().let { it == null || it is ApiError } // a refused login still means the server answered
             withContext(Dispatchers.Main) { reachable = ok }
-            if (ok) { Outbox.flush(); Downloads.kick() }
+            if (ok) { Outbox.flush(); Downloads.kick(); if (!Store.extKnown.value) Store.loadExtensions() }
         }
     }
     fun ok() { if (!reachable) reachable = true }

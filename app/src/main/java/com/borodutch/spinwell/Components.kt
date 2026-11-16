@@ -250,6 +250,14 @@ fun Empty(text: String, modifier: Modifier = Modifier) =
 @Composable
 fun pagePadding(extraTop: Dp = 8.dp) = PaddingValues(top = LocalTop.current + extraTop, bottom = LocalBottom.current + 16.dp)
 
+/** a fade under the clock and icons, so rows scrolling up there don't collide with them; [visible] fades it in and out */
+@Composable
+fun StatusScrim(modifier: Modifier, statusTop: Dp, visible: () -> Boolean = { true }) {
+    val on by remember { derivedStateOf(visible) } // read here, so scrolling recomposes only this when it flips
+    val a by animateFloatAsState(if (on) 1f else 0f, tween(180), label = "scrim")
+    Box(modifier.fillMaxWidth().height(statusTop + 10.dp).graphicsLayer { alpha = a }.background(androidx.compose.ui.graphics.Brush.verticalGradient(0.55f to Bg.copy(alpha = 0.85f), 1f to Color.Transparent)))
+}
+
 /** A–Z style rail: tap or drag to jump */
 @Composable
 fun LetterRail(letters: List<String>, modifier: Modifier = Modifier, onPick: (String) -> Unit) {

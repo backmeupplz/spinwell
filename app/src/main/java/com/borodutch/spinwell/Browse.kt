@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
@@ -104,8 +105,9 @@ fun CollectionScreen(id: String, playlist: Boolean, share: String, routeCover: S
     val ctx = Ctx(if (playlist) "playlist" else "album", id, c?.name.orEmpty())
     LaunchedEffect(c?.songs, Net.offline) { if (c != null && playlist && !Net.offline) Downloads.sync("playlist", id, c.name, c.coverArt, c.songs) }
 
+    val list = rememberLazyListState()
     Box(Modifier.fillMaxSize()) {
-        LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = LocalBottom.current + 16.dp)) {
+        LazyColumn(Modifier.fillMaxSize(), list, contentPadding = PaddingValues(bottom = LocalBottom.current + 16.dp)) {
             item {
                 Column(Modifier.fillMaxWidth().background(Brush.verticalGradient(listOf(tint.copy(alpha = 0.75f), Bg)))) {
                     Spacer(Modifier.height(LocalTop.current.coerceAtLeast(0.dp) + 56.dp))
@@ -161,6 +163,7 @@ fun CollectionScreen(id: String, playlist: Boolean, share: String, routeCover: S
                 Text(stripHtml(notes), color = Muted, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(20.dp))
             }
         }
+        StatusScrim(Modifier.align(Alignment.TopCenter), LocalTop.current, visible = { list.firstVisibleItemIndex > 0 || list.firstVisibleItemScrollOffset > 400 })
         BackButton(Modifier.padding(top = LocalTop.current))
     }
 }
@@ -190,7 +193,7 @@ fun ArtistScreen(id: String, share: String) {
         val o = j.optJSONObject("artistInfo2")
         Triple(stripHtml(o?.optString("biography").orEmpty()), o?.list("similarArtist")?.map(Artist::of).orEmpty(), o?.optString("largeImageUrl").orEmpty())
     }.value
-    val top = if (a != null) remote("getTopSongs", mapOf("artist" to a.name, "count" to "10")) { j -> j.optJSONObject("topSongs")?.list("song")?.map(Song::of).orEmpty() }.value.orEmpty() else emptyList()
+    val top = if (a != null) remote("getTopSongs", if ("topSongsByArtistId" in Store.ext.value) mapOf("id" to a.id, "count" to "10") else mapOf("artist" to a.name, "count" to "10")) { j -> j.optJSONObject("topSongs")?.list("song")?.map(Song::of).orEmpty() }.value.orEmpty() else emptyList()
     var allTop by remember { mutableStateOf(false) }
     var bioOpen by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
@@ -209,8 +212,9 @@ fun ArtistScreen(id: String, share: String) {
         }.filter { Audio.playable(it) }
     }
 
+    val list = rememberLazyListState()
     Box(Modifier.fillMaxSize()) {
-        LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = LocalBottom.current + 16.dp)) {
+        LazyColumn(Modifier.fillMaxSize(), list, contentPadding = PaddingValues(bottom = LocalBottom.current + 16.dp)) {
             item {
                 Box(Modifier.fillMaxWidth()) {
                     CoverArt(img, 1200, Modifier.fillMaxWidth(), 0.dp, "cover-$share-$id", placeholderIcon = false, behind = fallback)
@@ -251,6 +255,7 @@ fun ArtistScreen(id: String, share: String) {
             }
             if (a == null && st.error != null) item { Empty(if (Net.offline) "This isn't available offline." else "Couldn't load: ${st.error}") }
         }
+        StatusScrim(Modifier.align(Alignment.TopCenter), LocalTop.current, visible = { list.firstVisibleItemIndex > 0 || list.firstVisibleItemScrollOffset > 400 })
         BackButton(Modifier.padding(top = LocalTop.current))
     }
 }
