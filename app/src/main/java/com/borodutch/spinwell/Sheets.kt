@@ -38,7 +38,7 @@ private fun SheetFrame(tint: Color, title: String, onClose: () -> Unit, trailing
         Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.55f).compositeOver2(tint), Bg, Bg)))
             .pointerInput(Unit) { detectTapGestures { } },
     ) {
-        Row(Modifier.padding(top = top + 8.dp, start = 20.dp, end = 8.dp).fillMaxWidth().height(48.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.padding(top = top + 4.dp, start = 16.dp, end = 4.dp).fillMaxWidth().height(48.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(title, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
             trailing?.invoke(this)
             IconBtn(Ic.Down, "Close") { onClose() }
@@ -59,7 +59,10 @@ fun QueueSheet(tint: Color, onClose: () -> Unit) {
     val restStart = q.index + 1 + run.size
     val bottom = with(d) { WindowInsets.navigationBars.getBottom(d).toDp() } + 24.dp
 
-    SheetFrame(tint, "Up next", onClose) {
+    SheetFrame(tint, "Up next", onClose, trailing = {
+        ToggleBtn(Ic.Shuffle, "Shuffle", q.shuffle, size = 44.dp) { Audio.toggleShuffle() }
+        ToggleBtn(if (q.repeat == 2) Ic.RepeatOne else Ic.Repeat, when (q.repeat) { 1 -> "Repeat all"; 2 -> "Repeat one"; else -> "Repeat off" }, q.repeat > 0, size = 44.dp) { Audio.cycleRepeat() }
+    }) {
         LazyColumn(contentPadding = PaddingValues(bottom = bottom)) {
             item(key = "h-now") { Label("Now playing") }
             q.current?.let { c -> item(key = "now-${c.key}") { QueueRow(c, q.index, handle = false, current = true) } }
@@ -83,24 +86,24 @@ fun QueueSheet(tint: Color, onClose: () -> Unit) {
 }
 
 @Composable
-private fun Label(t: String) = Text(t, style = MaterialTheme.typography.labelLarge, color = Muted, modifier = Modifier.padding(start = 20.dp, top = 16.dp, bottom = 6.dp))
+private fun Label(t: String) = Text(t, style = MaterialTheme.typography.labelLarge, color = Muted, modifier = Modifier.padding(start = 16.dp, top = 12.dp, bottom = 4.dp))
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun androidx.compose.foundation.lazy.LazyItemScope.QueueRow(item: QItem, index: Int, handle: Boolean = true, current: Boolean = false) {
     var dragging by remember { mutableStateOf(false) }
     var offset by remember { mutableFloatStateOf(0f) }
-    val rowPx = with(LocalDensity.current) { 64.dp.toPx() }
+    val rowPx = with(LocalDensity.current) { 56.dp.toPx() }
     val index2 by rememberUpdatedState(index)
     val song = item.song
     val dim = Net.offline && !Downloads.has(song.id)
     val body: @Composable () -> Unit = {
         Row(
-            Modifier.fillMaxWidth().height(64.dp).background(if (dragging) Surface2 else Bg)
+            Modifier.fillMaxWidth().height(56.dp).background(if (dragging) Surface2 else Bg)
                 .clickable(enabled = !current && !dim) { Audio.jump(index2) }.padding(start = 16.dp, end = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            CoverArt(song.coverArt, 150, Modifier.size(46.dp), 6.dp)
+            CoverArt(song.coverArt, 150, Modifier.size(40.dp), 6.dp)
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Text(song.title, maxLines = 1, overflow = TextOverflow.Ellipsis, color = if (current) Accent else Color.Unspecified, fontWeight = if (current) FontWeight.SemiBold else FontWeight.Normal)
@@ -108,7 +111,7 @@ private fun androidx.compose.foundation.lazy.LazyItemScope.QueueRow(item: QItem,
             }
             if (current) { EqBars(Audio.playing); Spacer(Modifier.width(16.dp)) }
             if (handle) Box(
-                Modifier.size(48.dp).pointerInput(item.key) {
+                Modifier.size(44.dp).pointerInput(item.key) {
                     detectDragGestures(
                         onDragStart = { dragging = true; offset = 0f },
                         onDragEnd = { dragging = false; offset = 0f },

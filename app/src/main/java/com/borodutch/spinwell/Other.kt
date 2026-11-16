@@ -27,59 +27,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 
-// ---------- search ----------
-
-private class Found(val artists: List<Artist>, val albums: List<Album>, val songs: List<Song>)
-
-@Composable
-fun SearchScreen() {
-    var query by remember { mutableStateOf("") }
-    var found by remember { mutableStateOf<Found?>(null) }
-    val focus = remember { FocusRequester() }
-    LaunchedEffect(Unit) { focus.requestFocus() }
-    LaunchedEffect(query, Net.offline) {
-        if (query.isBlank()) { found = null; return@LaunchedEffect }
-        delay(250)
-        found = if (Net.offline) {
-            val q = query.trim().lowercase()
-            Found(emptyList(), emptyList(), Downloads.done.values.map { it.song }.filter { q in it.title.lowercase() || q in it.artist.lowercase() || q in it.album.lowercase() })
-        } else withContext(Dispatchers.IO) {
-            val p = mapOf("query" to query.trim(), "artistCount" to "6", "albumCount" to "12", "songCount" to "25")
-            runCatching {
-                val o = Api.call("search3", p).getJSONObject("searchResult3")
-                Found(o.list("artist").map(Artist::of), o.list("album").map(Album::of), o.list("song").map(Song::of))
-            }.getOrNull()
-        }
-    }
-    Column(Modifier.fillMaxSize().padding(top = LocalTop.current)) {
-        OutlinedTextField(
-            query, { query = it }, Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp).focusRequester(focus), singleLine = true,
-            placeholder = { Text(if (Net.offline) "Search downloads" else "Artists, albums, songs", color = Muted) },
-            leadingIcon = { Glyph(Ic.Search, Muted) },
-            trailingIcon = { if (query.isNotEmpty()) IconBtn(Ic.Close, "Clear", size = 40.dp) { query = "" } },
-            shape = RoundedCornerShape(50), colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Accent, unfocusedContainerColor = Surface1, focusedContainerColor = Surface1, unfocusedBorderColor = Color.Transparent, cursorColor = Accent),
-        )
-        val f = found
-        LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = LocalBottom.current + 16.dp)) {
-            if (f != null) {
-                if (f.artists.isNotEmpty()) item {
-                    SectionTitle("Artists")
-                    LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) { items(f.artists, key = { it.id }) { a -> ArtistChip(a) { Nav.push(Route.Artist(a.id, "search")) } } }
-                }
-                if (f.albums.isNotEmpty()) item {
-                    SectionTitle("Albums")
-                    LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) { items(f.albums, key = { it.id }) { a -> AlbumCard(a, "search") { Nav.push(Route.Album(a.id, "search", a.coverArt)) } } }
-                }
-                if (f.songs.isNotEmpty()) {
-                    item { SectionTitle("Songs") }
-                    itemsIndexed(f.songs, key = { i, s -> "$i-${s.id}" }) { i, s -> SongRow(s, showCover = true, queue = f.songs, index = i, ctx = Ctx("search", query, "Search: $query")) }
-                }
-                if (f.artists.isEmpty() && f.albums.isEmpty() && f.songs.isEmpty()) item { Empty("Nothing found for “$query”.") }
-            } else if (query.isBlank()) item { Empty("Find anything in your library.") }
-        }
-    }
-}
-
 // ---------- downloads ----------
 
 @Composable
@@ -88,12 +35,13 @@ fun DownloadsScreen() {
     Column(Modifier.fillMaxSize().padding(top = LocalTop.current)) {
         LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = LocalBottom.current + 16.dp)) {
             item {
-                Text("Downloads", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.padding(start = 20.dp, top = 12.dp))
-                Text("${fmtBytes(dl.totalBytes())} · ${dl.done.size} songs", color = Muted, modifier = Modifier.padding(start = 20.dp, top = 2.dp, bottom = 8.dp))
+                ScreenTitle("Downloads")
+                Text("${fmtBytes(dl.totalBytes())} · ${dl.done.size} songs", color = Muted, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = 16.dp, bottom = 2.dp))
             }
+            if (dl.done.isNotEmpty()) item(key = "ps") { PlayShuffle(Offline.songs, Ctx("downloads", "all", "Downloads")) }
             if (dl.queue.isNotEmpty()) item {
                 val cur = dl.queue.firstOrNull { it.id == dl.currentId } ?: dl.queue.first()
-                Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp).background(Surface1, RoundedCornerShape(16.dp)).padding(16.dp)) {
+                Column(Modifier.padding(horizontal = 16.dp, vertical = 6.dp).background(Surface1, RoundedCornerShape(12.dp)).padding(start = 14.dp, end = 6.dp, top = 8.dp, bottom = 12.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
                             Text("Downloading", style = MaterialTheme.typography.labelLarge, color = Accent)
@@ -105,7 +53,7 @@ fun DownloadsScreen() {
                         }
                         TextButton({ if (dl.paused) dl.resumeAll() else dl.pauseAll() }) { Text(if (dl.paused) "Resume all" else "Pause all", color = Accent) }
                     }
-                    Spacer(Modifier.height(10.dp))
+                    Spacer(Modifier.height(6.dp))
                     val p = if (cur.id == dl.currentId && cur.size > 0) (dl.currentBytes.toFloat() / cur.size).coerceIn(0f, 1f) else 0f
                     LinearProgressIndicator({ p }, Modifier.fillMaxWidth().height(4.dp), Accent, Surface2)
                 }
@@ -115,22 +63,20 @@ fun DownloadsScreen() {
                 items(dl.pinned.toList(), key = { "${it.kind}-${it.id}" }) { p ->
                     var menu by remember { mutableStateOf(false) }
                     val songs = p.songIds.mapNotNull { dl.done[it]?.song }
-                    Row(Modifier.fillMaxWidth().press { Nav.push(if (p.kind == "album") Route.Album(p.id, "dl", p.coverArt) else Route.Playlist(p.id, "dl", p.coverArt)) }.padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                        CoverArt(p.coverArt, 300, Modifier.size(56.dp), 8.dp)
-                        Spacer(Modifier.width(14.dp))
-                        Column(Modifier.weight(1f)) {
-                            Text(p.name, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyLarge)
-                            val pr = dl.progress(p.songIds.mapNotNull { id -> dl.done[id]?.song ?: dl.queue.firstOrNull { it.id == id } })
-                            Text("${if (p.kind == "album") "Album" else "Playlist"} · ${songs.size}/${p.songIds.size} songs · ${fmtBytes(songs.sumOf { dl.done[it.id]?.bytes ?: 0 })}" + if (pr < 1f && dl.queue.isNotEmpty()) " · downloading" else "", color = Muted, style = MaterialTheme.typography.bodySmall)
-                        }
-                        Box {
-                            IconBtn(Ic.More, "More", tint = Muted) { menu = true }
-                            DropdownMenu(menu, { menu = false }, containerColor = Surface2) {
-                                DropdownMenuItem({ Text("Play") }, { menu = false; if (songs.isNotEmpty()) Audio.play(songs, 0, Ctx(p.kind, p.id, p.name)) })
-                                DropdownMenuItem({ Text("Remove download") }, { menu = false; dl.removeContainer(p) })
+                    val pr = dl.progress(p.songIds.mapNotNull { id -> dl.done[id]?.song ?: dl.queue.firstOrNull { it.id == id } })
+                    val ctx = Ctx(p.kind, p.id, p.name)
+                    MediaRow(p.coverArt, p.name, "${if (p.kind == "album") "Album" else "Playlist"} · ${songs.size}/${p.songIds.size} songs · ${fmtBytes(songs.sumOf { dl.done[it.id]?.bytes ?: 0 })}" + if (pr < 1f && dl.queue.isNotEmpty()) " · downloading" else "",
+                        trailing = {
+                            Box {
+                                IconBtn(Ic.More, "More", size = 44.dp, tint = Muted) { menu = true }
+                                DropdownMenu(menu, { menu = false }, containerColor = Surface2) {
+                                    DropdownMenuItem({ Text("Play") }, { menu = false; if (songs.isNotEmpty()) Audio.play(songs, 0, ctx) })
+                                    DropdownMenuItem({ Text("Shuffle") }, { menu = false; if (songs.isNotEmpty()) Audio.shuffleAll(songs, ctx) })
+                                    RepeatMenuItem(p.kind, p.id, songs, ctx) { menu = false }
+                                    DropdownMenuItem({ Text("Remove download") }, { menu = false; dl.removeContainer(p) })
+                                }
                             }
-                        }
-                    }
+                        }) { Nav.push(if (p.kind == "album") Route.Album(p.id, "dl", p.coverArt) else Route.Playlist(p.id, "dl", p.coverArt)) }
                 }
             }
             val loose = dl.loose.map { it.song }
@@ -151,10 +97,10 @@ fun DownloadsScreen() {
 @Composable
 fun SettingRow(title: String, info: String, value: String? = null, onClick: (() -> Unit)? = null, trailing: (@Composable () -> Unit)? = null) {
     Row(
-        Modifier.fillMaxWidth().then(if (onClick != null) Modifier.clickable { onClick() } else Modifier).padding(start = 20.dp, end = 8.dp).heightIn(min = 60.dp),
+        Modifier.fillMaxWidth().then(if (onClick != null) Modifier.clickable { onClick() } else Modifier).padding(start = 16.dp, end = 4.dp).heightIn(min = 52.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(Modifier.weight(1f).padding(vertical = 8.dp)) {
+        Column(Modifier.weight(1f).padding(vertical = 6.dp)) {
             Text(title, style = MaterialTheme.typography.bodyLarge)
             if (value != null) Text(value, color = Muted, style = MaterialTheme.typography.bodySmall)
         }
@@ -190,8 +136,8 @@ fun SettingsScreen() {
     val s = Store.session
     val version = remember { runCatching { ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName }.getOrNull().orEmpty() }
     Box(Modifier.fillMaxSize()) {
-        LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(top = LocalTop.current + 56.dp, bottom = LocalBottom.current + 16.dp)) {
-            item { Text("Settings", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.padding(start = 20.dp, bottom = 8.dp)) }
+        LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(top = LocalTop.current + 48.dp, bottom = LocalBottom.current + 16.dp)) {
+            item { ScreenTitle("Settings") }
             item {
                 SettingRow("Server", "The server you're signed in to. Signing out keeps your downloads; they come back when you sign in to the same account.",
                     "${s?.user} @ ${s?.server?.substringAfter("://")}" + if (Store.serverVersion.isNotBlank()) " · v${Store.serverVersion.substringBefore(' ')}" else "",

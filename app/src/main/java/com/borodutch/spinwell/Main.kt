@@ -129,7 +129,7 @@ fun Shell() {
     val density = androidx.compose.ui.platform.LocalDensity.current
     val statusTop = with(density) { WindowInsets.statusBars.getTop(density).toDp() }
     val navBottom = with(density) { WindowInsets.navigationBars.getBottom(density).toDp() }
-    val barH = 60.dp + navBottom
+    val barH = 56.dp + navBottom
     val miniH = 64.dp
     val offline = Net.offline
     val top = statusTop + if (offline) 30.dp else 0.dp
@@ -176,7 +176,7 @@ fun Shell() {
             // tab bar slides away as the full player opens
             Row(
                 Modifier.align(Alignment.BottomCenter).fillMaxWidth().graphicsLayer { translationY = exp.value * size.height * 1.2f }
-                    .background(Bg).padding(bottom = navBottom).height(60.dp),
+                    .background(Bg).padding(bottom = navBottom).height(56.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 tabs.forEach { (route, label, icon) ->

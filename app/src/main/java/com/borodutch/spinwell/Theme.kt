@@ -25,10 +25,14 @@ private val scheme = darkColorScheme(
 
 private val type = Typography().run {
     copy(
-        headlineMedium = headlineMedium.copy(fontWeight = FontWeight.Bold, letterSpacing = (-0.5).sp),
-        titleLarge = titleLarge.copy(fontWeight = FontWeight.Bold),
-        titleMedium = titleMedium.copy(fontWeight = FontWeight.SemiBold),
-        labelLarge = labelLarge.copy(fontWeight = FontWeight.SemiBold),
+        headlineMedium = headlineMedium.copy(fontWeight = FontWeight.Bold, fontSize = 24.sp, lineHeight = 30.sp, letterSpacing = (-0.3).sp),
+        headlineSmall = headlineSmall.copy(fontSize = 22.sp, lineHeight = 28.sp),
+        titleLarge = titleLarge.copy(fontWeight = FontWeight.Bold, fontSize = 20.sp, lineHeight = 26.sp),
+        titleMedium = titleMedium.copy(fontWeight = FontWeight.SemiBold, fontSize = 15.sp, lineHeight = 20.sp),
+        bodyLarge = bodyLarge.copy(fontSize = 15.sp, lineHeight = 20.sp, letterSpacing = 0.sp),
+        bodyMedium = bodyMedium.copy(fontSize = 14.sp, lineHeight = 19.sp),
+        bodySmall = bodySmall.copy(fontSize = 12.sp, lineHeight = 16.sp),
+        labelLarge = labelLarge.copy(fontWeight = FontWeight.SemiBold, fontSize = 14.sp),
     )
 }
 

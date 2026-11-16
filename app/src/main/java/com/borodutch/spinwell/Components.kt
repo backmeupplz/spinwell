@@ -60,22 +60,80 @@ fun IconBtn(v: ImageVector, desc: String, modifier: Modifier = Modifier, tint: C
 
 @Composable
 fun SectionTitle(text: String, modifier: Modifier = Modifier, trailing: (@Composable () -> Unit)? = null) =
-    Row(modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 2.dp).heightIn(min = 28.dp), verticalAlignment = Alignment.CenterVertically) {
         Text(text, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
         trailing?.invoke()
     }
 
+/** the big title of a tab screen: 24 sp, not a poster */
+@Composable
+fun ScreenTitle(text: String, modifier: Modifier = Modifier) =
+    Text(text, style = MaterialTheme.typography.headlineMedium, modifier = modifier.padding(start = 16.dp, top = 6.dp, bottom = 4.dp))
+
+/** a pill button, 40 dp tall */
 @Composable
 fun Pill(text: String, icon: ImageVector? = null, filled: Boolean = true, modifier: Modifier = Modifier, onClick: () -> Unit) {
     val bg = if (filled) Accent else Surface2
     val fg = if (filled) Color(0xFF16112E) else MaterialTheme.colorScheme.onBackground
     Row(
-        modifier.clip(RoundedCornerShape(50)).background(bg).press(onClick = onClick).padding(horizontal = 20.dp, vertical = 14.dp),
+        modifier.heightIn(min = 40.dp).clip(RoundedCornerShape(50)).background(bg).press(onClick = onClick).padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center,
     ) {
-        if (icon != null) { Icon(icon, null, Modifier.size(20.dp), fg); Spacer(Modifier.width(8.dp)) }
+        if (icon != null) { Icon(icon, null, Modifier.size(18.dp), fg); Spacer(Modifier.width(6.dp)) }
         Text(text, color = fg, style = MaterialTheme.typography.labelLarge, maxLines = 1)
     }
+}
+
+/** Play and Shuffle for whatever list of songs sits below, plus [trailing] controls on the right */
+@Composable
+fun PlayShuffle(onPlay: () -> Unit, onShuffle: () -> Unit, modifier: Modifier = Modifier, trailing: (@Composable RowScope.() -> Unit)? = null) =
+    Row(modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Pill("Play", Ic.Play, true, onClick = onPlay)
+        Pill("Shuffle", Ic.Shuffle, false, onClick = onShuffle)
+        if (trailing != null) { Spacer(Modifier.weight(1f)); trailing() }
+    }
+
+@Composable
+fun PlayShuffle(songs: List<Song>, ctx: Ctx, modifier: Modifier = Modifier, trailing: (@Composable RowScope.() -> Unit)? = null) =
+    PlayShuffle({ if (songs.isNotEmpty()) Audio.play(songs, 0, ctx) }, { if (songs.isNotEmpty()) Audio.shuffleAll(songs, ctx) }, modifier, trailing)
+
+/** shuffle / repeat toggle: accent color plus a dot when on, a short haptic tick */
+@Composable
+fun ToggleBtn(v: ImageVector, desc: String, on: Boolean, modifier: Modifier = Modifier, size: Dp = 48.dp, off: Color = Color.White.copy(alpha = 0.75f), onClick: () -> Unit) {
+    val haptic = LocalHapticFeedback.current
+    Box(modifier.size(size).clip(CircleShape).clickable(onClickLabel = desc) { haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove); onClick() }, contentAlignment = Alignment.Center) {
+        Icon(v, desc, Modifier.size(24.dp), if (on) Accent else off)
+        if (on) Box(Modifier.align(Alignment.BottomCenter).padding(bottom = 6.dp).size(4.dp).background(Accent, CircleShape))
+    }
+}
+
+/** the one list row: 56 dp, 40 dp thumbnail, title + subtitle, optional trailing controls */
+@Composable
+fun MediaRow(
+    cover: String?, title: String, sub: String, modifier: Modifier = Modifier, round: Boolean = false, dim: Boolean = false, shareKey: String? = null,
+    thumb: Dp = 40.dp, trailing: (@Composable RowScope.() -> Unit)? = null, onClick: () -> Unit,
+) = Row(
+    modifier.fillMaxWidth().alpha(if (dim) 0.4f else 1f).press(!dim, onClick = onClick).heightIn(min = 56.dp).padding(horizontal = 16.dp, vertical = 2.dp),
+    verticalAlignment = Alignment.CenterVertically,
+) {
+    CoverArt(cover, 150, Modifier.size(thumb), if (round) 50.dp else 6.dp, shareKey)
+    Spacer(Modifier.width(12.dp))
+    Column(Modifier.weight(1f)) {
+        Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyLarge)
+        if (sub.isNotBlank()) Text(sub, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodySmall, color = Muted)
+    }
+    trailing?.invoke(this)
+}
+
+@Composable
+fun ArtistRow(a: Artist, share: String, dim: Boolean = false) =
+    MediaRow(a.coverArt, a.name, if (a.albumCount > 0) (if (a.albumCount == 1) "1 album" else "${a.albumCount} albums") else "Artist", round = true, dim = dim) { Nav.push(Route.Artist(a.id, share)) }
+
+@Composable
+fun AlbumRow(a: Album, share: String, sub: String? = null, thumb: Dp = 40.dp) {
+    val dim = Net.offline && !Downloads.done.values.any { it.song.albumId == a.id }
+    MediaRow(a.coverArt, a.name, sub ?: listOfNotNull(a.year.takeIf { it > 0 }?.toString(), a.songCount.takeIf { it > 0 }?.let { "$it songs" }).joinToString(" · "),
+        dim = dim, shareKey = "cover-$share-${a.id}", thumb = thumb) { Nav.push(Route.Album(a.id, share, a.coverArt)) }
 }
 
 /** the play/pause glyph morphing between a triangle and two bars */
@@ -136,11 +194,11 @@ fun DlState(id: String, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun AlbumCard(a: Album, share: String, modifier: Modifier = Modifier.width(148.dp), onClick: () -> Unit) {
+fun AlbumCard(a: Album, share: String, modifier: Modifier = Modifier.width(140.dp), onClick: () -> Unit) {
     val dim = Net.offline && !Downloads.done.values.any { it.song.albumId == a.id }
     Column(modifier.alpha(if (dim) 0.4f else 1f).press(!dim, onClick = onClick)) {
-        CoverArt(a.coverArt, 300, Modifier.fillMaxWidth(), 10.dp, "cover-$share-${a.id}")
-        Spacer(Modifier.height(8.dp))
+        CoverArt(a.coverArt, 300, Modifier.fillMaxWidth(), 8.dp, "cover-$share-${a.id}")
+        Spacer(Modifier.height(6.dp))
         Text(a.name, style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
         Text(listOf(a.artist, a.year.takeIf { it > 0 }?.toString()).filterNotNull().joinToString(" · "), style = MaterialTheme.typography.bodySmall,
             color = Muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -148,9 +206,9 @@ fun AlbumCard(a: Album, share: String, modifier: Modifier = Modifier.width(148.d
 }
 
 @Composable
-fun ArtistChip(a: Artist, onClick: () -> Unit) = Column(Modifier.width(110.dp).press(onClick = onClick), horizontalAlignment = Alignment.CenterHorizontally) {
+fun ArtistChip(a: Artist, onClick: () -> Unit) = Column(Modifier.width(88.dp).press(onClick = onClick), horizontalAlignment = Alignment.CenterHorizontally) {
     CoverArt(a.coverArt, 300, Modifier.fillMaxWidth(), 100.dp)
-    Spacer(Modifier.height(8.dp))
+    Spacer(Modifier.height(6.dp))
     Text(a.name, style = MaterialTheme.typography.labelMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
 }
 
@@ -164,10 +222,10 @@ fun SongRow(
     var menu by remember { mutableStateOf(false) }
     val click = onClick ?: { if (queue != null && ctx != null) Audio.play(queue, index, ctx) else Audio.play(listOf(song), 0, Ctx("song", song.id, song.title)) }
     Row(
-        modifier.fillMaxWidth().alpha(if (locked) 0.4f else 1f).press(!locked, onLong = { menu = true }, onClick = click).padding(horizontal = 16.dp, vertical = 2.dp).heightIn(min = 52.dp),
+        modifier.fillMaxWidth().alpha(if (locked) 0.4f else 1f).press(!locked, onLong = { menu = true }, onClick = click).padding(start = 16.dp, end = 4.dp).heightIn(min = 56.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        if (showCover) { CoverArt(song.coverArt, 150, Modifier.size(48.dp), 6.dp); Spacer(Modifier.width(12.dp)) }
+        if (showCover) { CoverArt(song.coverArt, 150, Modifier.size(40.dp), 6.dp); Spacer(Modifier.width(12.dp)) }
         else if (number != null) Box(Modifier.width(32.dp), contentAlignment = Alignment.CenterStart) {
             if (playing) EqBars(Audio.playing) else Text(if (number > 0) number.toString() else "–", color = Muted, style = MaterialTheme.typography.bodyMedium)
         }
@@ -179,9 +237,9 @@ fun SongRow(
         }
         if (showCover && playing) { EqBars(Audio.playing); Spacer(Modifier.width(8.dp)) }
         DlState(song.id, Modifier.padding(horizontal = 4.dp))
-        Text(fmtTime(song.duration), color = Muted, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = 8.dp))
+        Text(fmtTime(song.duration), color = Muted, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = 6.dp))
         Box {
-            IconBtn(Ic.More, "More", size = 40.dp, tint = Muted) { menu = true }
+            IconBtn(Ic.More, "More", size = 44.dp, tint = Muted) { menu = true }
             SongMenu(song, menu) { menu = false }
         }
     }
@@ -226,7 +284,7 @@ fun SongMenu(song: Song, show: Boolean, onDismiss: () -> Unit) {
 @Composable
 fun InfoButton(title: String, text: String) {
     var open by remember { mutableStateOf(false) }
-    IconBtn(Ic.Info, "About $title", size = 40.dp, glyph = 20.dp, tint = Muted) { open = true }
+    IconBtn(Ic.Info, "About $title", size = 44.dp, glyph = 20.dp, tint = Muted) { open = true }
     if (open) AlertDialog(
         onDismissRequest = { open = false }, containerColor = Surface2,
         confirmButton = { TextButton({ open = false }) { Text("Got it") } },

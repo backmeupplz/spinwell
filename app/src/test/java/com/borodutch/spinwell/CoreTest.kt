@@ -119,4 +119,42 @@ class CoreTest {
             assertEquals(2, ranges.size); assertNull(ranges[1]); assertEquals(data.size.toLong(), part.length())
         } finally { server.stop(0) }
     }
+
+    @Test fun searchFolding() {
+        assertEquals("beyonce", fold("Beyoncé"))
+        assertEquals("елка", fold("Ёлка"))
+        assertNotEquals(fold("мой"), fold("мои")) // й is not и
+        assertTrue(matches("ПРИВЕТ мир", "Привет, Мир!", "x"))
+        assertTrue(matches("lana del", "Lana Del Rey", "Born to Die"))
+        assertFalse(matches("lana born x", "Lana Del Rey", "Born to Die"))
+        assertFalse(matches("   ", "anything"))
+    }
+
+    @Test fun topResultPrefersExactThenPrefix() {
+        val artist = Artist("ar1", "Muse", 3, "", false, emptyList())
+        val song = song(1, "x").copy(title = "Muse")
+        val album = Album("al1", "Museum", "A", "ar2", 2020, 3, 100, "", "", false, emptyList())
+        assertSame(artist, topResult("muse", Found(listOf(artist), listOf(album), listOf(song))))
+        assertSame(album, topResult("muse", Found(emptyList(), listOf(album), emptyList())))
+        assertNull(topResult("zzz", Found(listOf(artist), listOf(album), emptyList())))
+    }
+
+    @Test fun offlineArtistsAndAlbumsFromDownloads() {
+        val songs = listOf(song(2, "b", "x").copy(track = 2), song(1, "b", "x"), song(3, "a"), song(4, "Ёж"))
+        val artists = artistsOf(songs)
+        assertEquals(listOf("a", "b", "Ёж"), artists.map { it.name })
+        assertEquals(1, artists.first { it.name == "b" }.albumCount)
+        val albums = albumsOf(songs)
+        assertEquals(3, albums.size)
+        assertEquals(listOf("s1", "s2"), albums.first { it.id == "al-x" }.songs.map { it.id }) // track order
+        assertEquals(listOf("s1", "s2"), songsOfArtist(songs, "ar-b").map { it.id }.sorted())
+        assertEquals("Е", indexLetter("Ёж")); assertEquals("#", indexLetter("1999"))
+        assertEquals(listOf("a"), searchLocal("A", songs).artists.map { it.name }.filter { it == "a" })
+    }
+
+    @Test fun repeatAndShuffleRoundTrip() {
+        val q = state().copy(repeat = 2).withShuffle(true, 3)
+        val back = QueueState.of(q.toJson())
+        assertEquals(2, back.repeat); assertTrue(back.shuffle)
+    }
 }

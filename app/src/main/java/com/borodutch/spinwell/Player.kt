@@ -77,12 +77,15 @@ fun BoxScope.PlayerSheet(exp: Animatable<Float, AnimationVector1D>, barH: Dp, mi
         fun px(x: Dp) = with(d) { x.toPx() }
         val miniHpx = px(miniH)
         val miniTop = H - px(barH) - miniHpx - px(8.dp)
-        val cs = minOf(W - px(56.dp), H * 0.40f)
-        val coverTop1 = px(statusTop) + px(64.dp)
-        val titleY1 = coverTop1 + cs + px(22.dp)
-        val seekY1 = titleY1 + px(96.dp)
-        val controlsY1 = seekY1 + px(100.dp)
-        val rowY1 = controlsY1 + px(88.dp)
+        // laid out from the bottom up so a small phone (5.4") never clips; the cover takes what's left under the top bar
+        val rowY1 = H - px(navBottom) - px(64.dp)
+        val controlsY1 = rowY1 - px(60.dp)
+        val seekY1 = controlsY1 - px(100.dp)
+        val titleY1 = seekY1 - px(96.dp)
+        val top0 = px(statusTop) + px(60.dp)
+        val avail = titleY1 - px(18.dp) - top0
+        val cs = minOf(W - px(56.dp), avail).coerceAtLeast(px(120.dp))
+        val coverTop1 = top0 + (avail - cs) / 2f
         val sidePad = px(28.dp)
         val miniMargin = px(8.dp)
 
@@ -227,11 +230,11 @@ fun BoxScope.PlayerSheet(exp: Animatable<Float, AnimationVector1D>, barH: Dp, mi
                     Modifier.offset { IntOffset(0, (controlsY1 - px(32.dp)).roundToInt()) }.fillMaxWidth().height(64.dp).padding(horizontal = 20.dp),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    IconBtn(Ic.Shuffle, "Shuffle", tint = if (Audio.q.shuffle) Accent else Color.White.copy(alpha = 0.75f)) { Audio.toggleShuffle() }
+                    ToggleBtn(Ic.Shuffle, "Shuffle", Audio.q.shuffle) { Audio.toggleShuffle() }
                     IconBtn(Ic.Prev, "Previous", size = 56.dp, glyph = 36.dp) { Audio.prev() }
                     Spacer(Modifier.size(72.dp))
                     IconBtn(Ic.Next, "Next", size = 56.dp, glyph = 36.dp) { Audio.next() }
-                    IconBtn(if (Audio.q.repeat == 2) Ic.RepeatOne else Ic.Repeat, "Repeat", tint = if (Audio.q.repeat > 0) Accent else Color.White.copy(alpha = 0.75f)) { Audio.cycleRepeat() }
+                    ToggleBtn(if (Audio.q.repeat == 2) Ic.RepeatOne else Ic.Repeat, when (Audio.q.repeat) { 1 -> "Repeat all"; 2 -> "Repeat one"; else -> "Repeat off" }, Audio.q.repeat > 0) { Audio.cycleRepeat() }
                 }
                 // quality, lyrics, up next, output
                 Row(
