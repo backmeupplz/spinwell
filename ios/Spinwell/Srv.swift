@@ -203,6 +203,12 @@ struct Pending: Codable { var kind: String; var id: String; var at: Double }
         Covers.clearAll()
     }
 
+    /// The cached response read synchronously, so a screen's very first frame already has its content (small files only).
+    func cached<T: Decodable>(_ method: String, _ params: [(String, String)] = [], _ t: T.Type) -> T? {
+        guard let d = try? Data(contentsOf: cacheFile(method, params)) else { return nil }
+        return try? JSONDecoder().decode(Envelope<T>.self, from: d).body
+    }
+
     /// Render the cached copy right away, then the fresh one if it differs. Returns the error of the refresh, if any.
     @discardableResult
     func load<T: Decodable>(_ method: String, _ params: [(String, String)] = [], _ t: T.Type, apply: (T) -> Void) async -> Error? {

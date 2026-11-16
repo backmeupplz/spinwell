@@ -4,7 +4,7 @@ import UIKit
 
 /// Cover art: NSCache over a disk cache, ids carry a content hash so entries live forever.
 @MainActor enum Covers {
-    private static let cache: NSCache<NSString, UIImage> = { let c = NSCache<NSString, UIImage>(); c.totalCostLimit = 96 << 20; return c }()
+    private nonisolated(unsafe) static let cache: NSCache<NSString, UIImage> = { let c = NSCache<NSString, UIImage>(); c.totalCostLimit = 96 << 20; return c }()
     private static var loading: [String: Task<UIImage?, Never>] = [:]
     private static var colors: [String: UIColor] = [:]
     private static var dir: URL { URL.cachesDirectory.appending(path: "covers/" + app.scope) }
@@ -60,6 +60,17 @@ import UIKit
         return await t.value
     }
 
+    /// Decode these in the background so the first frame after launch finds them in memory.
+    static func warm(_ ids: [String], size: Int) {
+        let jobs = ids.map { (key($0, size), file($0, size)) }
+        Task.detached(priority: .userInitiated) { // off the main thread from the first instant; NSCache is thread-safe
+            for (k, f) in jobs {
+                guard cache.object(forKey: k as NSString) == nil, let d = try? Data(contentsOf: f), let img = UIImage(data: d)?.preparingForDisplay() else { continue }
+                cache.setObject(img, forKey: k as NSString, cost: Int(img.size.width * img.size.height * 4))
+            }
+        }
+    }
+
     /// Fetch the sizes the player needs offline.
     static func prefetch(_ id: String) async { for s in [600, 1200] { _ = await get(id, size: s) } }
 
@@ -101,7 +112,11 @@ struct Cover: View {
     var radius: CGFloat = 10
     var symbol = "music.note"
     @State private var img: UIImage?
-    @State private var shown = false
+
+    init(id: String?, size: CGFloat = 150, radius: CGFloat = 10, symbol: String = "music.note") {
+        self.id = id; self.size = size; self.radius = radius; self.symbol = symbol
+        _img = State(initialValue: id.flatMap { Covers.mem($0, Covers.bucket(size)) }) // already decoded: no placeholder frame
+    }
 
     var body: some View {
         let px = Covers.bucket(size)

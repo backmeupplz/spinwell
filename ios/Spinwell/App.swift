@@ -5,6 +5,7 @@ import SwiftUI
         // test hooks: `-server URL -user U -pass P` signs in at launch, `-offline 1` forces offline mode
         app.downloads.reload() // files + metadata before anything draws or the player restores
         Hooks.signInIfRequested()
+        HomeView.warmCovers()
     }
     var body: some Scene {
         WindowGroup { Root().preferredColorScheme(.dark).tint(Color(red: 0.55, green: 0.62, blue: 1)) }

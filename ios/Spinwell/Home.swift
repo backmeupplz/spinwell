@@ -9,13 +9,19 @@ struct Shelf: Identifiable {
 
 struct HomeView: View {
     @Environment(Nav.self) private var nav
-    @State private var shelves: [Shelf] = [
-        .init(id: "recent", title: "Recently played", type: "recent"),
-        .init(id: "newest", title: "Recently added", type: "newest"),
-        .init(id: "frequent", title: "Most played", type: "frequent"),
-        .init(id: "starred", title: "Favorite albums", type: "starred"),
-        .init(id: "random", title: "Rediscover", type: "random"),
-    ]
+    /// Filled from the disk cache at the first read, so the first frame after launch already shows the shelves.
+    private static let first: [Shelf] = [
+        ("recent", "Recently played"), ("newest", "Recently added"), ("frequent", "Most played"), ("starred", "Favorite albums"), ("random", "Rediscover"),
+    ].map { id, title in
+        Shelf(id: id, title: title, type: id, albums: app.cached("getAlbumList2", [("type", id), ("size", "20")], AlbumList.self)?.list ?? [])
+    }
+    @State private var shelves = HomeView.first
+
+    /// The covers of the first screen of shelves, decoded while the UI builds.
+    static func warmCovers() {
+        guard app.signedIn else { return }
+        Covers.warm(first.prefix(3).flatMap { $0.albums.prefix(6).compactMap(\.coverArt) }, size: Covers.bucket(150))
+    }
     @State private var error: String?
     @State private var shuffling = false
 
@@ -61,7 +67,7 @@ struct HomeView: View {
         await withTaskGroup(of: Void.self) { g in
             for (id, type) in types {
                 g.addTask { @MainActor in
-                    let e = await app.load("getAlbumList2", [("type", type), ("size", type == "random" ? "20" : "20")], AlbumList.self) { r in
+                    let e = await app.load("getAlbumList2", [("type", type), ("size", "20")], AlbumList.self) { r in
                         if let i = shelves.firstIndex(where: { $0.id == id }), shelves[i].albums != r.list { shelves[i].albums = r.list }
                     }
                     if let e, !(e is ApiError && (e as? ApiError).map({ if case .offline = $0 { true } else { false } }) == true) { error = e.localizedDescription }

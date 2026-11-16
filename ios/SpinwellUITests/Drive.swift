@@ -40,6 +40,8 @@ final class Drive: XCTestCase {
             let e = find(arg)
             if e.waitForExistence(timeout: 15) { e.tap() } else { XCTFail("missing \(arg)"); shot("zz-missing") }
         case "tapid": let e = app.descendants(matching: .any)[arg]; if e.waitForExistence(timeout: 15) { e.tap() } else { XCTFail("missing id \(arg)") }
+        case "longpressid": let e = app.descendants(matching: .any)[arg]; if e.waitForExistence(timeout: 15) { e.press(forDuration: 1.2) } else { XCTFail("missing id \(arg)") }
+        case "shotnow": shot(arg)
         case "exists": print("EXISTS \(arg): \(find(arg).waitForExistence(timeout: 5))")
         case "shot": sleep(2); shot(arg)
         case "wait": sleep(UInt32(arg) ?? 1)
@@ -53,7 +55,7 @@ final class Drive: XCTestCase {
         case "scrollperf":
             let n = Int(arg) ?? 5
             let opts = XCTMeasureOptions(); opts.iterationCount = 3
-            measure(metrics: [XCTOSSignpostMetric.scrollDecelerationMetric, XCTOSSignpostMetric.scrollDraggingMetric], options: opts) {
+            measure(metrics: [XCTHitchMetric(application: app)], options: opts) {
                 for _ in 0..<n { app.swipeUp(velocity: .fast) }
                 for _ in 0..<n { app.swipeDown(velocity: .fast) }
             }

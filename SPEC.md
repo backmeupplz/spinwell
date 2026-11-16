@@ -35,7 +35,7 @@ whose project layout, cover cache and download design we reuse.
 - **iOS codecs:** AVPlayer can't play Ogg Opus/Vorbis (the real library has 276 `.opus` songs) or WMA/APE/etc.
   On iOS, any song whose `suffix` is not one of `mp3 m4a m4b aac alac flac wav aif aiff caf` always streams and
   downloads as `stream?format=aac&maxBitRate=256` (verified: Navidrome answers `audio/aac` ADTS), saved as `.aac`.
-- Artist images: iOS draws `getCoverArt` of the artist's own `coverArt` id (`ar-…`, goes through the authenticated cover cache, works offline) and falls back to the first album's cover; `getArtistInfo2.largeImageUrl` is not used (it embeds the server's own idea of its host name).
+- Artist images: iOS draws `getCoverArt` of the artist's own `coverArt` id (`ar-…`, goes through the authenticated cover cache, works offline) then `getArtistInfo2.largeImageUrl` (fetched as a plain URL, cached by hash) when the artist has no cover id, then the newest album's cover. On Navidrome 0.64.2 the `ar-…` cover is the same picture as `largeImageUrl` (checked), so the first choice is already the real artist photo and renders from cache with no pop-in.
 
 ## Local data
 
@@ -113,7 +113,7 @@ on every screen. Settings open from a gear on Home.
   Drag handle to reorder, swipe to remove, tap to jump. Shuffle on/off animates the reorder.
 - **Lyrics** (sheet/page from the player): synced lyrics with the active line large and bright, others dim, smooth
   auto-scroll; tap a line to seek there. Unsynced lyrics shown plain. "No lyrics" state.
-- **Settings:** every row has an ⓘ button that shows a short explanation (sheet or popover). Make the explanation a
+- **Settings:** every row has an ⓘ button that shows a short explanation (iOS: a small bottom sheet sized to its text, with the list dimmed behind it; never a popover floating over other rows). Make the explanation a
   **required** parameter of the settings-row component so a setting can't exist without one. Rows:
   - Server: `user @ host`, version; Sign out (confirm; keeps downloads, which come back on signing in to the same account).
   - Streaming quality on Wi-Fi: Original / 320 / 256 / 192 / 128 kbps (default Original).
@@ -170,7 +170,7 @@ on every screen. Settings open from a gear on Home.
 - Equalizer bars for the playing song, morphing play/pause icon, haptics on long-press menus and seek, subtle press
   scale on cards.
 - Performance: no work on the main thread beyond layout; lazy lists everywhere; covers decoded at display size;
-  first frame on launch from cache with no spinner. Target cold start < 500 ms on the OnePlus 8 and 60/120 fps scrolling.
+  first frame on launch from cache with no spinner (iOS reads Home's cached shelves synchronously and pre-decodes their first covers while the UI builds). Target cold start < 500 ms on the OnePlus 8 and 60/120 fps scrolling.
 
 ## Checks
 
@@ -180,3 +180,4 @@ on every screen. Settings open from a gear on Home.
   tiny local HTTP server), JSON cache key excludes auth.
 - Local test server: `tools/fixtures.sh <dir>` builds a tagged library; run Navidrome 0.64.2 on port 4533 against it
   (README "Test server"). Real server: `https://music.icefish-betta.ts.net` (credentials only on the developer's machine).
+- iOS test hooks (`-open`, `-playalbum`, `-script`, `-server/-user/-pass`, `-offline`, `-tab`, ...) exist only in Debug builds (`#if DEBUG` in `Hooks.swift`); Release ignores all launch arguments.
