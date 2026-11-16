@@ -27,6 +27,9 @@ struct Saved: Codable { var queue: QueueState; var position: Double; var wasPlay
     @ObservationIgnored private var failedRun = 0
     @ObservationIgnored private var sawDuration: Double = 0
     @ObservationIgnored private var artwork: (String, MPMediaItemArtwork)?
+    @ObservationIgnored private var itemObs: [NSKeyValueObservation] = []
+    @ObservationIgnored private var stall: Task<Void, Never>?
+    @ObservationIgnored private var failedItems: Set<ObjectIdentifier> = []
 
     var current: Song? { q.current?.song }
     var hasSong: Bool { q.current != nil }
@@ -44,7 +47,7 @@ struct Saved: Codable { var queue: QueueState; var position: Double; var wasPlay
         }
         let nc = NotificationCenter.default
         nc.addObserver(forName: AVPlayerItem.failedToPlayToEndTimeNotification, object: nil, queue: .main) { [weak self] n in
-            MainActor.assumeIsolated { self?.failed(n.userInfo?[AVPlayerItemFailedToPlayToEndTimeErrorKey] as? Error) }
+            MainActor.assumeIsolated { if let it = n.object as? AVPlayerItem { self?.itemFailed(it) } }
         }
         nc.addObserver(forName: AVAudioSession.interruptionNotification, object: nil, queue: .main) { [weak self] n in
             let ended = (n.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt) == AVAudioSession.InterruptionType.ended.rawValue
@@ -55,8 +58,10 @@ struct Saved: Codable { var queue: QueueState; var position: Double; var wasPlay
             MainActor.assumeIsolated { self?.save() }
         }
         try? AVAudioSession.sharedInstance().setCategory(.playback)
+        q.repeatMode = Repeat(rawValue: UserDefaults.standard.string(forKey: "repeat") ?? "") ?? .off
         remote()
         restore()
+        syncModes()
     }
 
     // MARK: restore / persist
@@ -84,7 +89,8 @@ struct Saved: Codable { var queue: QueueState; var position: Double; var wasPlay
 
     func stopAndClear() {
         ap.pause(); ap.removeAllItems(); keys = [:]
-        q = QueueState(); playing = false; pos = 0; duration = 0
+        let keep = q.repeatMode
+        q = QueueState(); q.repeatMode = keep; playing = false; pos = 0; duration = 0
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
         try? FileManager.default.removeItem(at: stateFile)
     }
@@ -99,6 +105,9 @@ struct Saved: Codable { var queue: QueueState; var position: Double; var wasPlay
         let it = AVPlayerItem(url: url)
         it.preferredForwardBufferDuration = 0
         keys[it] = qi.id
+        itemObs.append(it.observe(\.status) { [weak self] it, _ in
+            if it.status == .failed { DispatchQueue.main.async { MainActor.assumeIsolated { self?.itemFailed(it) } } }
+        })
         return it
     }
 
@@ -108,8 +117,9 @@ struct Saved: Codable { var queue: QueueState; var position: Double; var wasPlay
     /// Put [current, next] in the player; `at` seeks the current one.
     private func rebuild(at: Double = 0, play: Bool) {
         revision += 1
-        ap.removeAllItems(); keys = [:]
+        ap.removeAllItems(); keys = [:]; itemObs = []; failedItems = []
         guard let cur = q.current, let first = item(for: cur) else { return }
+        if let c = cur.song.coverArt { Covers.prepare(c) }
         ap.insert(first, after: nil)
         if at > 0 { ap.seek(to: CMTime(seconds: at, preferredTimescale: 600), toleranceBefore: .zero, toleranceAfter: .zero) }
         preloadNext()
@@ -125,17 +135,21 @@ struct Saved: Codable { var queue: QueueState; var position: Double; var wasPlay
         // drop anything queued after the current item that is no longer the right next one
         let wanted = q.upcoming
         let after = ap.items().drop { $0 !== cur }.dropFirst()
-        if let a = after.first, keys[a] == wanted?.id, after.count == 1 { return }
+        if let a = after.first, keys[a] == wanted?.id, after.count == 1, playable(wanted) { return }
         after.forEach { ap.remove($0); keys[$0] = nil }
         if let w = wanted, playable(w), let n = item(for: w) { ap.insert(n, after: cur) }
     }
+
+    /// The server came or went: a preloaded stream the phone can no longer fetch is dropped (the next downloaded song takes over).
+    func refreshPreload() { if ap.currentItem != nil { preloadNext() } }
 
     // MARK: transport
 
     func play() {
         guard hasSong else { return }
         if ap.currentItem == nil { rebuild(at: pos, play: false) }
-        try? AVAudioSession.sharedInstance().setActive(true)
+        // setActive can block for 100+ ms: never on the main thread, in the tap path (AVPlayer starts its own session use anyway)
+        DispatchQueue.global(qos: .userInitiated).async { try? AVAudioSession.sharedInstance().setActive(true) }
         ap.play()
         error = nil
     }
@@ -210,7 +224,20 @@ struct Saved: Codable { var queue: QueueState; var position: Double; var wasPlay
     func move(from: IndexSet, to: Int) { q.move(from: from, to: to); preloadNext(); revision += 1; changed() }
     func clearAdded() { q.clearAdded(); preloadNext(); revision += 1; changed() }
     func setShuffle(_ on: Bool) { q.setShuffle(on); preloadNext(); revision += 1; changed() }
-    func cycleRepeat() { q.repeatMode = q.repeatMode.next; preloadNext(); changed() }
+    func cycleRepeat() { setRepeat(q.repeatMode.next) }
+    private func isContext(_ r: Ref) -> Bool { hasSong && q.context?.kind == r.kind && q.context?.id == r.id }
+    func isRepeating(_ r: Ref) -> Bool { isContext(r) && q.repeatMode == .all }
+    /// `Repeat album` from a container's menu: toggles repeat-all when it is the playing context, else plays it in order on repeat.
+    func repeatContext(_ songs: [Song], _ r: Ref) {
+        if isContext(r) { setRepeat(q.repeatMode == .all ? .off : .all); return }
+        start(songs, context: r)
+        setRepeat(.all)
+    }
+    func setRepeat(_ r: Repeat) {
+        q.repeatMode = r
+        UserDefaults.standard.set(r.rawValue, forKey: "repeat")
+        preloadNext(); changed()
+    }
 
     private func changed() { updateInfo(); save() }
 
@@ -231,13 +258,15 @@ struct Saved: Codable { var queue: QueueState; var position: Double; var wasPlay
         } else if q.repeatMode == .one { pos = 0; scrobbled = nil; preloadNext() }
         duration = q.current?.song.seconds ?? 0
         if let s = current { app.scrobble(s.id, submission: false) }
-        failedRun = 0
+        if it.status == .failed { itemFailed(it) }
     }
 
     private func statusChanged() {
         let st = ap.timeControlStatus
         playing = st == .playing || st == .waitingToPlayAtSpecifiedRate
         buffering = st == .waitingToPlayAtSpecifiedRate
+        if st == .playing { failedRun = 0 }
+        watchStall(st)
         updateInfo()
         if st == .paused && ap.currentItem == nil && hasSong { endOfQueue() }
         save()
@@ -266,15 +295,45 @@ struct Saved: Codable { var queue: QueueState; var position: Double; var wasPlay
         if playing, Date().timeIntervalSince(lastSave) > 5 { save() }
     }
 
+    private func itemFailed(_ it: AVPlayerItem) {
+        guard keys[it] == q.current?.id, failedItems.insert(ObjectIdentifier(it)).inserted else { return } // status and end-notification both report it
+        failed(it.error)
+    }
+
+    /// A song that can't be fetched or decoded: when the server is gone, flip to offline; either way go on with the next playable song.
     private func failed(_ e: Error?) {
-        error = e?.localizedDescription
+        if let e, Srv.isNetwork(e) { app.markUnreachable() }
         failedRun += 1
-        if failedRun < 4, q.advance(auto: false) { rebuild(play: true); changed() } else { ap.pause() }
+        if failedRun < 8, skipToPlayable() { error = nil; return }
+        error = app.offline ? "Can't reach the server, and no downloaded song is next." : e?.localizedDescription
+        ap.pause()
+    }
+
+    /// Move to the next song the phone can play right now (offline: downloaded ones) and start it.
+    @discardableResult private func skipToPlayable() -> Bool {
+        for _ in 0..<max(q.items.count, 1) {
+            guard q.advance(auto: false) else { return false }
+            if playable(q.current) { rebuild(play: true); changed(); return true }
+        }
+        return false
+    }
+
+    /// A stream that sits in "buffering" for 6 s: check the server; if it is gone, carry on with downloads.
+    private func watchStall(_ st: AVPlayer.TimeControlStatus) {
+        stall?.cancel()
+        guard st == .waitingToPlayAtSpecifiedRate, let id = q.current?.id, let s = current, !app.downloads.has(s.id), !app.offline else { return }
+        stall = Task {
+            try? await Task.sleep(for: .seconds(6))
+            guard !Task.isCancelled, ap.timeControlStatus == .waitingToPlayAtSpecifiedRate, q.current?.id == id else { return }
+            await app.ping()
+            if app.unreachable, q.current?.id == id { skipToPlayable() }
+        }
     }
 
     // MARK: lock screen / Control Center
 
     private func updateInfo() {
+        syncModes()
         guard let s = current else { MPNowPlayingInfoCenter.default().nowPlayingInfo = nil; return }
         var i: [String: Any] = [
             MPMediaItemPropertyTitle: s.name,
@@ -298,6 +357,13 @@ struct Saved: Codable { var queue: QueueState; var position: Double; var wasPlay
         }
     }
 
+    /// Lock screen / Control Center show the same shuffle and repeat state as the app.
+    private func syncModes() {
+        let c = MPRemoteCommandCenter.shared()
+        c.changeShuffleModeCommand.currentShuffleType = q.shuffle ? .items : .off
+        c.changeRepeatModeCommand.currentRepeatType = switch q.repeatMode { case .off: .off; case .all: .all; case .one: .one }
+    }
+
     private func remote() {
         let c = MPRemoteCommandCenter.shared()
         c.playCommand.addTarget { [weak self] _ in MainActor.assumeIsolated { self?.play() }; return .success }
@@ -308,6 +374,19 @@ struct Saved: Codable { var queue: QueueState; var position: Double; var wasPlay
         c.changePlaybackPositionCommand.addTarget { [weak self] e in
             let t = (e as? MPChangePlaybackPositionCommandEvent)?.positionTime ?? 0
             MainActor.assumeIsolated { self?.seek(t) }
+            return .success
+        }
+        c.changeShuffleModeCommand.isEnabled = true
+        c.changeShuffleModeCommand.addTarget { [weak self] e in
+            let on = (e as? MPChangeShuffleModeCommandEvent)?.shuffleType != MPShuffleType.off
+            MainActor.assumeIsolated { self?.setShuffle(on) }
+            return .success
+        }
+        c.changeRepeatModeCommand.isEnabled = true
+        c.changeRepeatModeCommand.addTarget { [weak self] e in
+            let r: Repeat
+            switch (e as? MPChangeRepeatModeCommandEvent)?.repeatType { case .one: r = .one; case .all: r = .all; default: r = .off }
+            MainActor.assumeIsolated { self?.setRepeat(r) }
             return .success
         }
         c.likeCommand.localizedTitle = "Favorite"

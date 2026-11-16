@@ -63,9 +63,9 @@ struct OfflineBanner: View {
                     Image(systemName: "wifi.slash").font(.caption.weight(.semibold))
                     Text(app.settings.offlineMode ? "Offline mode · tap to go online" : "Offline · showing downloads").font(.footnote.weight(.medium))
                 }
-                .padding(.horizontal, 14).padding(.vertical, 7)
+                .padding(.horizontal, 12).padding(.vertical, 5)
                 .background(Color.orange.opacity(0.92), in: .capsule).foregroundStyle(.black)
-                .frame(maxWidth: .infinity).padding(.vertical, 4)
+                .frame(maxWidth: .infinity).padding(.vertical, 2)
             }
             .buttonStyle(.plain)
             .transition(.move(edge: .top).combined(with: .opacity))
@@ -106,16 +106,16 @@ struct Section_: View {
 /// Album card for shelves and grids: the whole card is the NavigationLink (zoom source).
 struct AlbumCard: View {
     let album: Album
-    var width: CGFloat? = 150
+    var width: CGFloat? = 140
     var source: String
     @Environment(\.zoomNS) private var ns
 
     var body: some View {
         let dim = app.offline && !app.downloads.albumIds.contains(album.id)
         NavigationLink(value: Route.album(album.id, source)) {
-            VStack(alignment: .leading, spacing: 6) {
-                Cover(id: album.coverArt, size: width ?? 175).frame(width: width, height: width)
-                    .shadow(color: .black.opacity(0.3), radius: 8, y: 4)
+            VStack(alignment: .leading, spacing: 4) {
+                Cover(id: album.coverArt, size: width ?? 175, radius: 8).frame(width: width, height: width)
+                    .shadow(color: .black.opacity(0.25), radius: 6, y: 3)
                     .zoomSource(source, ns)
                 Text(album.title).font(.subheadline.weight(.semibold)).lineLimit(1)
                 Text([album.artist, album.year.map(String.init)].compactMap { $0 }.joined(separator: " · "))
@@ -131,18 +131,43 @@ struct AlbumCard: View {
 
 struct ErrorLine: View {
     let text: String
-    var body: some View { Text(text).font(.footnote).foregroundStyle(.secondary).multilineTextAlignment(.center).padding() }
+    var body: some View { Text(text).font(.footnote).foregroundStyle(.secondary).multilineTextAlignment(.center).padding(16) }
 }
 
-/// A play / shuffle / download style capsule
+/// A play / shuffle / download style capsule: 40 pt tall, 44 pt to hit.
 struct Pill: View {
     let title: String
     let symbol: String
     var prominent = false
     var body: some View {
-        Label(title, systemImage: symbol).font(.headline).lineLimit(1)
-            .frame(maxWidth: .infinity).padding(.vertical, 14)
+        Label(title, systemImage: symbol).font(.subheadline.weight(.semibold)).lineLimit(1)
+            .frame(maxWidth: .infinity).frame(height: 40)
             .foregroundStyle(prominent ? Color.black : Color.white)
             .glassEffect(prominent ? .regular.tint(.white).interactive() : .regular.interactive(), in: .capsule)
+            .padding(.vertical, 2).contentShape(Rectangle())
+    }
+}
+
+/// 40 pt round glass button (44 pt hit area) for the action rows.
+struct RoundGlyph: View {
+    let symbol: String
+    var color: Color = .white
+    var body: some View {
+        Image(systemName: symbol).font(.body.weight(.medium)).foregroundStyle(color).frame(width: 40, height: 40)
+            .glassEffect(.regular.interactive(), in: .circle).padding(2).contentShape(Circle())
+    }
+}
+
+/// Play + Shuffle for any list of songs.
+struct PlayRow: View {
+    var disabled = false
+    let play: () -> Void
+    let shuffle: () -> Void
+    var body: some View {
+        HStack(spacing: 10) {
+            Button(action: play) { Pill(title: "Play", symbol: "play.fill", prominent: true) }.buttonStyle(Press()).accessibilityIdentifier("play")
+            Button(action: shuffle) { Pill(title: "Shuffle", symbol: "shuffle") }.buttonStyle(Press()).accessibilityIdentifier("shuffle")
+        }
+        .disabled(disabled).padding(.horizontal, 16)
     }
 }

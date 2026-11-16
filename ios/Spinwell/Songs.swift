@@ -62,15 +62,43 @@ struct SongRow: View {
     var number: Int? = nil
     var cover = false
     var subtitle = true
+    var swipe = true // swipe left to download / remove the download (List rows have their own swipe actions)
     let play: () -> Void
     @State private var info = false
+    @State private var dx: CGFloat = 0
+    @State private var swiped = 0
+
+    private var haveDownload: Bool { app.downloads.has(song.id) || app.downloads.queued(song.id) }
+
+    private var swipeReveal: some View {
+        ZStack {
+            (haveDownload ? Color.red : Color.accentColor)
+            Image(systemName: haveDownload ? "trash.fill" : "arrow.down.circle.fill").foregroundStyle(.white).font(.title3)
+        }
+        .frame(width: max(0, -dx)).clipped().opacity(dx < -8 ? 1 : 0)
+    }
+
+    private var swipeGesture: some Gesture {
+        DragGesture(minimumDistance: 24)
+            .onChanged { v in
+                guard swipe, v.translation.width < 0, abs(v.translation.width) > abs(v.translation.height) * 1.5 else { return }
+                dx = max(v.translation.width, -96)
+            }
+            .onEnded { _ in
+                if dx < -64 {
+                    swiped += 1
+                    if haveDownload { app.downloads.remove(song.id) } else { app.downloads.add([song]) }
+                }
+                withAnimation(.spring(duration: 0.3)) { dx = 0 }
+            }
+    }
 
     var body: some View {
         let isCurrent = player.current?.id == song.id
         let playable = app.playable(song)
         Button(action: play) {
             HStack(spacing: 12) {
-                if cover { Cover(id: song.coverArt, size: 48, radius: 6).frame(width: 48, height: 48) }
+                if cover { Cover(id: song.coverArt, size: 40, radius: 6).frame(width: 40, height: 40) }
                 else {
                     ZStack {
                         if isCurrent { EqBars(active: player.playing).foregroundStyle(.tint) }
@@ -89,17 +117,22 @@ struct SongRow: View {
                 DownloadGlyph(id: song.id)
                 Text(clock(song.seconds)).font(.callout).monospacedDigit().foregroundStyle(.secondary)
                 Menu { SongMenu(song: song) { info = true } } label: {
-                    Image(systemName: "ellipsis").foregroundStyle(.secondary).frame(width: 32, height: 36)
+                    Image(systemName: "ellipsis").foregroundStyle(.secondary).frame(width: 36, height: 44)
                 }
             }
+            .frame(minHeight: 40)
             .contentShape(Rectangle())
             .opacity(playable ? 1 : 0.35)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PlayStyle(cover: song.coverArt))
         .disabled(!playable)
         .contextMenu { SongMenu(song: song) { info = true } }
         .sheet(isPresented: $info) { SongInfo(song: song) }
-        .padding(.vertical, 5)
+        .offset(x: dx)
+        .background(alignment: .trailing) { swipeReveal }
+        .simultaneousGesture(swipeGesture)
+        .sensoryFeedback(.impact(weight: .light), trigger: swiped)
+        .padding(.vertical, cover ? 8 : 6)
         .accessibilityIdentifier("song-\(song.id)")
     }
 }
@@ -116,6 +149,26 @@ struct SongList: View {
                     player.play(songs, from: s, context: context)
                 }
             }
+        }
+    }
+}
+
+/// Shuffle the whole library: 200 random songs from the server, or every download when the server is gone.
+@MainActor func shuffleAllSongs(name: String) async {
+    if !app.offline, let r = try? await app.fetch("getRandomSongs", [("size", "200")], RandomSongs.self), !r.list.isEmpty {
+        player.start(r.list, context: Ref(kind: "shuffle", id: "all", name: name), randomStart: true)
+    } else if app.offline { // also when that very request found the server gone
+        player.start(app.downloads.songs, context: Ref(kind: "shuffle", id: "all", name: "Downloads"), randomStart: true)
+    }
+}
+
+/// Looks like `.plain`, but the moment a row is pressed down it starts decoding the big cover and its color,
+/// so by the time the finger lifts the full player has nothing left to compute.
+struct PlayStyle: ButtonStyle {
+    let cover: String?
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label.onChange(of: configuration.isPressed) { _, down in
+            if down, let cover { Covers.prepare(cover) }
         }
     }
 }

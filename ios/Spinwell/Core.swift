@@ -34,7 +34,15 @@ struct Account: Codable, Equatable {
     }
 
     func url(_ method: String, _ params: [(String, String)] = []) -> URL? {
-        guard var c = URLComponents(string: server + "/rest/" + method) else { return nil }
+        var base = server
+#if DEBUG
+        // Outage simulation: while /tmp/spinwell-block exists every request goes to a dead address instead
+        // (file text "blackhole" = packets vanish, anything else = connection refused). The account itself is untouched.
+        if let t = try? String(contentsOfFile: "/tmp/spinwell-block", encoding: .utf8) {
+            base = t.contains("blackhole") ? "http://10.255.255.1" : "http://127.0.0.1:9"
+        }
+#endif
+        guard var c = URLComponents(string: base + "/rest/" + method) else { return nil }
         c.queryItems = params.map { URLQueryItem(name: $0.0, value: $0.1) } + auth()
         return c.url
     }

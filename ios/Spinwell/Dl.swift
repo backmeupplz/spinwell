@@ -97,9 +97,45 @@ struct DlState: Codable {
 /// Downloads: the unit is the song, stored once under `media/<scope>/<id>.<ext>`. `downloads.json` carries the song
 /// metadata so offline mode can list and play everything.
 @MainActor @Observable final class Downloads {
-    var state = DlState() { didSet { if state.songs.count != oldValue.songs.count { albumIds = Set(state.songs.values.compactMap(\.albumId)) } } }
-    /// albums with at least one downloaded song (offline dimming)
+    var state = DlState() { didSet { if state.songs.count != oldValue.songs.count { derive() } } }
+    /// albums / artists with at least one downloaded song (offline dimming)
     var albumIds: Set<String> = []
+    var artistIds: Set<String> = []
+    /// Library views built from what is on the phone, for offline browsing with a cold JSON cache (refreshed when the song set changes).
+    private(set) var songs: [Song] = []
+    private(set) var albums: [Album] = []
+    private(set) var artists: [Artist] = []
+
+    private func derive() {
+        let all = Array(state.songs.values)
+        songs = all.sorted { ($0.artist ?? "", $0.album ?? "", $0.discNumber ?? 1, $0.track ?? 0) < ($1.artist ?? "", $1.album ?? "", $1.discNumber ?? 1, $1.track ?? 0) }
+        albumIds = Set(all.compactMap(\.albumId))
+        albums = Dictionary(grouping: all.filter { $0.albumId != nil }, by: { $0.albumId! }).map { id, l in
+            let f = l[0]
+            return Album(id: id, name: f.album, artist: f.displayAlbumArtist ?? f.artist, artistId: f.albumArtists?.first?.id ?? f.artistId, coverArt: f.coverArt, songCount: l.count, duration: Int(l.reduce(0) { $0 + $1.seconds }), year: f.year, genre: f.genre)
+        }.sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
+        // track artists and album artists both count, because that is what the server's artist list is made of
+        var byId: [String: (name: String?, cover: String?, albums: Set<String>)] = [:]
+        for s in all {
+            for (id, name) in Self.artistRefs(s) {
+                var e = byId[id] ?? (name, s.coverArt, [])
+                if let a = s.albumId { e.albums.insert(a) }
+                byId[id] = e
+            }
+        }
+        artistIds = Set(byId.keys)
+        artists = byId.map { Artist(id: $0.key, name: $0.value.name, coverArt: $0.value.cover, albumCount: $0.value.albums.count) }
+            .sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
+    }
+
+    nonisolated static func artistRefs(_ s: Song) -> [(String, String?)] {
+        var l: [(String, String?)] = []
+        if let id = s.artistId { l.append((id, s.artist)) }
+        for r in s.albumArtists ?? [] { if let id = r.id, !l.contains(where: { $0.0 == id }) { l.append((id, r.name)) } }
+        return l
+    }
+
+    func songs(artist id: String) -> [Song] { songs.filter { s in Self.artistRefs(s).contains { $0.0 == id } } }
     var current: String?
     var got: Int64 = 0
     var paused = false
@@ -133,19 +169,6 @@ struct DlState: Codable {
 
     func has(_ id: String) -> Bool { state.songs[id] != nil }
     func queued(_ id: String) -> Bool { state.queue[id] != nil }
-    var songs: [Song] { state.songs.values.sorted { ($0.artist ?? "", $0.album ?? "", $0.discNumber ?? 1, $0.track ?? 0) < ($1.artist ?? "", $1.album ?? "", $1.discNumber ?? 1, $1.track ?? 0) } }
-    /// Library views built from what is on the phone, for offline browsing with a cold JSON cache.
-    var albums: [Album] {
-        Dictionary(grouping: state.songs.values.filter { $0.albumId != nil }, by: { $0.albumId! }).map { id, l in
-            let f = l[0]
-            return Album(id: id, name: f.album, artist: f.displayAlbumArtist ?? f.artist, artistId: f.artistId, coverArt: f.coverArt, songCount: l.count, duration: Int(l.reduce(0) { $0 + $1.seconds }), year: f.year, genre: f.genre)
-        }.sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
-    }
-    var artists: [Artist] {
-        Dictionary(grouping: state.songs.values.filter { $0.artistId != nil }, by: { $0.artistId! }).map { id, l in
-            Artist(id: id, name: l[0].artist, coverArt: l[0].coverArt, albumCount: Set(l.compactMap(\.albumId)).count)
-        }
-    }
     func songs(album id: String) -> [Song] { songs.filter { $0.albumId == id } }
     var pending: Int { state.order.count }
     var active: Bool { !state.order.isEmpty }
@@ -156,6 +179,7 @@ struct DlState: Codable {
         state = (try? JSONDecoder().decode(DlState.self, from: Data(contentsOf: jsonFile))) ?? DlState()
         // drop entries whose files vanished
         for id in state.songs.keys where localURL(id) == nil { state.songs[id] = nil }
+        derive()
         kick()
     }
 

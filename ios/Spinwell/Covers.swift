@@ -71,6 +71,12 @@ import UIKit
         }
     }
 
+    /// Everything the full player draws for a song (the 1200 px cover decoded, its dominant color), started the moment the song is
+    /// chosen, so the expanding player finds it ready and nothing is decoded or computed while it animates.
+    static func prepare(_ id: String) {
+        Task { _ = await get(id, size: 1200); _ = color(id) }
+    }
+
     /// Fetch the sizes the player needs offline.
     static func prefetch(_ id: String) async { for s in [600, 1200] { _ = await get(id, size: s) } }
 
@@ -115,7 +121,8 @@ struct Cover: View {
 
     init(id: String?, size: CGFloat = 150, radius: CGFloat = 10, symbol: String = "music.note") {
         self.id = id; self.size = size; self.radius = radius; self.symbol = symbol
-        _img = State(initialValue: id.flatMap { Covers.mem($0, Covers.bucket(size)) }) // already decoded: no placeholder frame
+        // already decoded: no placeholder frame; a smaller size already in memory (the mini player's thumbnail) stands in while the big one loads
+        _img = State(initialValue: id.flatMap { Covers.mem($0, Covers.bucket(size)) ?? Covers.any($0) })
     }
 
     var body: some View {

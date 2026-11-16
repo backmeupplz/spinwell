@@ -33,13 +33,13 @@ struct CollectionPage: View {
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 18) {
+            VStack(spacing: 10) {
                 hero
                 actions
                 if let error, songs.isEmpty { ErrorLine(text: error) }
                 tracks
                 if let n = notes, !n.isEmpty {
-                    Text(plain(n)).font(.footnote).foregroundStyle(.secondary).padding(.horizontal, 20).frame(maxWidth: .infinity, alignment: .leading)
+                    Text(plain(n)).font(.footnote).foregroundStyle(.secondary).padding(.horizontal, 16).frame(maxWidth: .infinity, alignment: .leading)
                 }
                 Color.clear.frame(height: 90)
             }
@@ -50,7 +50,7 @@ struct CollectionPage: View {
         }
         .scrollIndicators(.hidden)
         .navigationBarTitleDisplayMode(.inline)
-        .task { await load() }
+        .task(id: app.offline) { await load() }
         .task(id: coverArt) {
             guard let c = coverArt else { return }
             _ = await Covers.get(c, size: 600)
@@ -63,54 +63,53 @@ struct CollectionPage: View {
     }
 
     private var hero: some View {
-        VStack(spacing: 6) {
-            Cover(id: coverArt, size: 260, radius: 14, symbol: kind == "playlist" ? "music.note.list" : "music.note")
-                .frame(width: 260, height: 260)
-                .shadow(color: .black.opacity(0.45), radius: 24, y: 14)
-                .padding(.top, 12).padding(.bottom, 10)
-            Text(title).font(.title2.bold()).multilineTextAlignment(.center).lineLimit(3)
+        VStack(spacing: 3) {
+            Cover(id: coverArt, size: 200, radius: 12, symbol: kind == "playlist" ? "music.note.list" : "music.note")
+                .frame(width: 200, height: 200)
+                .shadow(color: .black.opacity(0.4), radius: 16, y: 8)
+                .padding(.top, 2).padding(.bottom, 8)
+            Text(title).font(.title3.bold()).multilineTextAlignment(.center).lineLimit(2)
             if let artist {
                 if let artistId, kind == "album" {
-                    Button(artist) { nav.open(.artist(artistId, "album-\(id)-artist")) }.font(.headline).foregroundStyle(.tint)
-                } else { Text(artist).font(.headline).foregroundStyle(.tint) }
+                    Button(artist) { nav.open(.artist(artistId, "album-\(id)-artist")) }.font(.subheadline.weight(.semibold)).foregroundStyle(.tint)
+                } else { Text(artist).font(.subheadline.weight(.semibold)).foregroundStyle(.tint) }
             }
-            Text(meta).font(.footnote).foregroundStyle(.secondary).multilineTextAlignment(.center)
-            if kind == "album", let b = albumBadge(songs) {
-                Text(b).font(.caption2.weight(.semibold)).padding(.horizontal, 8).padding(.vertical, 3)
-                    .background(.white.opacity(0.14), in: .capsule).padding(.top, 2)
+            HStack(spacing: 6) {
+                Text(meta).font(.caption).foregroundStyle(.secondary).multilineTextAlignment(.center)
+                if kind == "album", let b = albumBadge(songs) {
+                    Text(b).font(.system(size: 10, weight: .semibold)).padding(.horizontal, 6).padding(.vertical, 2)
+                        .background(.white.opacity(0.14), in: .capsule)
+                }
             }
         }
-        .padding(.horizontal, 20)
+        .padding(.horizontal, 16)
         .opacity(loaded || !title.isEmpty ? 1 : 0)
         .animation(.smooth, value: title)
     }
 
     private var actions: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 6) {
             Button { player.start(songs, context: ref) } label: { Pill(title: "Play", symbol: "play.fill", prominent: true) }
                 .buttonStyle(Press()).disabled(songs.isEmpty).accessibilityIdentifier("play")
-            Button { player.start(songs, context: ref, randomStart: true) } label: { circle("shuffle") }
-                .buttonStyle(.plain).disabled(songs.isEmpty).accessibilityIdentifier("shuffle")
+            Button { player.start(songs, context: ref, randomStart: true) } label: { Pill(title: "Shuffle", symbol: "shuffle") }
+                .buttonStyle(Press()).disabled(songs.isEmpty).accessibilityIdentifier("shuffle")
             DownloadButton(songs: songs, kind: kind, cid: id, name: title, coverArt: coverArt) { confirmRemove = true }
             if kind == "album" {
                 Button {
                     starred.toggle(); app.toggleStar(id, now: starred, kind: "albumId")
                 } label: {
-                    circle(starred ? "heart.fill" : "heart", starred ? .pink : .white).symbolEffect(.bounce, value: starred)
+                    RoundGlyph(symbol: starred ? "heart.fill" : "heart", color: starred ? .pink : .white).symbolEffect(.bounce, value: starred)
                 }.buttonStyle(.plain)
             }
             Menu {
                 Button("Play next", systemImage: "text.line.first.and.arrowtriangle.forward") { player.playNext(songs) }
                 Button("Add to queue", systemImage: "text.line.last.and.arrowtriangle.forward") { player.addToQueue(songs) }
+                RepeatMenuItem(noun: kind, ref: ref) { songs }
             } label: {
-                circle("ellipsis")
+                RoundGlyph(symbol: "ellipsis")
             }
         }
-        .padding(.horizontal, 20)
-    }
-
-    private func circle(_ symbol: String, _ color: Color = .white) -> some View {
-        Image(systemName: symbol).font(.title3).foregroundStyle(color).frame(width: 46, height: 46).glassEffect(.regular.interactive(), in: .circle)
+        .padding(.horizontal, 16)
     }
 
     private var tracks: some View {
@@ -123,7 +122,7 @@ struct CollectionPage: View {
                 ForEach(discs, id: \.0) { disc, list in
                     if discs.count > 1 {
                         Text("Disc \(disc)").font(.subheadline.weight(.semibold)).foregroundStyle(.secondary)
-                            .frame(maxWidth: .infinity, alignment: .leading).padding(.top, 14).padding(.bottom, 4)
+                            .frame(maxWidth: .infinity, alignment: .leading).padding(.top, 10).padding(.bottom, 2)
                     }
                     ForEach(Array(list.enumerated()), id: \.element.id) { i, s in
                         SongRow(song: s, number: s.track ?? i + 1) { player.play(songs, from: s, context: ref) }
@@ -131,7 +130,7 @@ struct CollectionPage: View {
                 }
             }
         }
-        .padding(.horizontal, 20)
+        .padding(.horizontal, 16)
         .animation(.smooth, value: songs.count)
     }
 
@@ -174,6 +173,9 @@ struct DownloadButton: View {
     let kind: String, cid: String, name: String
     let coverArt: String?
     let remove: () -> Void
+    /// Containers whose songs aren't known up front (an artist) gather them here, then add them; `loading` shows a spinner meanwhile.
+    var start: (() async -> Void)? = nil
+    var loading = false
 
     var body: some View {
         let (done, total) = app.downloads.progress(songs)
@@ -181,18 +183,33 @@ struct DownloadButton: View {
         let busy = !complete && songs.contains { app.downloads.queued($0.id) }
         Button {
             if complete || busy { remove() }
+            else if let start { Task { await start() } }
             else { app.downloads.add(songs, pin: Pinned(kind: kind, cid: cid, name: name, coverArt: coverArt, songIds: [])) }
         } label: {
             ZStack {
-                if complete { Image(systemName: "checkmark").font(.title3.weight(.bold)).foregroundStyle(.green).transition(.scale.combined(with: .opacity)) }
+                if loading { ProgressView().controlSize(.small) }
+                else if complete { Image(systemName: "checkmark").font(.body.weight(.bold)).foregroundStyle(.green).transition(.scale.combined(with: .opacity)) }
                 else if busy {
-                    Circle().stroke(.white.opacity(0.2), lineWidth: 3).frame(width: 24, height: 24)
-                    Circle().trim(from: 0, to: max(0.05, Double(done) / Double(max(total, 1)))).stroke(.tint, style: StrokeStyle(lineWidth: 3, lineCap: .round)).frame(width: 24, height: 24).rotationEffect(.degrees(-90))
-                } else { Image(systemName: "arrow.down.circle").font(.title3) }
+                    Circle().stroke(.white.opacity(0.2), lineWidth: 3).frame(width: 22, height: 22)
+                    Circle().trim(from: 0, to: max(0.05, Double(done) / Double(max(total, 1)))).stroke(.tint, style: StrokeStyle(lineWidth: 3, lineCap: .round)).frame(width: 22, height: 22).rotationEffect(.degrees(-90))
+                } else { Image(systemName: "arrow.down.circle").font(.body.weight(.medium)) }
             }
-            .frame(width: 46, height: 46).glassEffect(.regular.interactive(), in: .circle)
+            .frame(width: 40, height: 40).glassEffect(.regular.interactive(), in: .circle).padding(2).contentShape(Circle())
             .animation(.smooth, value: done)
         }
-        .buttonStyle(.plain).disabled(songs.isEmpty).accessibilityIdentifier("download")
+        .buttonStyle(.plain).disabled((songs.isEmpty && start == nil) || loading).accessibilityIdentifier("download")
+    }
+}
+
+/// "Repeat album" / "Stop repeating album" in a container's `…` menu: loops that container (repeat all). Starts it when something else plays.
+struct RepeatMenuItem: View {
+    let noun: String
+    let ref: Ref
+    let songs: () async -> [Song]
+    var body: some View {
+        let on = player.isRepeating(ref)
+        Button(on ? "Stop repeating \(noun)" : "Repeat \(noun)", systemImage: on ? "repeat.circle.fill" : "repeat") {
+            Task { await player.repeatContext(await songs(), ref) }
+        }
     }
 }

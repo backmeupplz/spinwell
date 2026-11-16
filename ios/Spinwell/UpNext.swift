@@ -33,12 +33,17 @@ struct UpNextView: View {
             .listStyle(.plain)
             .environment(\.editMode, .constant(.active))
             .animation(.smooth(duration: 0.45), value: player.revision)
+            .sensoryFeedback(.selection, trigger: q.shuffle)
+            .sensoryFeedback(.selection, trigger: q.repeatMode)
             .navigationTitle("Up next").navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
+                ToolbarItemGroup(placement: .topBarLeading) {
                     Button { withAnimation(.smooth(duration: 0.5)) { player.setShuffle(!q.shuffle) } } label: {
-                        Image(systemName: "shuffle").foregroundStyle(q.shuffle ? Color.accentColor : .secondary)
+                        ModeIcon(symbol: "shuffle", on: q.shuffle)
                     }.accessibilityIdentifier("queue-shuffle")
+                    Button { player.cycleRepeat() } label: {
+                        ModeIcon(symbol: q.repeatMode == .one ? "repeat.1" : "repeat", on: q.repeatMode != .off)
+                    }.accessibilityIdentifier("queue-repeat")
                 }
                 ToolbarItem(placement: .topBarTrailing) { Button("Done") { dismiss() } }
             }
@@ -48,7 +53,7 @@ struct UpNextView: View {
     @ViewBuilder private func row(_ qi: QItem, current: Bool = false) -> some View {
         let s = qi.song
         HStack(spacing: 12) {
-            Cover(id: s.coverArt, size: 44, radius: 6).frame(width: 44, height: 44)
+            Cover(id: s.coverArt, size: 40, radius: 6).frame(width: 40, height: 40)
             VStack(alignment: .leading, spacing: 2) {
                 Text(s.name).font(.body).lineLimit(1).foregroundStyle(current ? AnyShapeStyle(.tint) : AnyShapeStyle(.primary))
                 Text(s.artist ?? "").font(.caption).foregroundStyle(.secondary).lineLimit(1)
@@ -64,6 +69,20 @@ struct UpNextView: View {
             if !current { Button("Remove", role: .destructive) { withAnimation(.smooth) { player.remove(qi.id) } } }
         }
         .moveDisabled(current)
+    }
+}
+
+/// Shuffle / repeat glyph: accent color plus a dot underneath when it is on, dim grey when it is off.
+struct ModeIcon: View {
+    let symbol: String
+    let on: Bool
+    var inactive: Color = .secondary
+    var body: some View {
+        VStack(spacing: 3) {
+            Image(systemName: symbol).foregroundStyle(on ? Color.accentColor : inactive)
+            Circle().fill(Color.accentColor).frame(width: 4, height: 4).opacity(on ? 1 : 0)
+        }
+        .animation(.smooth(duration: 0.2), value: on)
     }
 }
 

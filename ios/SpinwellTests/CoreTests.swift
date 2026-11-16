@@ -162,3 +162,62 @@ final class FormatTests: XCTestCase {
         XCTAssertEqual(albumBadge([Song(id: "1", suffix: "mp3", bitRate: 320), Song(id: "2", suffix: "flac", samplingRate: 44100, bitDepth: 16)]), "FLAC 16/44.1")
     }
 }
+
+final class SearchTests: XCTestCase {
+    private let songs = [
+        Song(id: "1", title: "Сон - кино", album: "Песни", artist: "Various"),
+        Song(id: "2", title: "Группа крови", album: "Группа крови", artist: "Кино"),
+        Song(id: "3", title: "Ёлка", album: "X", artist: "Y"),
+    ]
+    private let artists = [Artist(id: "a", name: "Кино"), Artist(id: "b", name: "Киноклуб")]
+
+    func testCyrillicAnyCase() {
+        for q in ["кино", "Кино", "КИНО", " кино "] {
+            let r = localSearch(q, songs: songs, albums: [], artists: artists)
+            XCTAssertEqual(r.artists.map(\.id), ["a", "b"], q)       // exact/prefix first, in input order
+            XCTAssertEqual(r.songs.map(\.id).sorted(), ["1", "2"], q) // title or artist
+        }
+        XCTAssertEqual(localSearch("елка", songs: songs, albums: [], artists: []).songs.map(\.id), ["3"]) // ё folds to е
+    }
+
+    func testPrefixBeforeInside() {
+        let r = localSearch("ино", songs: [], albums: [], artists: [Artist(id: "1", name: "Кино"), Artist(id: "2", name: "Иностранцы")])
+        XCTAssertEqual(r.artists.map(\.id), ["2", "1"])
+    }
+
+    func testTopResultExactThenPrefix() {
+        let r = localSearch("кино", songs: songs, albums: [], artists: artists)
+        if case .artist(let a)? = topResult("кино", r) { XCTAssertEqual(a.id, "a") } else { XCTFail("expected exact artist") }
+        XCTAssertNil(topResult("киноm", localSearch("киноm", songs: songs, albums: [], artists: artists))) // nothing matches
+        let pre = SearchResults(artists: [Artist(id: "b", name: "Киноклуб")])
+        if case .artist(let a)? = topResult("киноклу", pre) { XCTAssertEqual(a.id, "b") } else { XCTFail("expected prefix artist") }
+    }
+}
+
+final class ConnectivityTests: XCTestCase {
+    func testNetworkErrorsAreFoundUnderWrappers() {
+        let inner = NSError(domain: NSURLErrorDomain, code: URLError.cannotConnectToHost.rawValue)
+        let wrapped = NSError(domain: "AVFoundationErrorDomain", code: -11800, userInfo: [NSUnderlyingErrorKey: inner])
+        XCTAssertTrue(Srv.isNetwork(wrapped))
+        XCTAssertTrue(Srv.isNetwork(URLError(.timedOut)))
+        XCTAssertFalse(Srv.isNetwork(URLError(.badServerResponse)))
+        XCTAssertFalse(Srv.isNetwork(NSError(domain: "AVFoundationErrorDomain", code: -11828)))
+    }
+
+    func testArtistRefsCoverTrackAndAlbumArtists() {
+        let s = Song(id: "1", artist: "A feat. B", artistId: "a", albumArtists: [NamedRef(id: "a", name: "A"), NamedRef(id: "c", name: "C")])
+        XCTAssertEqual(Downloads.artistRefs(s).map(\.0), ["a", "c"])
+    }
+}
+
+final class RepeatTests: XCTestCase {
+    func testRepeatAllLoopsAndOneStays() {
+        var q = QueueState()
+        q.start([song("1", artist: "a"), song("2", artist: "b")], at: 1, context: nil, shuffle: false)
+        q.repeatMode = .all
+        XCTAssertTrue(q.advance(auto: true)); XCTAssertEqual(q.current?.song.id, "1") // wraps
+        q.repeatMode = .one
+        XCTAssertTrue(q.advance(auto: true)); XCTAssertEqual(q.current?.song.id, "1") // stays
+        XCTAssertTrue(q.advance(auto: false)); XCTAssertEqual(q.current?.song.id, "2") // a manual next still moves
+    }
+}

@@ -97,7 +97,7 @@ struct FullPlayer: View {
     @State private var showLyrics = Hooks.flag("lyrics")
     @State private var dx: CGFloat = 0
     @State private var forward = true
-    @State private var tint = Color(white: 0.2)
+    @State private var tint = FullPlayer.startTint()
 
     var body: some View {
         let s = player.current
@@ -142,6 +142,7 @@ struct FullPlayer: View {
                 .transition(.push(from: forward ? .trailing : .leading).combined(with: .opacity))
         }
         .padding(.horizontal, player.playing ? 28 : 54)
+        .frame(maxWidth: .infinity, maxHeight: .infinity) // takes what is left, so the square shrinks on a small phone instead of pushing the controls off
         .shadow(color: .black.opacity(0.5), radius: 30, y: 16)
         .offset(x: dx * 0.5)
         .animation(.spring(response: 0.5, dampingFraction: 0.72), value: player.playing)
@@ -178,8 +179,7 @@ struct FullPlayer: View {
     private var transport: some View {
         HStack {
             Button { player.setShuffle(!player.q.shuffle) } label: {
-                Image(systemName: "shuffle").font(.title3).frame(width: 48, height: 56)
-                    .foregroundStyle(player.q.shuffle ? Color.accentColor : .white.opacity(0.7))
+                ModeIcon(symbol: "shuffle", on: player.q.shuffle, inactive: .white.opacity(0.7)).font(.title3).frame(width: 48, height: 56)
                     .symbolEffect(.bounce, value: player.q.shuffle)
             }.accessibilityIdentifier("shuffle-toggle")
             Spacer()
@@ -194,11 +194,12 @@ struct FullPlayer: View {
             Button { player.next() } label: { Image(systemName: "forward.fill").font(.system(size: 30)).frame(width: 60, height: 60) }
             Spacer()
             Button { player.cycleRepeat() } label: {
-                Image(systemName: player.repeatMode == .one ? "repeat.1" : "repeat").font(.title3).frame(width: 48, height: 56)
-                    .foregroundStyle(player.repeatMode == .off ? .white.opacity(0.7) : Color.accentColor)
-            }
+                ModeIcon(symbol: player.repeatMode == .one ? "repeat.1" : "repeat", on: player.repeatMode != .off, inactive: .white.opacity(0.7))
+                    .font(.title3).frame(width: 48, height: 56)
+            }.accessibilityIdentifier("repeat-toggle")
         }
-        .buttonStyle(.plain).padding(.horizontal, 20).sensoryFeedback(.selection, trigger: player.q.shuffle)
+        .buttonStyle(.plain).padding(.horizontal, 20)
+        .sensoryFeedback(.selection, trigger: player.q.shuffle).sensoryFeedback(.selection, trigger: player.repeatMode)
     }
 
     private func bottomRow(_ s: Song?) -> some View {
@@ -213,3 +214,11 @@ struct FullPlayer: View {
     }
 }
 
+
+extension FullPlayer {
+    /// The current cover's color when it is already known, so the gradient doesn't start grey and fade.
+    static func startTint() -> Color {
+        guard let c = player.current?.coverArt, let u = Covers.color(c) else { return Color(white: 0.2) }
+        return Color(uiColor: u).mix(with: .black, by: 0.25)
+    }
+}

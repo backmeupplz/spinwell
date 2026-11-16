@@ -27,21 +27,21 @@ struct HomeView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 26) {
-                HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(spacing: 10) {
                     Button { Task { await shuffleAll() } } label: { Pill(title: "Shuffle all", symbol: "shuffle", prominent: true) }
                         .buttonStyle(Press()).accessibilityIdentifier("shuffle-all")
                     Button { nav.open(.favorites) } label: { Pill(title: "Favorites", symbol: "heart.fill") }.buttonStyle(Press())
                 }
-                .padding(.horizontal)
+                .padding(.horizontal, 16)
                 if let error, shelves.allSatisfy({ $0.albums.isEmpty }) { ErrorLine(text: error).frame(maxWidth: .infinity) }
                 ForEach(shelves.filter { !$0.albums.isEmpty }) { shelf in
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text(shelf.title).font(.title3.bold()).padding(.horizontal)
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(shelf.title).font(.title3.bold()).padding(.horizontal, 16)
                         ScrollView(.horizontal, showsIndicators: false) {
-                            LazyHStack(alignment: .top, spacing: 14) {
+                            LazyHStack(alignment: .top, spacing: 12) {
                                 ForEach(shelf.albums) { a in AlbumCard(album: a, source: "home-\(shelf.id)-\(a.id)") }
-                            }.padding(.horizontal).scrollTargetLayout()
+                            }.padding(.horizontal, 16).scrollTargetLayout()
                         }
                         .scrollTargetBehavior(.viewAligned)
                     }
@@ -49,17 +49,17 @@ struct HomeView: View {
                 }
                 Color.clear.frame(height: 90)
             }
-            .padding(.top, 8)
+            .padding(.top, 4)
             .animation(.smooth, value: shelves.map { $0.albums.count })
         }
-        .navigationTitle("Home")
+        .navigationTitle("Home").navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button { nav.open(.settings) } label: { Image(systemName: "gearshape") }.accessibilityIdentifier("settings")
             }
         }
         .refreshable { await refresh() }
-        .task { await refresh() }
+        .task(id: app.offline) { await refresh() } // offline flips reload the shelves from cache / from the server
     }
 
     private func refresh() async {
@@ -79,12 +79,6 @@ struct HomeView: View {
     private func shuffleAll() async {
         guard !shuffling else { return }
         shuffling = true; defer { shuffling = false }
-        if app.offline {
-            player.start(app.downloads.songs, context: Ref(kind: "shuffle", id: "all", name: "Downloads"), randomStart: true)
-            return
-        }
-        if let r = try? await app.fetch("getRandomSongs", [("size", "200")], RandomSongs.self), !r.list.isEmpty {
-            player.start(r.list, context: Ref(kind: "shuffle", id: "all", name: "Shuffle all"), randomStart: true)
-        }
+        await shuffleAllSongs(name: "Shuffle all")
     }
 }

@@ -39,7 +39,7 @@ final class Drive: XCTestCase {
         case "tap", "tapfirst":
             let e = find(arg)
             if e.waitForExistence(timeout: 15) { e.tap() } else { XCTFail("missing \(arg)"); shot("zz-missing") }
-        case "tapid": let e = app.descendants(matching: .any)[arg]; if e.waitForExistence(timeout: 15) { e.tap() } else { XCTFail("missing id \(arg)") }
+        case "tapid": let e = app.descendants(matching: .any)[arg].firstMatch; if e.waitForExistence(timeout: 15) { e.tap() } else { XCTFail("missing id \(arg)") }
         case "longpressid": let e = app.descendants(matching: .any)[arg]; if e.waitForExistence(timeout: 15) { e.press(forDuration: 1.2) } else { XCTFail("missing id \(arg)") }
         case "shotnow": shot(arg)
         case "exists": print("EXISTS \(arg): \(find(arg).waitForExistence(timeout: 5))")
@@ -50,6 +50,17 @@ final class Drive: XCTestCase {
         case "type": app.typeText(arg)
         case "back": app.navigationBars.buttons.firstMatch.tap()
         case "log": print("LOG \(arg)")
+        case "playperf":
+            // hitches while a song row is tapped and the full player opens and closes: `playperf <row label>`
+            let opts = XCTMeasureOptions(); opts.iterationCount = 3
+            measure(metrics: [XCTHitchMetric(application: app)], options: opts) {
+                let row = find(arg); if row.waitForExistence(timeout: 10) { row.tap() }
+                let mini = app.descendants(matching: .any)["mini-player"].firstMatch
+                if mini.waitForExistence(timeout: 10) { mini.tap() }
+                sleep(2)
+                app.swipeDown(velocity: .fast)
+                sleep(1)
+            }
         case "launchperf":
             measure(metrics: [XCTApplicationLaunchMetric(waitUntilResponsive: true)]) { launch() }
         case "scrollperf":

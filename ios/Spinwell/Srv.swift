@@ -51,7 +51,8 @@ struct Pending: Codable { var kind: String; var id: String; var at: Double }
 @MainActor @Observable final class Srv {
     var account: Account?
     var signInError: String?
-    var unreachable = false
+    /// The server doesn't answer. Flipping it reloads every screen (they key their `.task` on `offline`) and the player's preload.
+    var unreachable = false { didSet { if unreachable != oldValue { player.refreshPreload() } } }
     var cellular = false
     var extensions: Set<String> = []
     var serverVersion = ""
@@ -87,7 +88,29 @@ struct Pending: Codable { var kind: String; var id: String; var at: Double }
             }
         }
         monitor.start(queue: .main)
+        // while offline, look again every 20 s; coming to the foreground checks right away
+        Task { @MainActor [weak self] in
+            while true {
+                try? await Task.sleep(for: .seconds(20))
+                guard let self else { return }
+                if self.unreachable { await self.ping() }
+            }
+        }
+        NotificationCenter.default.addObserver(forName: UIApplication.willEnterForegroundNotification, object: nil, queue: .main) { [weak self] _ in
+            Task { @MainActor in await self?.ping() }
+        }
     }
+
+    /// Network errors that mean "the server isn't there" (also found under AVFoundation's wrapper errors).
+    nonisolated static let netCodes: Set<URLError.Code> = [.cannotConnectToHost, .timedOut, .notConnectedToInternet, .networkConnectionLost, .cannotFindHost,
+                                                           .dnsLookupFailed, .secureConnectionFailed, .dataNotAllowed, .internationalRoamingOff, .cannotLoadFromNetwork]
+    nonisolated static func isNetwork(_ e: Error) -> Bool {
+        let ns = e as NSError
+        if ns.domain == NSURLErrorDomain, netCodes.contains(URLError.Code(rawValue: ns.code)) { return true }
+        if let u = ns.userInfo[NSUnderlyingErrorKey] as? Error { return isNetwork(u) }
+        return false
+    }
+    func markUnreachable() { unreachable = true }
 
     func settingsChanged() { if !settings.offlineMode { Task { await ping() } } }
 
@@ -140,7 +163,7 @@ struct Pending: Codable { var kind: String; var id: String; var at: Double }
                 serverVersion = [env.type?.capitalized, env.serverVersion?.split(separator: " ").first.map(String.init)].compactMap { $0 }.joined(separator: " ")
                 reachable()
             } else { unreachable = true }
-        } catch { unreachable = true }
+        } catch { if (error as? URLError)?.code != .cancelled { unreachable = true } }
     }
 
     func reachable() {
@@ -167,12 +190,16 @@ struct Pending: Codable { var kind: String; var id: String; var at: Double }
         guard let a = account, let url = a.url(method, params) else { throw ApiError.notSignedIn }
         if offline { throw ApiError.offline }
         do {
-            let (d, resp) = try await session.data(from: url)
-            if let c = (resp as? HTTPURLResponse)?.statusCode, c != 200 { throw ApiError.http(c) }
+            var r = URLRequest(url: url); r.timeoutInterval = 10
+            let (d, resp) = try await session.data(for: r)
+            if let c = (resp as? HTTPURLResponse)?.statusCode, c != 200 {
+                if [502, 503, 504].contains(c) { unreachable = true } // the proxy in front of the server is up, the server isn't
+                throw ApiError.http(c)
+            }
             reachable()
             return d
         } catch let e as URLError where e.code != .cancelled {
-            if [.cannotConnectToHost, .timedOut, .notConnectedToInternet, .networkConnectionLost, .cannotFindHost, .dnsLookupFailed].contains(e.code) { unreachable = true }
+            if Self.isNetwork(e) { unreachable = true }
             throw e
         }
     }
