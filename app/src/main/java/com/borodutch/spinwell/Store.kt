@@ -62,6 +62,7 @@ object Store {
     var session by mutableStateOf<Session?>(null)
     val ext = mutableStateOf<Set<String>>(emptySet()) // OpenSubsonic extensions of this server
     var serverVersion by mutableStateOf("")
+    var signInNotice by mutableStateOf<String?>(null)
 
     fun init(a: Application) {
         app = a
@@ -88,6 +89,7 @@ object Store {
         }
         p.edit().putString("server", s.server).putString("user", s.user).putString("token", s.token).putString("salt", s.salt).apply()
         session = s
+        signInNotice = null
         Net.reachable = true
         Downloads.load()
         Audio.init(app)
@@ -142,7 +144,7 @@ object Net {
         val s = Store.session ?: return
         if (Settings.offlineMode) return
         Store.scope.launch(Dispatchers.IO) {
-            val ok = runCatching { getJson(s.url("ping"), 4_000) }.isSuccess
+            val ok = runCatching { getJson(s.url("ping"), 4_000) }.exceptionOrNull().let { it == null || it is ApiError } // a refused login still means the server answered
             withContext(Dispatchers.Main) { reachable = ok }
             if (ok) { Outbox.flush(); Downloads.kick() }
         }
@@ -163,7 +165,12 @@ object Api {
     fun call(method: String, params: Map<String, String> = emptyMap()): JSONObject {
         val s = Store.session ?: throw ApiError(40, "Signed out")
         if (Net.offline) throw java.io.IOException("offline")
-        val r = try { getJson(s.url(method, params)) } catch (e: Throwable) { Net.failed(e); throw e }
+        val r = try { getJson(s.url(method, params)) } catch (e: Throwable) {
+            Net.failed(e)
+            // wrong or changed credentials: back to sign-in with the server's message
+            if (e is ApiError && (e.code == 40 || e.code == 41)) Store.scope.launch { Store.signInNotice = e.message; Store.signOut() }
+            throw e
+        }
         Store.scope.launch { Net.ok() }
         if (method !in noCache) runCatching {
             val f = file(method, params)
