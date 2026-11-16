@@ -34,6 +34,8 @@ fun resume(url: URL, part: File, onBytes: (Long) -> Unit) {
         val code = c.responseCode
         if (code == 416) { onBytes(have); return } // already complete
         if (code >= 300) throw HttpErr(code)
+        val type = c.contentType.orEmpty()
+        if (type.startsWith("text") || "json" in type || "xml" in type) throw HttpErr(404) // a Subsonic error body, not audio
         val append = have > 0 && code == 206
         var n = if (append) have else 0L
         onBytes(n)
