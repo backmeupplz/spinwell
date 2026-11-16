@@ -96,7 +96,7 @@ struct Pending: Codable { var kind: String; var id: String; var at: Double }
                 try? await Task.sleep(for: .seconds(5))
                 guard let self else { return }
                 n += 1
-                if self.unreachable ? n % 4 == 0 : (n % 2 == 0 && UIApplication.shared.applicationState == .active) { await self.ping() }
+                if self.unreachable ? n % 4 == 0 : (n % 2 == 0 && UIApplication.shared.applicationState == .active) { await self.ping(confirm: !self.unreachable) }
             }
         }
         NotificationCenter.default.addObserver(forName: UIApplication.willEnterForegroundNotification, object: nil, queue: .main) { [weak self] _ in
@@ -156,17 +156,25 @@ struct Pending: Codable { var kind: String; var id: String; var at: Double }
 
     // MARK: connectivity
 
-    func ping() async {
+    /// One `ping` (4 s timeout). `confirm` retries once after a second before declaring the server gone: the periodic probe of an
+    /// online app must not drop a preloaded song because of one slow answer. Requests that really fail flip at once without it.
+    func ping(confirm: Bool = false) async {
         guard account != nil, !settings.offlineMode else { return }
-        guard let url = account?.url("ping") else { return }
+        var ok = await probe()
+        if ok == false, confirm { try? await Task.sleep(for: .seconds(1)); ok = await probe() }
+        if ok == true { reachable() } else if ok == false { unreachable = true }
+    }
+
+    /// true = answered, false = did not, nil = cancelled
+    private func probe() async -> Bool? {
+        guard let url = account?.url("ping") else { return false }
         var r = URLRequest(url: url); r.timeoutInterval = 4
         do {
             let (d, _) = try await session.data(for: r)
-            if let env = try? JSONDecoder().decode(Envelope<Empty>.self, from: d), env.status == "ok" {
-                serverVersion = [env.type?.capitalized, env.serverVersion?.split(separator: " ").first.map(String.init)].compactMap { $0 }.joined(separator: " ")
-                reachable()
-            } else { unreachable = true }
-        } catch { if (error as? URLError)?.code != .cancelled { unreachable = true } }
+            guard let env = try? JSONDecoder().decode(Envelope<Empty>.self, from: d), env.status == "ok" else { return false }
+            serverVersion = [env.type?.capitalized, env.serverVersion?.split(separator: " ").first.map(String.init)].compactMap { $0 }.joined(separator: " ")
+            return true
+        } catch { return (error as? URLError)?.code == .cancelled ? nil : false }
     }
 
     func reachable() {

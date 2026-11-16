@@ -148,6 +148,19 @@ struct Pill: View {
     }
 }
 
+/// An empty list: a symbol and one sentence.
+struct EmptyState: View {
+    let symbol: String
+    let text: String
+    var body: some View {
+        VStack(spacing: 10) {
+            Image(systemName: symbol).font(.system(size: 34, weight: .light)).foregroundStyle(.tertiary)
+            Text(text).font(.subheadline).foregroundStyle(.secondary).multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity).padding(.horizontal, 32).padding(.vertical, 40)
+    }
+}
+
 /// 40 pt round glass button (44 pt hit area) for the action rows.
 struct RoundGlyph: View {
     let symbol: String

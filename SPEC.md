@@ -67,6 +67,7 @@ whose project layout, cover cache and download design we reuse.
   - Launch: screens render from the cache at once, `ping` (4 s timeout) runs in the background; failure → offline.
   - Any request that fails with a connection error, timeout or DNS failure (or a 502/503/504 from a proxy in front of the server) → offline immediately; library requests time out after 10 s. Every screen keys its load on the offline flag, so the current screen reloads from cache/downloads at the flip, and again from the server when it is back.
   - Network changes (iOS `NWPathMonitor`; Android `ConnectivityManager`, VPN changes included) → re-`ping`.
+  - While online and in front, a `ping` every 10 s notices a server that went away when nothing was being requested; it only flips offline after a second failed `ping` a second later, so one slow answer doesn't drop the preloaded next song (a failing real request flips at once).
   - While offline: `ping` every 20 s and whenever the app comes to the foreground. A successful ping (or any successful request) → online, the banner goes, the outbox flushes, downloads resume.
   - Playback: a streamed song that fails (error status or 6 s stuck buffering followed by a failed ping) flips offline and playback skips to the next downloaded song instead of stopping; a preloaded stream the phone can no longer fetch is dropped when the flip happens.
 - Offline: a slim banner under the top bar ("Offline · showing downloads", tap to retry). Browsing uses the JSON cache.

@@ -88,6 +88,7 @@ import UIKit
             case "pause": player.pause()
             case "play": player.play()
             case "block": try? "refused".write(toFile: "/tmp/spinwell-block", atomically: true, encoding: .utf8) // dead-server simulation, see Account.url
+            case "blackhole": try? "blackhole".write(toFile: "/tmp/spinwell-block", atomically: true, encoding: .utf8) // packets vanish: timeouts, stalls
             case "unblock": try? FileManager.default.removeItem(atPath: "/tmp/spinwell-block")
             case "playnext": if let r = try? await app.fetch("getSong", [("id", p[1])], SongR.self) { player.playNext([r.song]) }
             case "jump": if player.q.items.indices.contains(Int(p[1]) ?? 0) { player.jump(to: player.q.items[Int(p[1])!].id) }

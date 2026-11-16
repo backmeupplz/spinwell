@@ -187,7 +187,7 @@ struct PlaylistsList: View {
         ScrollView {
             LazyVStack(spacing: 0) {
                 if let error, ordered.isEmpty { ErrorLine(text: error) }
-                if ordered.isEmpty, error == nil { ErrorLine(text: "No playlists yet. Create one in Navidrome and it shows up here.") }
+                if ordered.isEmpty, error == nil { EmptyState(symbol: "music.note.list", text: "No playlists yet. Create one in Navidrome and it shows up here.") }
                 ForEach(ordered) { p in
                     NavigationLink(value: Route.playlist(p.id, "lib-pl-\(p.id)")) {
                         ListRow(cover: p.coverArt, symbol: "music.note.list", title: p.title,
@@ -249,7 +249,7 @@ struct FavoritesView: View {
             VStack(alignment: .leading, spacing: 14) {
                 if let error, songs.isEmpty, albums.isEmpty, artists.isEmpty { ErrorLine(text: error) }
                 if songs.isEmpty && albums.isEmpty && artists.isEmpty && error == nil {
-                    ErrorLine(text: "Tap the heart on a song, album or artist and it appears here.")
+                    EmptyState(symbol: "heart", text: "Tap the heart on a song, album or artist and it appears here.")
                 }
                 if !artists.isEmpty {
                     Text("Artists").font(.title3.bold()).padding(.horizontal, 16)

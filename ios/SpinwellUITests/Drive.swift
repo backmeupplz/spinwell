@@ -42,6 +42,16 @@ final class Drive: XCTestCase {
         case "tapid": let e = app.descendants(matching: .any)[arg].firstMatch; if e.waitForExistence(timeout: 15) { e.tap() } else { XCTFail("missing id \(arg)") }
         case "tapidopt": let e = app.descendants(matching: .any)[arg].firstMatch; if e.waitForExistence(timeout: 3) { e.tap() } // only if it is there
         case "home": XCUIDevice.shared.press(.home)
+        case "tapbtn": let e = app.buttons[arg].firstMatch; if e.waitForExistence(timeout: 10) { e.tap() } else { XCTFail("no button \(arg)") }
+        case "swiperow": // swipe the Nth song row left (download / remove download)
+            let rows = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'song-'"))
+            _ = rows.firstMatch.waitForExistence(timeout: 10)
+            let vis = rows.allElementsBoundByIndex.filter { $0.isHittable }
+            if let e = vis.dropFirst(Int(arg) ?? 0).first { e.swipeLeft() } else { XCTFail("no visible song row \(arg)") }
+        case "tapbtntop": // the highest button with this exact label (the page's, not the mini player's)
+            _ = app.buttons[arg].firstMatch.waitForExistence(timeout: 10)
+            let b = app.buttons.matching(NSPredicate(format: "label == %@", arg)).allElementsBoundByIndex.filter { $0.isHittable }.min { $0.frame.minY < $1.frame.minY }
+            if let b { b.tap() } else { XCTFail("no button \(arg)") }
         case "longpressid": let e = app.descendants(matching: .any)[arg]; if e.waitForExistence(timeout: 15) { e.press(forDuration: 1.2) } else { XCTFail("missing id \(arg)") }
         case "block": try? "refused".write(toFile: "/tmp/spinwell-block", atomically: true, encoding: .utf8) // Debug app sends every request to a dead address
         case "blackhole": try? "blackhole".write(toFile: "/tmp/spinwell-block", atomically: true, encoding: .utf8)

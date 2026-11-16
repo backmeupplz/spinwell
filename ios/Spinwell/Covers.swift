@@ -74,7 +74,10 @@ import UIKit
     /// Everything the full player draws for a song (the 1200 px cover decoded, its dominant color), started the moment the song is
     /// chosen, so the expanding player finds it ready and nothing is decoded or computed while it animates.
     static func prepare(_ id: String) {
-        Task { _ = await get(id, size: 1200); _ = color(id) }
+        Task {
+            guard let img = await get(id, size: 1200), colors[id] == nil else { return }
+            colors[id] = await Task.detached { dominant(img) }.value // the 16x16 downsample off the main thread too
+        }
     }
 
     /// Fetch the sizes the player needs offline.
@@ -90,7 +93,7 @@ import UIKit
         return c
     }
 
-    static func dominant(_ img: UIImage) -> UIColor {
+    nonisolated static func dominant(_ img: UIImage) -> UIColor {
         guard let cg = img.cgImage else { return .darkGray }
         var px = [UInt8](repeating: 0, count: 16 * 16 * 4)
         let ctx = CGContext(data: &px, width: 16, height: 16, bitsPerComponent: 8, bytesPerRow: 64, space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)

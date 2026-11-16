@@ -321,11 +321,11 @@ struct Saved: Codable { var queue: QueueState; var position: Double; var wasPlay
     /// A stream that sits in "buffering" for 6 s: check the server; if it is gone, carry on with downloads.
     private func watchStall(_ st: AVPlayer.TimeControlStatus) {
         stall?.cancel()
-        guard st == .waitingToPlayAtSpecifiedRate, let id = q.current?.id, let s = current, !app.downloads.has(s.id), !app.offline else { return }
+        guard st == .waitingToPlayAtSpecifiedRate, let id = q.current?.id, let s = current, !app.downloads.has(s.id) else { return }
         stall = Task {
             try? await Task.sleep(for: .seconds(6))
             guard !Task.isCancelled, ap.timeControlStatus == .waitingToPlayAtSpecifiedRate, q.current?.id == id else { return }
-            await app.ping()
+            if !app.offline { await app.ping() } // the periodic probe may already have flipped us offline: then go straight on
             if app.unreachable, q.current?.id == id { skipToPlayable() }
         }
     }

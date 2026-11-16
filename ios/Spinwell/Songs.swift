@@ -67,6 +67,7 @@ struct SongRow: View {
     @State private var info = false
     @State private var dx: CGFloat = 0
     @State private var swiped = 0
+    @State private var swipeEnd = Date.distantPast
 
     private var haveDownload: Bool { app.downloads.has(song.id) || app.downloads.queued(song.id) }
 
@@ -83,12 +84,14 @@ struct SongRow: View {
             .onChanged { v in
                 guard swipe, v.translation.width < 0, abs(v.translation.width) > abs(v.translation.height) * 1.5 else { return }
                 dx = max(v.translation.width, -96)
+                swipeEnd = Date().addingTimeInterval(1)
             }
             .onEnded { _ in
                 if dx < -64 {
                     swiped += 1
                     if haveDownload { app.downloads.remove(song.id) } else { app.downloads.add([song]) }
                 }
+                swipeEnd = Date().addingTimeInterval(0.35)
                 withAnimation(.spring(duration: 0.3)) { dx = 0 }
             }
     }
@@ -96,7 +99,7 @@ struct SongRow: View {
     var body: some View {
         let isCurrent = player.current?.id == song.id
         let playable = app.playable(song)
-        Button(action: play) {
+        Button { if Date() > swipeEnd { play() } } label: { // a swipe that ends on the row must not also play it
             HStack(spacing: 12) {
                 if cover { Cover(id: song.coverArt, size: 40, radius: 6).frame(width: 40, height: 40) }
                 else {
@@ -167,7 +170,10 @@ struct SongList: View {
 struct PlayStyle: ButtonStyle {
     let cover: String?
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label.onChange(of: configuration.isPressed) { _, down in
+        configuration.label
+            .background(configuration.isPressed ? Color.white.opacity(0.1) : .clear, in: .rect(cornerRadius: 8)) // the pressed state of every list row
+            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+            .onChange(of: configuration.isPressed) { _, down in
             if down, let cover { Covers.prepare(cover) }
         }
     }
