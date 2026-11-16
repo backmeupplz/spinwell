@@ -111,6 +111,7 @@ fun JSONObject.list(key: String): List<JSONObject> = optJSONArray(key)?.let { a 
 
 // ---------- display helpers (pure) ----------
 
+fun songsLabel(n: Int) = if (n == 1) "1 song" else "$n songs"
 fun fmtTime(sec: Int): String { val s = sec.coerceAtLeast(0); return "%d:%02d".format(s / 60, s % 60) }
 fun fmtLong(sec: Int): String { val m = (sec + 30) / 60; return if (m >= 60) "${m / 60} h ${m % 60} min" else "$m min" }
 fun fmtBytes(b: Long): String = when {

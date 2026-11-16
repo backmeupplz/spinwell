@@ -132,7 +132,7 @@ fun ArtistRow(a: Artist, share: String, dim: Boolean = false) =
 @Composable
 fun AlbumRow(a: Album, share: String, sub: String? = null, thumb: Dp = 40.dp) {
     val dim = Net.offline && !Downloads.done.values.any { it.song.albumId == a.id }
-    MediaRow(a.coverArt, a.name, sub ?: listOfNotNull(a.year.takeIf { it > 0 }?.toString(), a.songCount.takeIf { it > 0 }?.let { "$it songs" }).joinToString(" · "),
+    MediaRow(a.coverArt, a.name, sub ?: listOfNotNull(a.year.takeIf { it > 0 }?.toString(), a.songCount.takeIf { it > 0 }?.let { songsLabel(it) }).joinToString(" · "),
         dim = dim, shareKey = "cover-$share-${a.id}", thumb = thumb) { Nav.push(Route.Album(a.id, share, a.coverArt)) }
 }
 
@@ -231,7 +231,7 @@ fun SongRow(
     val haptic = LocalHapticFeedback.current
     val saved = Downloads.has(song.id) || Downloads.queue.any { it.id == song.id }
     // swipe left to download (or remove); the row springs back, its download state icon shows what happened
-    val swipe = rememberSwipeToDismissBoxState(confirmValueChange = { v ->
+    val swipe = rememberSwipeToDismissBoxState(positionalThreshold = { it * 0.3f }, confirmValueChange = { v ->
         if (v == SwipeToDismissBoxValue.EndToStart) { haptic.performHapticFeedback(HapticFeedbackType.LongPress); toggleSongDownload(song) }
         false
     })

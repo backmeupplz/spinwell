@@ -39,7 +39,7 @@ fun DownloadsScreen() {
         LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = LocalBottom.current + 16.dp)) {
             item {
                 ScreenTitle("Downloads")
-                Text("${fmtBytes(dl.totalBytes())} · ${dl.done.size} songs", color = Muted, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = 16.dp, bottom = 2.dp))
+                Text("${fmtBytes(dl.totalBytes())} · ${songsLabel(dl.done.size)}", color = Muted, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = 16.dp, bottom = 2.dp))
             }
             if (dl.done.isNotEmpty()) item(key = "ps") { PlayShuffle(Offline.songs, Ctx("downloads", "all", "Downloads")) }
             if (dl.queue.isNotEmpty()) item {
@@ -188,21 +188,26 @@ fun SettingsScreen() {
             item { ScreenTitle("Settings") }
             item {
                 // the account: server, user, version, and whether it answers right now
-                Row(Modifier.padding(horizontal = 16.dp, vertical = 6.dp).fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Surface1).padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-                    IconTile(Ic.Server, Accent, 44.dp)
-                    Spacer(Modifier.width(12.dp))
-                    Column(Modifier.weight(1f)) {
-                        Text(s?.server?.substringAfter("://").orEmpty(), style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text("${s?.user}" + if (Store.serverVersion.isNotBlank()) " · Navidrome ${Store.serverVersion.substringBefore(' ')}" else "", color = Muted, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Row(Modifier.padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                            val up = !Net.offline
-                            Box(Modifier.size(8.dp).background(if (up) Green else Orange, androidx.compose.foundation.shape.CircleShape))
-                            Spacer(Modifier.width(6.dp))
-                            Text(if (up) "Online" else if (Settings.offlineMode) "Offline mode" else "Can't reach the server", style = MaterialTheme.typography.bodySmall, color = if (up) Green else Orange)
+                Column(Modifier.padding(horizontal = 16.dp, vertical = 6.dp).fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Surface1)) {
+                    Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                        IconTile(Ic.Server, Accent, 44.dp)
+                        Spacer(Modifier.width(12.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(s?.server?.substringAfter("://").orEmpty(), style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text("${s?.user}" + if (Store.serverVersion.isNotBlank()) " · Navidrome ${Store.serverVersion.substringBefore(' ')}" else "", color = Muted, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Row(Modifier.padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                                val up = !Net.offline
+                                Box(Modifier.size(8.dp).background(if (up) Green else Orange, androidx.compose.foundation.shape.CircleShape))
+                                Spacer(Modifier.width(6.dp))
+                                Text(if (up) "Online" else if (Settings.offlineMode) "Offline mode" else "Can't reach the server", style = MaterialTheme.typography.bodySmall, color = if (up) Green else Orange)
+                            }
                         }
                     }
-                    Text("Sign out", color = Accent, style = MaterialTheme.typography.labelLarge, modifier = Modifier.clip(RoundedCornerShape(50)).clickable { dialog = "signout" }.padding(horizontal = 12.dp, vertical = 8.dp))
-                    InfoButton("Server", "The server you're signed in to. Signing out keeps your downloads; they come back when you sign in to the same account.")
+                    HorizontalDivider(color = Color.White.copy(alpha = 0.06f))
+                    Row(Modifier.fillMaxWidth().clickable { dialog = "signout" }.padding(start = 16.dp, end = 0.dp).heightIn(min = 44.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text("Sign out", color = Accent, style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
+                        InfoButton("Server", "The server you're signed in to. Signing out keeps your downloads; they come back when you sign in to the same account.")
+                    }
                 }
             }
             item {
@@ -228,7 +233,7 @@ fun SettingsScreen() {
                 }
                 Section("Storage") {
                     SettingRow("Downloads", "Songs saved for offline listening. Removing them frees the space; you can download them again any time.",
-                        Ic.Storage, Green, sub = "${fmtBytes(dlBytes)} · ${Downloads.done.size} songs", below = { UsageBar(dlBytes.toFloat() / total, Green) },
+                        Ic.Storage, Green, sub = "${fmtBytes(dlBytes)} · ${songsLabel(Downloads.done.size)}", below = { UsageBar(dlBytes.toFloat() / total, Green) },
                         trailing = { TextButton({ dialog = "rmdl" }, enabled = Downloads.done.isNotEmpty()) { Text("Remove all", color = if (Downloads.done.isNotEmpty()) Accent else Muted) } })
                     SettingRow("Cache", "Album covers and library pages kept on your phone so screens open instantly and you can browse offline. Clearing it is safe; it fills up again as you browse.",
                         Ic.Storage, Blue, sub = "Covers and library: ${fmtBytes(cacheBytes)}", below = { UsageBar(cacheBytes.toFloat() / total, Blue) }, divider = false,

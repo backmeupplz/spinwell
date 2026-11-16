@@ -134,8 +134,8 @@ fun CollectionScreen(id: String, playlist: Boolean, share: String, routeCover: S
                         if (c != null && c.artist.isNotBlank()) Text(c.artist, color = Accent, style = MaterialTheme.typography.titleMedium,
                             modifier = Modifier.clickable(enabled = c.artistId.isNotEmpty()) { Nav.push(Route.Artist(c.artistId, "album")) }.padding(vertical = 1.dp))
                         if (c != null) {
-                            val meta = if (playlist) listOf(c.owner, "${songs.size} songs", fmtLong(c.duration))
-                            else listOf(c.year.takeIf { it > 0 }?.toString(), c.genre.ifBlank { null }, "${songs.size} songs", fmtLong(c.duration)).filterNotNull()
+                            val meta = if (playlist) listOf(c.owner, songsLabel(songs.size), fmtLong(c.duration))
+                            else listOf(c.year.takeIf { it > 0 }?.toString(), c.genre.ifBlank { null }, songsLabel(songs.size), fmtLong(c.duration)).filterNotNull()
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Text(meta.filter { it.isNotBlank() }.joinToString(" · "), color = Muted, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
                                 Badge(bestQuality(songs))

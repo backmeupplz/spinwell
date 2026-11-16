@@ -140,7 +140,7 @@ private fun PlaylistsTab() {
     }
     LazyColumn(Modifier.fillMaxSize(), Scroll.list("lib-playlists"), contentPadding = PaddingValues(bottom = LocalBottom.current + 16.dp)) {
         items(list, key = { it.id }) { p ->
-            MediaRow(p.coverArt, p.name, "${p.songCount} songs · ${fmtLong(p.duration)}", dim = offline && Downloads.pinnedOf("playlist", p.id) == null, shareKey = "cover-lib-${p.id}") {
+            MediaRow(p.coverArt, p.name, "${songsLabel(p.songCount)} · ${fmtLong(p.duration)}", dim = offline && Downloads.pinnedOf("playlist", p.id) == null, shareKey = "cover-lib-${p.id}") {
                 Nav.push(Route.Playlist(p.id, "lib", p.coverArt))
             }
         }
