@@ -11,7 +11,11 @@ import androidx.compose.runtime.snapshots.SnapshotStateMap
 import kotlinx.coroutines.*
 import org.json.JSONArray
 import org.json.JSONObject
+import android.os.Handler
+import android.os.Looper
 import java.io.File
+import java.io.IOException
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.reflect.KProperty
 
 class App : Application() {
@@ -120,13 +124,22 @@ object Store {
         }
     }
 }
-
-/** Connectivity: "online" means the server answers, not just that there's a network. */
+/**
+ * Connectivity: "online" means the server answers, not just that there's a network. Offline switches on by itself the
+ * moment a ping or any request can't reach the server, and off again when a ping (network change, foreground, every
+ * 20 s while offline) or any request gets an answer.
+ */
 object Net {
     var reachable by mutableStateOf(true)
     val offline get() = Settings.offlineMode || !reachable
     private var cm: ConnectivityManager? = null
     private var started = false
+    private val h = Handler(Looper.getMainLooper())
+    private val pinging = AtomicBoolean(false)
+    private val again = AtomicBoolean(false)
+    private val retry = object : Runnable {
+        override fun run() { if (!reachable) ping(); h.postDelayed(this, 20_000) }
+    }
 
     fun unmetered(): Boolean {
         val c = cm ?: return true
@@ -139,25 +152,50 @@ object Net {
         if (started) { ping(); return }
         started = true
         ping()
+        h.postDelayed(retry, 20_000)
         cm?.registerDefaultNetworkCallback(object : ConnectivityManager.NetworkCallback() {
+            private var shape = ""
             override fun onAvailable(network: Network) { ping() }
             // airplane mode or leaving Wi-Fi: find out now instead of at the next failed request
             override fun onLost(network: Network) { ping() }
+            // a VPN (Tailscale) switching on or off keeps the default network but changes what it can reach
+            override fun onCapabilitiesChanged(network: Network, c: NetworkCapabilities) {
+                val now = listOf(NetworkCapabilities.TRANSPORT_VPN, NetworkCapabilities.TRANSPORT_WIFI, NetworkCapabilities.TRANSPORT_CELLULAR, NetworkCapabilities.TRANSPORT_ETHERNET)
+                    .joinToString("") { if (c.hasTransport(it)) "1" else "0" } + c.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+                if (now != shape) { val first = shape.isEmpty(); shape = now; if (!first) ping() }
+            }
         })
     }
 
-    /** ping with a 4 s timeout; failure means offline, any success means online */
+    /** ping with a 4 s timeout; failure means offline, any answer means online. Overlapping calls collapse into one rerun. */
     fun ping() {
         val s = Store.session ?: return
         if (Settings.offlineMode) return
-        Store.scope.launch(Dispatchers.IO) {
-            val ok = runCatching { getJson(s.url("ping"), 4_000) }.exceptionOrNull().let { it == null || it is ApiError } // a refused login still means the server answered
-            withContext(Dispatchers.Main) { reachable = ok }
-            if (ok) { Outbox.flush(); Downloads.kick(); if (!Store.extKnown.value) Store.loadExtensions() }
+        if (!pinging.compareAndSet(false, true)) { again.set(true); return }
+        Store.scope.launch {
+            val probe = async(Dispatchers.IO) {
+                val e = runCatching { getJson(s.url("ping"), 4_000) }.exceptionOrNull()
+                e == null || !unreachable(e) // a refused login still means the server answered
+            }
+            val ok = withTimeoutOrNull(4_500) { probe.await() } ?: false // DNS can ignore the socket timeouts
+            if (ok) up() else down()
+            pinging.set(false)
+            if (again.getAndSet(false)) ping()
         }
     }
-    fun ok() { if (!reachable) reachable = true }
-    fun failed(e: Throwable) { if (e is java.io.IOException && e !is ApiError && e !is HttpErr) reachable = false }
+
+    private fun up() {
+        val was = reachable
+        reachable = true
+        if (was && Store.extKnown.value) return
+        Store.scope.launch(Dispatchers.IO) { Outbox.flush(); Downloads.kick(); if (!Store.extKnown.value) Store.loadExtensions() }
+    }
+    private fun down() { if (reachable) reachable = false }
+
+    /** [e] says the server can't be reached (as opposed to it answering with an error) */
+    fun unreachable(e: Throwable) = e is IOException && e !is ApiError && (e !is HttpErr || e.code in 502..504)
+    fun ok() { if (!reachable) up() }
+    fun failed(e: Throwable) { if (unreachable(e)) Store.scope.launch { down() } }
 }
 
 /** Library GETs: JSON cached on disk per account, so screens open from the cache and refresh behind it. */
@@ -169,11 +207,11 @@ object Api {
         runCatching { file(method, params).takeIf { it.isFile }?.readText()?.let { JSONObject(it) } }.getOrNull()
 
     /** network call; throws on failure (and flips offline on an unreachable server) */
-    fun call(method: String, params: Map<String, String> = emptyMap()): JSONObject {
+    fun call(method: String, params: Map<String, String> = emptyMap(), onOpen: (java.net.HttpURLConnection) -> Unit = {}, aborted: () -> Boolean = { false }): JSONObject {
         val s = Store.session ?: throw ApiError(40, "Signed out")
         if (Net.offline) throw java.io.IOException("offline")
-        val r = try { getJson(s.url(method, params)) } catch (e: Throwable) {
-            Net.failed(e)
+        val r = try { getJson(s.url(method, params), onOpen = onOpen) } catch (e: Throwable) {
+            if (!aborted()) Net.failed(e) // a request we cancelled ourselves says nothing about the server
             // wrong or changed credentials: back to sign-in with the server's message
             if (e is ApiError && (e.code == 40 || e.code == 41)) Store.scope.launch { Store.signInNotice = e.message; Store.signOut() }
             throw e

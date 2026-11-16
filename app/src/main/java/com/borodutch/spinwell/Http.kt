@@ -11,10 +11,11 @@ class ApiError(val code: Int, message: String) : IOException(message)
 class HttpErr(val code: Int) : IOException("HTTP $code")
 
 /** GET [url] and parse the OpenSubsonic envelope; "failed" becomes an [ApiError]. */
-fun getJson(url: String, timeoutMs: Int = 15_000): JSONObject {
+fun getJson(url: String, timeoutMs: Int = 15_000, onOpen: (HttpURLConnection) -> Unit = {}): JSONObject {
     val c = URL(url).openConnection() as HttpURLConnection
     try {
-        c.connectTimeout = timeoutMs; c.readTimeout = timeoutMs
+        onOpen(c) // lets a caller abort the request from another thread (disconnect)
+        c.connectTimeout = minOf(timeoutMs, 6_000); c.readTimeout = timeoutMs
         if (c.responseCode >= 300) throw HttpErr(c.responseCode)
         val body = c.inputStream.use { it.readBytes().toString(Charsets.UTF_8) }
         val r = runCatching { JSONObject(body).getJSONObject("subsonic-response") }.getOrNull()

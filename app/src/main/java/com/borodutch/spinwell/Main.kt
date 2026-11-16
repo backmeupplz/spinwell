@@ -42,6 +42,11 @@ class Main : ComponentActivity() {
         setContent { SpinwellTheme { Root() } }
     }
 
+    override fun onStart() {
+        super.onStart()
+        if (Store.session != null) Net.ping() // back in the foreground: is the server there?
+    }
+
     override fun onStop() {
         super.onStop()
         if (Store.session != null) { Audio.savePos(); Nav.save() }

@@ -4,6 +4,12 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Bundle
+import com.google.common.util.concurrent.Futures
+import com.google.common.util.concurrent.ListenableFuture
+import androidx.media3.session.CommandButton
+import androidx.media3.session.SessionCommand
+import androidx.media3.session.SessionResult
 import android.os.Handler
 import android.os.Looper
 import androidx.compose.runtime.getValue
@@ -32,6 +38,8 @@ object Audio {
     var restoredWasPlaying = false // the UI opens the full player once for this
     var sleepOutputError by mutableStateOf<String?>(null)
     private val h = Handler(Looper.getMainLooper())
+    private var failures = 0
+    private val netErrors = setOf(PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED, PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT, PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS)
     private var startedKey = -1L
     private var scrobbledKey = -1L
     private val tick = object : Runnable {
@@ -44,6 +52,7 @@ object Audio {
     fun init(ctx: Context) {
         if (ready) return
         ready = true
+        q = QueueState(repeat = Store.p.getInt("repeat", 0), shuffle = Store.p.getBoolean("shuffle", false)) // survives an empty queue and a relaunch
         player = ExoPlayer.Builder(ctx.applicationContext)
             .setAudioAttributes(AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MUSIC).build(), true)
             .setHandleAudioBecomingNoisy(true)
@@ -52,6 +61,7 @@ object Audio {
         player.addListener(object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 playing = isPlaying
+                if (isPlaying) failures = 0
                 savePos()
                 if (isPlaying) scrobbleCheck()
             }
@@ -66,7 +76,17 @@ object Audio {
             override fun onPlaybackStateChanged(state: Int) {
                 if (state == Player.STATE_READY) durationMs = player.duration.coerceAtLeast(0)
             }
-            override fun onPlayerError(error: PlaybackException) { Net.ping() }
+            override fun onPlayerError(error: PlaybackException) {
+                // the server went away under a streamed song: say so, then carry on with what's downloaded
+                if (error.errorCode in netErrors) Net.failed(java.io.IOException("playback"))
+                Net.ping()
+                if (failures++ < q.items.size) skipToPlayable()
+            }
+            // a lock screen / headset / Auto controller changing repeat goes straight to ExoPlayer: mirror it into the queue
+            override fun onRepeatModeChanged(mode: Int) {
+                val r = when (mode) { Player.REPEAT_MODE_OFF -> 0; Player.REPEAT_MODE_ALL -> 1; else -> 2 }
+                if (r != q.repeat) { q = q.copy(repeat = r); persist() }
+            }
         })
         h.postDelayed(tick, 5_000)
     }
@@ -95,6 +115,16 @@ object Audio {
 
     private fun repeatMode() = when (q.repeat) { 0 -> Player.REPEAT_MODE_OFF; 1 -> Player.REPEAT_MODE_ALL; else -> Player.REPEAT_MODE_ONE }
     fun playable(s: Song) = !Net.offline || Downloads.has(s.id)
+
+    /** after a failed song: the next one we can play (a downloaded one while the server is gone), wrapping when repeating all */
+    private fun skipToPlayable() {
+        val n = q.items.size
+        if (n < 2) return
+        val order = (1 until n).map { (q.index + it) % n }.filter { q.repeat == 1 || it > q.index }
+        val to = order.firstOrNull { playable(q.items[it].song) } ?: return
+        q = q.copy(index = to)
+        player.seekTo(to, 0); player.prepare(); player.play(); persist()
+    }
 
     // ---- starting playback ----
     fun play(songs: List<Song>, at: Int, ctx: Ctx, shuffle: Boolean = false) {
@@ -144,7 +174,7 @@ object Audio {
     }
 
     fun toggleShuffle() {
-        if (q.items.isEmpty()) { q = q.copy(shuffle = !q.shuffle); return }
+        if (q.items.isEmpty()) { q = q.copy(shuffle = !q.shuffle); persist(); return }
         val old = q
         val n = old.withShuffle(!old.shuffle, System.nanoTime())
         q = n
@@ -156,12 +186,15 @@ object Audio {
         persist()
     }
 
-    fun cycleRepeat() { q = q.copy(repeat = (q.repeat + 1) % 3); player.repeatMode = repeatMode(); persist() }
+    fun cycleRepeat() = setRepeat((q.repeat + 1) % 3)
+    fun setRepeat(r: Int) { q = q.copy(repeat = r); player.repeatMode = repeatMode(); persist() }
+    /** start [songs] in order with repeat-all on ("Repeat album") */
+    fun playRepeating(songs: List<Song>, ctx: Ctx) { play(songs, 0, ctx); setRepeat(1) }
 
     fun clear() {
         if (!ready) return
         player.stop(); player.clearMediaItems()
-        q = QueueState(); playing = false
+        q = QueueState(repeat = q.repeat, shuffle = q.shuffle); playing = false
     }
 
     // ---- transport ----
@@ -178,7 +211,24 @@ object Audio {
     val position get() = if (ready) player.currentPosition else 0L
 
     // ---- persistence ----
-    fun persist() { if (q.items.isNotEmpty()) Store.p.edit().putString("queue", q.toJson().toString()).apply() else Store.p.edit().remove("queue").apply() }
+    fun persist() {
+        Store.p.edit().putInt("repeat", q.repeat).putBoolean("shuffle", q.shuffle).apply()
+        updateButtons()
+        if (q.items.isNotEmpty()) Store.p.edit().putString("queue", q.toJson().toString()).apply() else Store.p.edit().remove("queue").apply()
+    }
+
+    // ---- lock screen / notification buttons: shuffle and repeat, in the state the app shows ----
+    val cmdShuffle = SessionCommand("shuffle", Bundle.EMPTY)
+    val cmdRepeat = SessionCommand("repeat", Bundle.EMPTY)
+    var session: MediaSession? = null
+    fun updateButtons() {
+        session?.setMediaButtonPreferences(listOf(
+            CommandButton.Builder(if (q.shuffle) CommandButton.ICON_SHUFFLE_ON else CommandButton.ICON_SHUFFLE_OFF)
+                .setDisplayName("Shuffle").setSessionCommand(cmdShuffle).setSlots(CommandButton.SLOT_BACK).build(),
+            CommandButton.Builder(when (q.repeat) { 1 -> CommandButton.ICON_REPEAT_ALL; 2 -> CommandButton.ICON_REPEAT_ONE; else -> CommandButton.ICON_REPEAT_OFF })
+                .setDisplayName("Repeat").setSessionCommand(cmdRepeat).setSlots(CommandButton.SLOT_FORWARD).build(),
+        ))
+    }
     fun savePos() {
         if (!ready || q.items.isEmpty()) return
         Store.p.edit().putLong("pos", player.currentPosition).putBoolean("wasPlaying", player.playWhenReady).apply()
@@ -225,12 +275,25 @@ class PlayerService : MediaSessionService() {
         setMediaNotificationProvider(DefaultMediaNotificationProvider.Builder(this).build().apply { setSmallIcon(R.drawable.ic_notif) })
         session = MediaSession.Builder(this, Audio.player)
             .setSessionActivity(PendingIntent.getActivity(this, 0, Intent(this, Main::class.java), PendingIntent.FLAG_IMMUTABLE))
+            .setCallback(object : MediaSession.Callback {
+                override fun onConnect(session: MediaSession, controller: MediaSession.ControllerInfo): MediaSession.ConnectionResult =
+                    MediaSession.ConnectionResult.AcceptedResultBuilder(session)
+                        .setAvailableSessionCommands(MediaSession.ConnectionResult.DEFAULT_SESSION_COMMANDS.buildUpon().add(Audio.cmdShuffle).add(Audio.cmdRepeat).build())
+                        .build()
+                override fun onCustomCommand(session: MediaSession, controller: MediaSession.ControllerInfo, customCommand: SessionCommand, args: Bundle): ListenableFuture<SessionResult> {
+                    when (customCommand.customAction) { "shuffle" -> Audio.toggleShuffle(); "repeat" -> Audio.cycleRepeat() }
+                    return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+                }
+            })
             .build()
+        Audio.session = session
+        Audio.updateButtons()
     }
 
     override fun onGetSession(info: MediaSession.ControllerInfo) = session
 
     override fun onDestroy() {
+        Audio.session = null
         session?.release() // the player outlives the service: it belongs to the app
         session = null
         super.onDestroy()
