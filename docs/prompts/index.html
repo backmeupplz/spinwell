@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How Spinwell was built, prompt by prompt</title>
+<meta name="description" content="Every prompt Nikita sent Claude Code while building Spinwell, a Navidrome player for Android and iPhone, with a short note on what happened after each one.">
+<link rel="canonical" href="https://spinwell.app/prompts/">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#0d0b14">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Spinwell">
+<meta property="og:url" content="https://spinwell.app/prompts/">
+<meta property="og:title" content="How Spinwell was built, prompt by prompt">
+<meta property="og:description" content="Every prompt sent to Claude Code while building a Navidrome player for Android and iPhone, and what happened after each one.">
+<meta property="og:image" content="https://spinwell.app/og.png?v=1">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Spinwell logo, a glowing record">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="How Spinwell was built, prompt by prompt">
+<meta name="twitter:description" content="Every prompt sent to Claude Code while building a Navidrome player for Android and iPhone, and what happened after each one.">
+<meta name="twitter:image" content="https://spinwell.app/og.png?v=1">
+<meta name="twitter:image:alt" content="Spinwell logo, a glowing record">
+<style>
+:root{--bg:#0d0b14;--card:#17131f;--line:#2a2335;--text:#f4f0fa;--dim:#a99fb8;--a1:#ff7a45;--a2:#ff3d81;--a3:#8b5cf6}
+*{box-sizing:border-box;margin:0}
+html{background:var(--bg);color:var(--text);font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,sans-serif;-webkit-font-smoothing:antialiased}
+body{background:radial-gradient(1000px 600px at 80% -10%,rgba(255,61,129,.14),transparent 60%),var(--bg);min-height:100vh}
+a{color:#ffb199}
+.wrap{max-width:820px;margin:0 auto;padding:40px 20px 72px}
+.brand{display:inline-flex;align-items:center;gap:10px;font-weight:700;text-decoration:none;color:var(--text)}
+.brand svg{width:28px;height:28px}
+h1{font-size:clamp(30px,5vw,44px);line-height:1.1;letter-spacing:-.03em;margin:28px 0 14px}
+.lead{color:var(--dim);margin-bottom:10px}
+.meta{color:var(--dim);font-size:14px;margin-bottom:36px}
+ol{list-style:none;padding:0;counter-reset:p}
+li{counter-increment:p;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px 22px;margin-bottom:14px}
+li::before{content:"Prompt " counter(p);display:block;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#ff8fb3;margin-bottom:8px;font-weight:600}
+blockquote{white-space:pre-wrap;word-break:break-word;font-size:15.5px;border-left:3px solid;border-image:linear-gradient(var(--a1),var(--a3)) 1;padding:2px 0 2px 14px;margin-bottom:12px}
+.what{color:var(--dim);font-size:15px}
+.what b{color:var(--text);font-weight:600}
+.live{display:inline-block;font-size:12px;padding:2px 9px;border-radius:999px;background:rgba(139,92,246,.18);color:#c9b8ff;margin-left:6px;vertical-align:2px}
+footer{color:var(--dim);font-size:14px;margin-top:28px}
+</style>
+</head>
+<body><div class="wrap">
+<a class="brand" href="https://spinwell.app/"><svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff7a45"/><stop offset=".55" stop-color="#ff3d81"/><stop offset="1" stop-color="#8b5cf6"/></linearGradient></defs><circle cx="32" cy="32" r="30" fill="url(#g)"/><circle cx="32" cy="32" r="21" fill="none" stroke="#0d0b14" stroke-opacity=".35" stroke-width="2"/><circle cx="32" cy="32" r="14" fill="none" stroke="#0d0b14" stroke-opacity=".35" stroke-width="2"/><circle cx="32" cy="32" r="6" fill="#0d0b14"/></svg>Spinwell</a>
+<h1>How Spinwell was built, prompt by prompt</h1>
+<p class="lead">Spinwell, a native Navidrome player for Android and iPhone, was built in a single Claude Code conversation. These are all the prompts Nikita sent, word for word, each followed by a short note on what happened next.</p>
+<p class="meta">Started November 16, 2026. This page is updated while the conversation is still going.</p>
+<ol>
+<li><blockquote>i want us to build a new navidrome (subsonic) audio player for android and ios
+
+it should connect to my navidrome over tailnet url, and allow me to simply select artists/albums/playlists/favorites, etc, anything sensible
+
+should have download mode (check out how we do this with abs+), should have offline mode, should start playing right when we open it if we closed while playing before (or maybe don't start playing but bring up the player ui)
+
+should show the list of upcoming tracks like spotify does probably
+
+shuffle should be cool
+
+make sure it's beautiful, transitions are great, make sure it's super performant, lightweight, make sure each setting has "i" that explains what that setting is
+
+make sure our album covers/track metadata is great</blockquote>
+<p class="what">Claude studied ABS+ (the sister Audiobookshelf app) for its download design, ran a local Navidrome with a generated test library, and checked what the server really does (resumable downloads, transcoding, lyrics, cover ids). It wrote a shared <b>SPEC.md</b> for both apps, opened a board ticket, and started two builders in parallel: Kotlin with Compose and media3 for Android, and SwiftUI with AVFoundation for iPhone.</p></li>
+<li><blockquote>you also have access to "Navidrome" in vaultwarden for my real production server, also you can debug oneplus 8 over wifi and i have the iphone connected over usb for you to try everything out</blockquote>
+<p class="what">Claude confirmed the credentials work without ever printing them, surveyed the real library (about 1,900 songs in MP3, FLAC and Opus), and noticed that iPhones can't play Opus, so the iPhone app asks the server to convert those songs to AAC. It connected to both test phones.</p></li>
+<li><blockquote>! tea api -X POST /user/repos -d '{"name":"naviplus","default_branch":"main"}'</blockquote>
+<p class="what">The command arrived as a chat message instead of running in the shell. Claude ran it, and the git server refused it because the token couldn't create repositories.</p></li>
+<li><blockquote>! tea api -X POST /user/repos -d '{"name":"naviplus","default_branch":"main"}'</blockquote>
+<p class="what">Same result. Claude explained that the token lacked the right scope and offered two ways forward.</p></li>
+<li><blockquote>i want to give you access to creating repos on forgejo, how do i do this</blockquote>
+<p class="what">Claude explained the two pieces: a token with the right scope, and a Claude Code permission rule for that one command.</p></li>
+<li><blockquote>can you:
+1. edit forgejo token permissions youself
+2. add permission to claude settings</blockquote>
+<p class="what">Claude added the permission rule. It wasn't allowed to mint a token with the account password, so it asked Nikita to create one.</p></li>
+<li><blockquote>[screenshot of the git server's new-token form] what do i pick</blockquote>
+<p class="what">Claude listed which scopes to choose, with admin left off.</p></li>
+<li><blockquote>it's in vaultwarden "Forgejo claude-code token"</blockquote>
+<p class="what">Claude installed the new token without displaying it, created the repository and pushed the spec.</p></li>
+<li><blockquote>make sure it's mirrored to github + add gh pages landing behind cloudflare proxy, probably buy naviplus.app or something</blockquote>
+<p class="what">Claude started on the GitHub mirror, and Nikita stopped it before anything was created.</p></li>
+<li><blockquote>actually wait, naviplus is a registered trademark, find better names for navidrome/subsonic app</blockquote>
+<p class="what">Claude brainstormed names, checked .app and .com domains, both app stores and trademark searches, and offered a shortlist.</p></li>
+<li><blockquote>i like "spin", anything like "spinwave" or "wavespin"?</blockquote>
+<p class="what">Spinwave's domain was taken and a pickleball app already uses the name, and Wavespin collided with an app on Google Play.</p></li>
+<li><blockquote>"spinwell" is ok too</blockquote>
+<p class="what">The app became <b>Spinwell</b>. Claude bought spinwell.app, renamed the repository, set up the GitHub mirror, and built the landing page with a share image and a privacy page on GitHub Pages behind Cloudflare. Both builders renamed their apps mid-flight.</p></li>
+<li><blockquote>for spinwell.app we need to use github repo for links ot source</blockquote>
+<p class="what">The site's source and issue links now point at the GitHub repository.</p></li>
+<li><blockquote>ok when will android/ios be ready to test?</blockquote>
+<p class="what">Both apps had working first builds. Claude reviewed their screenshots and sent each one into a second round against the real library: real artist photos, a mini player overlapping lists, and debug-only launch hooks. Then it sent an Android APK to try.</p></li>
+<li><blockquote>improve ui/ux, make sure ui is compact enough, search works well, there's shuffle and repeat functions for albums/playlists/artists etc
+
+also artists should be available in the offline mode, also offline mode should turn on automatically when server isn't reachable
+
+login to my navidrome on oneplus 8 so that i could test it</blockquote>
+<p class="what">Both apps got a third round: a denser layout, live search with recent searches, play, shuffle and repeat on every list, artists and albums available offline, and offline mode that switches on and off by itself. Claude installed Tailscale on the OnePlus so it could reach the server. The sign-in needed Nikita's own GitHub password, so Claude asked him to do it.</p></li>
+<li><blockquote>logged into tailscale on oneplus</blockquote>
+<p class="what">Claude signed the app in on the OnePlus. It checked which field had focus before typing anything, so the password never landed in a visible field.</p></li>
+<li><blockquote>opening play ui from pressing a song kind of staggers for some reason
+
+i should be able to press download on albums/artists/playlists/individual songs
+
+also make settings ui more beautiful, and overall make ui better</blockquote>
+<p class="what">The builders measured the stutter on the phone and found the play queue being built on the main thread. They moved that work off it, which cut the freeze from about 72 ms to about 30 ms. Album, playlist and artist pages got download buttons, songs got a swipe to download, and Settings was redesigned with grouped cards, icons and storage bars.</p></li>
+<li><blockquote>status?</blockquote>
+<p class="what">The Android round was done and installed on the OnePlus. Claude summarized what changed and what was still untested.</p></li>
+<li><blockquote>ok logged in iphone to tailscale, also make sure app icons are complete without clipping left top corner</blockquote>
+<p class="what">Claude redrew the icon as the record from the website, kept inside the safe area every Android launcher shows, with a full-bleed version for the iPhone. The old iPhone icon really did have a black wedge in its corner.</p></li>
+<li><blockquote>make sure we use the same icon for ios and android
+
+then record me a demo video on android to show my friends</blockquote>
+<p class="what">Both platforms now render the icon from one shared source file. Claude started on a produced video.</p></li>
+<li><blockquote>just a screenrecording, no need for editing etc</blockquote>
+<p class="what">This OnePlus has no built-in screen recorder, so Claude scripted a tour of the app on the phone and recorded it from the Mac with scrcpy. It turned off play reporting for the take so the demo wouldn't add plays to the server.</p></li>
+<li><blockquote>make sure to stop the music when you finish recording</blockquote>
+<p class="what">Music paused (and confirmed paused), play reporting switched back on, and the 97-second recording was sent over.</p></li>
+<li><blockquote>where's the video?</blockquote>
+<p class="what">Claude copied it to the Desktop and revealed it in Finder.</p></li>
+<li><blockquote>ok let's upload this whole thing to:
+1. google play
+2. apple app store
+3. github as apk in releases
+
+and let's add these links to the main website
+
+also make sure we translate to other languages (i think 24 of them?) like with other apps and we have localized screenshots for all devices and all languages in the stores
+
+also make sure like with other apps we get our fast ci build and upload to playstore and appstore</blockquote>
+<p class="what">Claude merged both apps into one branch and made sure CI passed. It planned the store launch to follow the house pattern: 24 store languages, a public demo server for reviewers, screenshots for every device in every language, and one release that ships to both stores and GitHub. <span class="live">in progress</span></p></li>
+<li><blockquote>you should be able to run simulator?</blockquote>
+<p class="what">Yes: testing and store screenshots for the iPhone run in the Simulator. To sign the real iPhone in to the server, Claude drove the app on the phone with a UI test and a debug launch hook, so nothing was typed on screen.</p></li>
+<li><blockquote>make sure app icons are the same on ios and android</blockquote>
+<p class="what">Claude compared the iPhone icon file with the shared render (byte for byte the same) and the record on both home screens. The only difference left is each system's own mask: rounded square on iPhone, circle on this launcher.</p></li>
+<li><blockquote>also make sure to add spinwell to radiant and optimize the store listings with radiant rules (don't mention android in ios store listing please)</blockquote>
+<p class="what">Spinwell joins Radiant, the marketing system, with per-locale keywords tracked weekly and store copy written to its rules. The iPhone listing never mentions Android. <span class="live">in progress</span></p></li>
+<li><blockquote>while working on this, get all the prompts i've sent you here (no replies from you) and build prompts.spinwell.app list of all the prompts i've sent you with summary of what happened after my prompts, and update them while we're still working in this dialogue</blockquote>
+<p class="what">This page, which Claude keeps updating as the conversation goes on.</p></li>
+</ol>
+<footer>Spinwell is free and open source. <a href="https://spinwell.app/">spinwell.app</a> · <a href="https://github.com/backmeupplz/spinwell">Source code</a></footer>
+</div></body>
+</html>
