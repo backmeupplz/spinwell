@@ -46,6 +46,7 @@ footer{color:var(--dim);font-size:14px;margin-top:28px}
 </head>
 <body><div class="wrap">
 <a class="brand" href="https://spinwell.app/"><svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff7a45"/><stop offset=".55" stop-color="#ff3d81"/><stop offset="1" stop-color="#8b5cf6"/></linearGradient></defs><circle cx="32" cy="32" r="30" fill="url(#g)"/><circle cx="32" cy="32" r="21" fill="none" stroke="#0d0b14" stroke-opacity=".35" stroke-width="2"/><circle cx="32" cy="32" r="14" fill="none" stroke="#0d0b14" stroke-opacity=".35" stroke-width="2"/><circle cx="32" cy="32" r="6" fill="#0d0b14"/></svg>Spinwell</a>
+<main>
 <h1>How Spinwell was built, prompt by prompt</h1>
 <p class="lead">Spinwell, a native Navidrome player for Android and iPhone, was built in a single Claude Code conversation. These are all the prompts Nikita sent, word for word, each followed by a short note on what happened next.</p>
 <p class="meta">Started November 16, 2026. This page is updated while the conversation is still going.</p>
@@ -158,6 +159,7 @@ and make sure our ci for publishing releases to playstore/appstore is functional
 <p class="what">Claude installed build 2 over the test build, keeping the sign-in, and started a shuffle of the real library at low volume. Playback ran in the foreground with its media notification, the lock screen showed the song with shuffle, pause and repeat, and it kept playing with the screen off.</p>
 <p class="what">Then it switched Tailscale off on the phone: about 15 seconds later the stream failed with "no network", and with nothing downloaded in that queue, playback stopped. Once Tailscale was back on, one press of play resumed the song where it left off. The on-screen offline banner went unchecked, because the phone sat on its PIN lock screen.</p></li>
 </ol>
+</main>
 <footer>Spinwell is free and open source. <a href="https://spinwell.app/">spinwell.app</a> · <a href="https://github.com/backmeupplz/spinwell">Source code</a></footer>
 </div></body>
 </html>
