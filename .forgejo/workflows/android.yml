@@ -1,11 +1,11 @@
 name: Android
-# The Android app (Spinwell). iOS, site and Markdown changes skip it (ios.yml checks the iPhone app).
+# The Android app and the shared release scripts. iOS, site and Markdown changes skip it (ios.yml checks the iPhone app).
 on:
   pull_request:
-    paths: ['app/**', 'gradle/**', '*.gradle.kts', 'gradle.properties', 'gradlew', '.forgejo/workflows/android.yml']
+    paths: ['app/**', 'gradle/**', '*.gradle.kts', 'gradle.properties', 'gradlew', '.github/scripts/**', '.forgejo/workflows/android.yml']
   push:
     branches: [main]
-    paths: ['app/**', 'gradle/**', '*.gradle.kts', 'gradle.properties', 'gradlew', '.forgejo/workflows/android.yml']
+    paths: ['app/**', 'gradle/**', '*.gradle.kts', 'gradle.properties', 'gradlew', '.github/scripts/**', '.forgejo/workflows/android.yml']
 permissions:
   contents: read
 concurrency:
@@ -28,11 +28,12 @@ jobs:
           src="${PWD%%/work/*}/ci/spinwell-android-git"
           mkdir -p "$src" && cd "$src"
           rm -f .git/index.lock .git/shallow.lock # left by a cancelled run
-          [ -d .git ] || { git init -q && git sparse-checkout set app gradle; }
+          [ -d .git ] || { git init -q && git sparse-checkout set app gradle .github/scripts; }
           # Blobs up to 128 KB (every source file, not the store images) come with the fetch, so checkout fetches nothing more
           git fetch -q --no-tags --depth=1 --filter=blob:limit=128k "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" "$GITHUB_SHA"
           git checkout -q -f FETCH_HEAD
           echo "SRC=$src" >> "$GITHUB_ENV"
+      - run: python3 -m unittest discover -s "$SRC/.github/scripts" # the shared release scripts
       # A pinned, checked Temurin and an SDK directory holding only the license (Gradle installs the platform and build
       # tools it needs), kept per runner. Homebrew's JDK can't load the user's private freetype there.
       - name: Toolchain
@@ -67,7 +68,8 @@ jobs:
           sparse-checkout: |
             app
             gradle
-           
+            .github/scripts
+      - run: python3 -m unittest discover -s .github/scripts
       - uses: actions/setup-java@v5
         with:
           distribution: temurin

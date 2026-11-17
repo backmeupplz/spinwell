@@ -1,0 +1,176 @@
+# One release vX.Y.Z published on git.borodutch.com ships everything: the bundle to Google Play, the iPhone app to the App Store,
+# and the signed APK as spinwell-X.Y.Z.apk and spinwell.apk on the release and on the same release on the GitHub mirror (created
+# there when missing; spinwell.app links https://github.com/backmeupplz/spinwell/releases/latest/download/spinwell.apk).
+# No F-Droid step yet: .github/scripts/fdroid.py is shared with the sister apps and stays unused here.
+# A previous version still waiting for review or in review is replaced on both stores.
+# Before releasing: bump versionName/versionCode in app/build.gradle.kts and add
+# fastlane/metadata/android/en-US/changelogs/<versionCode>.txt, the notes Play and the App Store show.
+# The same file in fastlane/metadata/android/<language>/changelogs/ holds that language's notes (English otherwise).
+# Run by hand (Actions → Release → Run workflow): dry-run builds everything and publishes nothing,
+# testflight-only uploads the iPhone build without submitting it, full is what a published release does.
+# Secrets: KEYSTORE_PROPERTIES, UPLOAD_JKS, PLAY_SERVICE_ACCOUNT_JSON, ASC_KEY_P8 (the .p8 key), GH_MIRROR_TOKEN
+# (GitHub token with repo scope, for the GitHub release).
+# A step whose secret is missing is skipped with a warning.
+# .github/scripts is shared with Mesh+ and Todorant: keep it identical there; this repo's values are the env below.
+name: Release
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag, e.g. v1.2.1 (a dry run also takes a branch)
+        required: true
+      mode:
+        description: What to publish
+        type: choice
+        options: [dry-run, testflight-only, full]
+        default: dry-run
+permissions:
+  contents: write # attach the APK
+# Each store holds one pending submission, so releases go one at a time
+concurrency:
+  group: release
+  cancel-in-progress: false  # queue behind a running Listings or release, never cancel it
+env:
+  TAG: ${{ github.event.release.tag_name || inputs.tag }}
+  MODE: ${{ inputs.mode || 'full' }}
+  NOTES_DIR: fastlane/metadata/android/en-US/changelogs
+  PLAY_PACKAGE: com.borodutch.spinwell
+  # TODO(orchestrator): the App Store app id, once the app record exists in App Store Connect (the API can't create it).
+  # While empty, the App Store listing and App Review steps are skipped (the iPhone build is still archived and exported).
+  APP_STORE_APP_ID: ''
+  ASC_KEY_ID: 3FT23S9NSM
+  ASC_ISSUER_ID: a18f42ff-6c44-410c-badf-50b11de8dbb8
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      name: ${{ steps.version.outputs.name }}
+      code: ${{ steps.version.outputs.code }}
+      commit: ${{ steps.version.outputs.commit }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.TAG }}
+      - id: version
+        name: The tag matches the app's version, which has release notes
+        run: |
+          python3 -m unittest discover -s .github/scripts
+          name=$(sed -nE 's/^ *versionName = "(.+)"/\1/p' app/build.gradle.kts)
+          code=$(sed -nE 's/^ *versionCode = ([0-9_]+)/\1/p' app/build.gradle.kts | tr -d _)
+          if [ "$TAG" != "v$name" ]; then
+            [ "$MODE" = dry-run ] || { echo "::error::$TAG doesn't match versionName $name in app/build.gradle.kts"; exit 1; }
+            echo "::warning::$TAG doesn't match versionName $name (fine for a dry run)"
+          fi
+          test -s "$NOTES_DIR/$code.txt" || { echo "::error::No release notes in $NOTES_DIR/$code.txt"; exit 1; }
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          echo "commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+  android:
+    needs: version
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.version.outputs.name }}
+      CODE: ${{ needs.version.outputs.code }}
+      DRY: ${{ inputs.mode == 'dry-run' && '--dry-run' || '' }}
+      PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.TAG }}
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 21
+      # GitHub-hosted runners ship the Android SDK; the Forgejo job image does not
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+      - uses: gradle/actions/setup-gradle@v6
+      - name: Restore upload key
+        env:
+          KEYSTORE_PROPERTIES: ${{ secrets.KEYSTORE_PROPERTIES }}
+          UPLOAD_JKS: ${{ secrets.UPLOAD_JKS }}
+        run: |
+          [ -n "$UPLOAD_JKS" ] || { echo "::error::No UPLOAD_JKS secret: release builds would come out unsigned"; exit 1; }
+          printf '%s' "$KEYSTORE_PROPERTIES" > keystore.properties
+          printf '%s' "$UPLOAD_JKS" | base64 -d > upload.jks
+      - id: build
+        run: ./gradlew bundleRelease assembleRelease
+      # spinwell.apk is the same file under a stable name: spinwell.app links releases/latest/download/spinwell.apk.
+      - id: attach
+        name: Attach the APK
+        if: env.MODE == 'full'
+        env:
+          FORGEJO_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.GH_MIRROR_TOKEN }}
+          RELEASE_TITLE: ${{ github.event.release.name }}
+          RELEASE_NOTES: ${{ github.event.release.body }}
+          RELEASE_PRERELEASE: ${{ github.event.release.prerelease }}
+        run: |
+          cp app/build/outputs/apk/release/app-release.apk "spinwell-$VERSION.apk"
+          cp app/build/outputs/apk/release/app-release.apk spinwell.apk
+          .github/scripts/attach.sh "$TAG" "spinwell-$VERSION.apk" spinwell.apk
+      - name: Google Play
+        if: ${{ !cancelled() && steps.build.outcome == 'success' && env.MODE != 'testflight-only' }}
+        run: |
+          [ -n "$PLAY_SERVICE_ACCOUNT_JSON" ] || { echo "::warning::No PLAY_SERVICE_ACCOUNT_JSON secret: skipping Google Play"; exit 0; }
+          python3 .github/scripts/play.py app/build/outputs/bundle/release/app-release.aab "$VERSION" "$NOTES_DIR/$CODE.txt" $DRY
+
+  ios:
+    needs: version
+    runs-on: macos-26
+    # The first release with every locale's 120 screenshots waits for the build, then uploads them all
+    timeout-minutes: 180
+    env:
+      VERSION: ${{ needs.version.outputs.name }}
+      CODE: ${{ needs.version.outputs.code }}
+      ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+    steps:
+      # The Mac runner is shared, so the key stays in this job's temp folder (ios/release.sh, altool and appstore.py read
+      # API_PRIVATE_KEYS_DIR) and is removed at the end. The build uses the Mac's selected Xcode.
+      - name: App Store Connect key
+        run: |
+          # The listing stops 30 minutes before the job's timeout, which leaves App Review its turn; App Review stops
+          # waiting for the build 15 minutes before it, while it can still give up without having cancelled anything
+          start=$(date +%s)
+          echo "LISTING_UNTIL=$(( start + 150 * 60 ))" >> "$GITHUB_ENV"
+          echo "SUBMIT_UNTIL=$(( start + 165 * 60 ))" >> "$GITHUB_ENV"
+          [ -n "$ASC_KEY_P8" ] || { echo "::warning::No ASC_KEY_P8 secret: skipping the iPhone app"; exit 0; }
+          keys=$(mktemp -d "$RUNNER_TEMP/asc.XXXXXX")
+          printf '%s\n' "$ASC_KEY_P8" > "$keys/AuthKey_$ASC_KEY_ID.p8"
+          echo "API_PRIVATE_KEYS_DIR=$keys" >> "$GITHUB_ENV"
+          echo "IOS=1" >> "$GITHUB_ENV"
+      - uses: actions/checkout@v7
+        if: env.IOS
+        with:
+          ref: ${{ env.TAG }}
+      # The build number is the Android versionCode, so both stores count the same way
+      - name: Archive, sign and upload
+        id: upload
+        if: env.IOS
+        run: ios/release.sh "$VERSION" "$CODE" ${{ env.MODE == 'dry-run' && '--no-upload' || '' }}
+      # Every locale's name, texts and screenshots from appstore/ go on the version first, so What's New finds them all;
+      # --release waits for the build, then cancels a submission still waiting or in review (as appstore.py would), so
+      # they go on this version. Out of time, it stops before cancelling (build still processing) or before a locale's
+      # screenshots (--until: the job's LISTING_UNTIL or 15 minutes before this step's timeout, whichever comes first, so
+      # the step timeout only catches a hang). Either way the step fails and the job goes on, since a job timeout would skip
+      # App Review after the review was cancelled, and running the release again can't recover: altool refuses the same
+      # build number twice.
+      - name: App Store listing
+        if: env.IOS && env.APP_STORE_APP_ID && env.MODE != 'testflight-only'
+        timeout-minutes: 120
+        run: |
+          deadline=$(( $(date +%s) + 105 * 60 ))
+          [ "$deadline" -lt "$LISTING_UNTIL" ] || deadline=$LISTING_UNTIL
+          python3 .github/scripts/listings.py appstore --release "$CODE" --version "$VERSION" --until "$deadline" ${{ env.MODE == 'dry-run' && '--dry-run' || '' }}
+      # Runs even when the listing step failed or timed out after cancelling the review, so the version still goes back to
+      # App Review (with whatever screenshots were left out going on with the next release)
+      - name: App Review
+        if: ${{ !cancelled() && steps.upload.outcome == 'success' && env.IOS && env.APP_STORE_APP_ID && env.MODE != 'testflight-only' }}
+        run: python3 .github/scripts/appstore.py "$VERSION" "$CODE" "$NOTES_DIR/$CODE.txt" ${{ env.MODE == 'dry-run' && '--dry-run' || '' }}
+      - name: Remove the key
+        if: always() && env.API_PRIVATE_KEYS_DIR
+        run: rm -rf "$API_PRIVATE_KEYS_DIR"
