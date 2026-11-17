@@ -26,9 +26,11 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
@@ -71,7 +73,7 @@ fun SignIn() {
     fun go() {
         if (busy) return
         busy = true; error = null
-        scope.launch { try { Store.signIn(server, user, pass) } catch (e: Exception) { error = e.message ?: "Couldn't sign in." }; busy = false }
+        scope.launch { try { Store.signIn(server, user, pass) } catch (e: Exception) { error = e.message ?: str(R.string.err_sign_in_failed) }; busy = false }
     }
     Column(
         Modifier.fillMaxSize().systemBarsPadding().imePadding().verticalScroll(rememberScrollState()).padding(28.dp),
@@ -82,21 +84,21 @@ fun SignIn() {
         }
         Spacer(Modifier.height(16.dp))
         Text("Spinwell", style = MaterialTheme.typography.headlineMedium)
-        Text("Your own music, anywhere.", color = Muted, style = MaterialTheme.typography.bodyMedium)
+        Text(stringResource(R.string.signin_tagline), color = Muted, style = MaterialTheme.typography.bodyMedium)
         Spacer(Modifier.height(32.dp))
         val fieldColors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Accent, focusedLabelColor = Accent, cursorColor = Accent)
-        OutlinedTextField(server, { server = it }, Modifier.fillMaxWidth(), label = { Text("Server") }, singleLine = true, colors = fieldColors,
+        OutlinedTextField(server, { server = it }, Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.label_server)) }, singleLine = true, colors = fieldColors,
             placeholder = { Text("https://music.example.ts.net", color = Muted.copy(alpha = 0.6f)) }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri))
         Spacer(Modifier.height(12.dp))
-        OutlinedTextField(user, { user = it }, Modifier.fillMaxWidth(), label = { Text("Username") }, singleLine = true, colors = fieldColors)
+        OutlinedTextField(user, { user = it }, Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.label_username)) }, singleLine = true, colors = fieldColors)
         Spacer(Modifier.height(12.dp))
-        OutlinedTextField(pass, { pass = it }, Modifier.fillMaxWidth(), label = { Text("Password") }, singleLine = true, colors = fieldColors,
+        OutlinedTextField(pass, { pass = it }, Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.label_password)) }, singleLine = true, colors = fieldColors,
             visualTransformation = PasswordVisualTransformation(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = androidx.compose.ui.text.input.ImeAction.Go),
             keyboardActions = androidx.compose.foundation.text.KeyboardActions(onGo = { go() }))
         AnimatedVisibility(error != null) { Text(error.orEmpty(), color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 12.dp), textAlign = TextAlign.Center) }
         Spacer(Modifier.height(24.dp))
         Button(::go, Modifier.fillMaxWidth().height(52.dp), enabled = !busy, colors = ButtonDefaults.buttonColors(containerColor = Accent, contentColor = Color(0xFF16112E))) {
-            if (busy) CircularProgressIndicator(Modifier.size(22.dp), Color(0xFF16112E), strokeWidth = 2.5.dp) else Text("Sign in", fontWeight = FontWeight700)
+            if (busy) CircularProgressIndicator(Modifier.size(22.dp), Color(0xFF16112E), strokeWidth = 2.5.dp) else Text(stringResource(R.string.action_sign_in), fontWeight = FontWeight700)
         }
     }
 }
@@ -104,8 +106,8 @@ fun SignIn() {
 private val FontWeight700 = androidx.compose.ui.text.font.FontWeight.Bold
 
 private val tabs = listOf(
-    Triple(Route.Home, "Home", Ic.Home), Triple(Route.Library, "Library", Ic.Library),
-    Triple(Route.Search, "Search", Ic.Search), Triple(Route.Downloads, "Downloads", Ic.Download),
+    Triple(Route.Home, R.string.tab_home, Ic.Home), Triple(Route.Library, R.string.tab_library, Ic.Library),
+    Triple(Route.Search, R.string.tab_search, Ic.Search), Triple(Route.Downloads, R.string.tab_downloads, Ic.Download),
 )
 
 @OptIn(ExperimentalSharedTransitionApi::class)
@@ -186,7 +188,7 @@ fun Shell() {
                     Column(Modifier.weight(1f).fillMaxHeight().clickable(indication = null, interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }) { Nav.go(route) },
                         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
                         Glyph(icon, tint, 24.dp)
-                        Text(label, fontSize = 11.sp, color = tint, modifier = Modifier.padding(top = 2.dp))
+                        Text(stringResource(label), fontSize = 11.sp, color = tint, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 2.dp))
                     }
                 }
             }
@@ -205,7 +207,7 @@ fun BoxScope.OfflineBanner(statusTop: androidx.compose.ui.unit.Dp) {
             Modifier.fillMaxWidth().background(Surface2).clickable { Settings.offlineMode = false; Net.ping() }.height(30.dp + statusTop).padding(top = statusTop),
             contentAlignment = Alignment.Center,
         ) {
-            Text(if (Settings.offlineMode) "Offline mode · showing downloads" else "Offline · showing downloads · tap to retry", fontSize = 12.sp, color = Color(0xFFFFC78A))
+            Text(stringResource(if (Settings.offlineMode) R.string.banner_offline_mode else R.string.banner_offline), maxLines = 1, overflow = TextOverflow.Ellipsis, fontSize = 12.sp, color = Color(0xFFFFC78A))
         }
     }
 }

@@ -1,6 +1,9 @@
 package com.borodutch.spinwell
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.background
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -105,7 +108,7 @@ fun SearchScreen() {
             Glyph(Ic.Search, Muted, 20.dp)
             Spacer(Modifier.width(10.dp))
             Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
-                if (s.query.isEmpty()) Text(if (Net.offline) "Search downloads" else "Artists, albums, songs", color = Muted, style = MaterialTheme.typography.bodyLarge)
+                if (s.query.isEmpty()) Text(stringResource(if (Net.offline) R.string.label_search_downloads else R.string.label_search_hint), maxLines = 1, overflow = TextOverflow.Ellipsis, color = Muted, style = MaterialTheme.typography.bodyLarge)
                 BasicTextField(
                     s.query, { s.query = it }, Modifier.fillMaxWidth().focusRequester(focus), singleLine = true,
                     textStyle = TextStyle(color = MaterialTheme.colorScheme.onBackground, fontSize = MaterialTheme.typography.bodyLarge.fontSize),
@@ -114,22 +117,22 @@ fun SearchScreen() {
                     keyboardActions = KeyboardActions(onSearch = { s.remember(s.query); focusManager.clearFocus() }),
                 )
             }
-            if (s.query.isNotEmpty()) IconBtn(Ic.Close, "Clear", size = 40.dp, glyph = 20.dp, tint = Muted) { s.query = "" }
+            if (s.query.isNotEmpty()) IconBtn(Ic.Close, stringResource(R.string.action_clear), size = 40.dp, glyph = 20.dp, tint = Muted) { s.query = "" }
         }
         Box(Modifier.fillMaxWidth().height(2.dp)) { if (s.loading && s.found != null) LinearProgressIndicator(Modifier.fillMaxWidth(), Accent, Surface2) }
         val f = s.found
         LazyColumn(Modifier.fillMaxSize().nestedScroll(hideKeys), contentPadding = PaddingValues(bottom = LocalBottom.current + 16.dp)) {
             if (q.isEmpty()) {
-                if (s.recents.isEmpty()) item { Empty("Find anything in your library.", icon = Ic.Search) }
+                if (s.recents.isEmpty()) item { Empty(stringResource(R.string.empty_search_start), icon = Ic.Search) }
                 else {
-                    item { SectionTitle("Recent searches") { TextButton({ s.clear() }) { Text("Clear", color = Accent) } } }
+                    item { SectionTitle(stringResource(R.string.title_recent_searches)) { TextButton({ s.clear() }) { Text(stringResource(R.string.action_clear), color = Accent) } } }
                     items(s.recents.size, key = { "r-${s.recents[it]}" }) { i ->
                         val r = s.recents[i]
                         Row(Modifier.fillMaxWidth().clickable { s.query = r }.heightIn(min = 48.dp).padding(start = 16.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                             Glyph(Ic.History, Muted, 20.dp)
                             Spacer(Modifier.width(14.dp))
-                            Text(r, Modifier.weight(1f), maxLines = 1, style = MaterialTheme.typography.bodyLarge)
-                            IconBtn(Ic.Close, "Remove", size = 44.dp, glyph = 18.dp, tint = Muted) { s.forget(r) }
+                            Text(r, Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyLarge)
+                            IconBtn(Ic.Close, stringResource(R.string.a11y_remove), size = 44.dp, glyph = 18.dp, tint = Muted) { s.forget(r) }
                         }
                     }
                 }
@@ -141,24 +144,24 @@ fun SearchScreen() {
 }
 
 private fun androidx.compose.foundation.lazy.LazyListScope.results(f: Found, q: String) {
-    if (f.empty) { item { Empty("Nothing found for “$q”.", icon = Ic.Search) }; return }
-    val ctx = Ctx("search", q, "Search: $q")
+    if (f.empty) { item { Empty(stringResource(R.string.empty_nothing_found, q), icon = Ic.Search) }; return }
+    val ctx = Ctx("search", q)
     topResult(q, f)?.let { top ->
         item(key = "top") {
             Column {
-                SectionTitle("Top result")
+                SectionTitle(stringResource(R.string.title_top_result))
                 when (top) {
                     is Artist -> ArtistRow(top, "search")
-                    is Album -> AlbumRow(top, "search", "Album · ${top.artist}")
+                    is Album -> AlbumRow(top, "search", "${stringResource(R.string.label_album)} · ${top.artist}")
                     is Song -> SongRow(top, showCover = true, queue = listOf(top), index = 0, ctx = Ctx("song", top.id, top.title))
                 }
             }
         }
     }
-    section("artists", "Artists", f.artists, 3) { ArtistRow(it, "search") }
-    section("albums", "Albums", f.albums, 4) { AlbumRow(it, "search", listOfNotNull("Album", it.artist.ifBlank { null }, it.year.takeIf { y -> y > 0 }?.toString()).joinToString(" · ")) }
+    section("artists", R.string.title_artists, f.artists, 3) { ArtistRow(it, "search") }
+    section("albums", R.string.title_albums, f.albums, 4) { AlbumRow(it, "search", listOfNotNull(stringResource(R.string.label_album), it.artist.ifBlank { null }, it.year.takeIf { y -> y > 0 }?.toString()).joinToString(" · ")) }
     if (f.songs.isNotEmpty()) {
-        item(key = "songs-h") { SectionHeader("songs", "Songs", f.songs.size, 5) }
+        item(key = "songs-h") { SectionHeader("songs", R.string.title_songs, f.songs.size, 5) }
         item(key = "songs-ps") { PlayShuffle(f.songs, ctx) }
         item(key = "songs-list") {
             val open = Open.on("songs")
@@ -175,10 +178,10 @@ private object Open {
 }
 
 @Composable
-private fun SectionHeader(key: String, title: String, total: Int, limit: Int) =
-    SectionTitle(title) { if (total > limit) TextButton({ Open.toggle(key) }) { Text(if (Open.on(key)) "Show less" else "See all", color = Accent) } }
+private fun SectionHeader(key: String, @StringRes title: Int, total: Int, limit: Int) =
+    SectionTitle(stringResource(title)) { if (total > limit) TextButton({ Open.toggle(key) }) { Text(stringResource(if (Open.on(key)) R.string.action_show_less else R.string.action_see_all), color = Accent) } }
 
-private fun <T> androidx.compose.foundation.lazy.LazyListScope.section(key: String, title: String, list: List<T>, limit: Int, row: @Composable (T) -> Unit) {
+private fun <T> androidx.compose.foundation.lazy.LazyListScope.section(key: String, @StringRes title: Int, list: List<T>, limit: Int, row: @Composable (T) -> Unit) {
     if (list.isEmpty()) return
     item(key = "$key-h") { SectionHeader(key, title, list.size, limit) }
     item(key = "$key-list") { Column { list.take(if (Open.on(key)) list.size else limit).forEach { row(it) } } }

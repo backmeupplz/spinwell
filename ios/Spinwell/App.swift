@@ -67,13 +67,13 @@ struct SignIn: View {
                 Spacer()
                 VStack(spacing: 14) {
                     Image("Logo").resizable().scaledToFit().frame(width: 96, height: 96).shadow(color: .black.opacity(0.4), radius: 12, y: 6)
-                    Text("Spinwell").font(.system(size: 40, weight: .bold, design: .rounded))
-                    Text("Your Navidrome, beautifully.").font(.subheadline).foregroundStyle(.secondary)
+                    Text(verbatim: "Spinwell").font(.system(size: 40, weight: .bold, design: .rounded))
+                    Text("Your own music, anywhere.").font(.subheadline).foregroundStyle(.secondary)
                 }
                 VStack(spacing: 12) {
-                    field("Server", "https://music.example.ts.net", text: $server, tag: 0)
+                    field("Server", prompt: Text(verbatim: "https://music.example.ts.net"), text: $server, tag: 0)
                         .keyboardType(.URL).textContentType(.URL)
-                    field("Username", "Username", text: $user, tag: 1).textContentType(.username)
+                    field("Username", prompt: Text("Username"), text: $user, tag: 1).textContentType(.username)
                     SecureField("Password", text: $pass).focused($focus, equals: 2).submitLabel(.go)
                         .padding(14).glassEffect(.regular, in: .rect(cornerRadius: 14)).textContentType(.password)
                         .onSubmit(go)
@@ -93,8 +93,8 @@ struct SignIn: View {
         .animation(.smooth, value: app.signInError)
     }
 
-    private func field(_ title: String, _ ph: String, text: Binding<String>, tag: Int) -> some View {
-        TextField(title, text: text, prompt: Text(ph).foregroundStyle(.tertiary))
+    private func field(_ title: LocalizedStringKey, prompt: Text, text: Binding<String>, tag: Int) -> some View {
+        TextField(title, text: text, prompt: prompt.foregroundStyle(.tertiary))
             .textInputAutocapitalization(.never).autocorrectionDisabled()
             .focused($focus, equals: tag).submitLabel(.next).onSubmit { focus = tag + 1 }
             .padding(14).glassEffect(.regular, in: .rect(cornerRadius: 14))

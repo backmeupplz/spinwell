@@ -17,6 +17,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
@@ -24,8 +25,8 @@ import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import org.json.JSONObject
 
-private val tabNames = listOf("Artists", "Albums", "Playlists", "Songs", "Favorites")
-private val sorts = listOf("name" to "Name", "artist" to "Artist", "newest" to "Recently added", "year" to "Year", "frequent" to "Most played")
+private val tabNames = listOf(R.string.title_artists, R.string.title_albums, R.string.title_playlists, R.string.title_songs, R.string.title_favorites)
+private val sorts = listOf("name" to R.string.sort_name, "artist" to R.string.label_artist, "newest" to R.string.sort_recently_added, "year" to R.string.sort_year, "frequent" to R.string.sort_most_played)
 private fun sortType(s: String) = when (s) { "name" -> "alphabeticalByName"; "artist" -> "alphabeticalByArtist"; "year" -> "byYear"; else -> s }
 
 private fun parseSongs3(j: JSONObject) = j.optJSONObject("searchResult3")?.list("song")?.map(Song::of).orEmpty()
@@ -33,10 +34,10 @@ private fun parseSongs3(j: JSONObject) = j.optJSONObject("searchResult3")?.list(
 @Composable
 fun LibraryScreen() {
     Column(Modifier.fillMaxSize().padding(top = LocalTop.current)) {
-        ScreenTitle("Library")
+        ScreenTitle(stringResource(R.string.tab_library))
         Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             tabNames.forEachIndexed { i, n ->
-                FilterChip(Nav.libraryTab == i, { Nav.libraryTab = i }, { Text(n) },
+                FilterChip(Nav.libraryTab == i, { Nav.libraryTab = i }, { Text(stringResource(n), maxLines = 1, overflow = TextOverflow.Ellipsis) },
                     colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Accent, selectedLabelColor = androidx.compose.ui.graphics.Color(0xFF16112E), containerColor = Surface2),
                     border = null, shape = androidx.compose.foundation.shape.RoundedCornerShape(50))
             }
@@ -48,7 +49,7 @@ fun LibraryScreen() {
     }
 }
 
-private const val NOT_DOWNLOADED = "Not downloaded"
+private const val NOT_DOWNLOADED = "~nd" // group key of the cached-but-not-downloaded artists; shown as label_not_downloaded
 
 @Composable
 private fun ArtistsTab() {
@@ -71,10 +72,10 @@ private fun ArtistsTab() {
     Box(Modifier.fillMaxSize()) {
         LazyColumn(Modifier.fillMaxSize(), state, contentPadding = PaddingValues(bottom = LocalBottom.current + 16.dp, end = 20.dp)) {
             groups.forEach { (letter, artists) ->
-                item(key = "h-$letter") { Text(letter, color = if (letter == NOT_DOWNLOADED) Muted else Accent, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(start = 16.dp, top = 10.dp, bottom = 0.dp)) }
+                item(key = "h-$letter") { Text(if (letter == NOT_DOWNLOADED) stringResource(R.string.label_not_downloaded) else letter, color = if (letter == NOT_DOWNLOADED) Muted else Accent, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(start = 16.dp, top = 10.dp, bottom = 0.dp)) }
                 items(artists, key = { it.id }) { ArtistRow(it, "lib", dim = offline && letter == NOT_DOWNLOADED) }
             }
-            if (groups.isEmpty()) item { Empty(if (st.loading) "Loading…" else if (offline) "No downloaded artists yet." else "No artists.", icon = if (offline) Ic.CloudOff else Ic.Library) }
+            if (groups.isEmpty()) item { Empty(stringResource(if (st.loading) R.string.status_loading else if (offline) R.string.empty_no_artists_offline else R.string.empty_no_artists), icon = if (offline) Ic.CloudOff else Ic.Library) }
         }
         val letters = groups.map { it.first }.filter { it.length == 1 }
         if (letters.size > 1) LetterRail(letters, Modifier.align(Alignment.CenterEnd).padding(vertical = 24.dp)) { l ->
@@ -106,17 +107,17 @@ private fun AlbumsTab() {
     Column {
         Row(Modifier.padding(start = 8.dp, end = 16.dp), verticalAlignment = Alignment.CenterVertically) {
             Box {
-                TextButton({ menu = true }) { Text("Sort: ${sorts.first { it.first == sort }.second}", color = Accent) }
+                TextButton({ menu = true }) { Text(stringResource(R.string.label_sort, stringResource(sorts.first { it.first == sort }.second)), color = Accent) }
                 DropdownMenu(menu, { menu = false }, containerColor = Surface2) {
-                    sorts.forEach { (k, n) -> DropdownMenuItem({ Text(n) }, { Settings.librarySort = k; menu = false }) }
+                    sorts.forEach { (k, n) -> DropdownMenuItem({ Text(stringResource(n)) }, { Settings.librarySort = k; menu = false }) }
                 }
             }
-            if (offline && downloaded > 0) Text("Downloaded first", color = Muted, style = MaterialTheme.typography.bodySmall)
+            if (offline && downloaded > 0) Text(stringResource(R.string.label_downloaded_first), color = Muted, style = MaterialTheme.typography.bodySmall)
         }
         LazyVerticalGrid(GridCells.Adaptive(100.dp), Modifier.fillMaxSize(), grid, contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = LocalBottom.current + 16.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             itemsIndexed(shown, key = { _, a -> a.id }) { _, a -> AlbumCard(a, "lib", Modifier.fillMaxWidth()) { Nav.push(Route.Album(a.id, "lib", a.coverArt)) } }
-            if (shown.isEmpty()) item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) { Empty(if (offline) "No downloaded albums yet." else "Loading…") }
+            if (shown.isEmpty()) item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) { Empty(stringResource(if (offline) R.string.empty_no_albums_offline else R.string.status_loading)) }
         }
     }
 }
@@ -144,7 +145,7 @@ private fun PlaylistsTab() {
                 Nav.push(Route.Playlist(p.id, "lib", p.coverArt))
             }
         }
-        if (list.isEmpty()) item { Empty(if (st.loading) "Loading…" else if (offline) "No downloaded playlists yet." else "No playlists yet.", icon = if (offline) Ic.CloudOff else Ic.Queue) }
+        if (list.isEmpty()) item { Empty(stringResource(if (st.loading) R.string.status_loading else if (offline) R.string.empty_no_playlists_offline else R.string.empty_no_playlists), icon = if (offline) Ic.CloudOff else Ic.Queue) }
     }
 }
 
@@ -155,13 +156,13 @@ private fun SongsTab() {
     val state = Scroll.list("lib-songs")
     LaunchedEffect(paged) { if (!offline) paged.more() }
     LaunchedEffect(paged, offline) { snapshotFlow { state.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0 }.collect { if (it >= paged.items.size - 12) paged.more() } }
-    val ctx = Ctx("songs", "all", "Songs")
+    val ctx = Ctx("songs", "all")
     // offline the cached pages are mostly songs you can't play: list what's downloaded instead
     val songs = if (offline) Offline.songs.sortedBy { fold(it.title) } else paged.items.toList()
     LazyColumn(Modifier.fillMaxSize(), state, contentPadding = PaddingValues(bottom = LocalBottom.current + 16.dp)) {
         if (songs.isNotEmpty()) item(key = "ps") { PlayShuffle(songs, ctx) }
         itemsIndexed(songs, key = { i, s -> "$i-${s.id}" }) { i, s -> SongRow(s, showCover = true, queue = songs, index = i, ctx = ctx) }
-        if (songs.isEmpty()) item { Empty(if (offline) "No downloaded songs yet." else "Loading…", icon = if (offline) Ic.CloudOff else Ic.Note) }
+        if (songs.isEmpty()) item { Empty(stringResource(if (offline) R.string.empty_no_songs_offline else R.string.status_loading), icon = if (offline) Ic.CloudOff else Ic.Note) }
     }
 }
 
@@ -172,21 +173,21 @@ private fun FavoritesTab() {
         Triple(o.list("artist").map(Artist::of), o.list("album").map(Album::of), o.list("song").map(Song::of))
     }
     val (artists, albums, songs) = st.value ?: Triple(emptyList(), emptyList(), emptyList())
-    val ctx = Ctx("favorites", "all", "Favorites")
+    val ctx = Ctx("favorites", "all")
     LazyColumn(Modifier.fillMaxSize(), Scroll.list("lib-fav"), contentPadding = PaddingValues(bottom = LocalBottom.current + 16.dp)) {
         if (artists.isNotEmpty()) item {
-            SectionTitle("Artists")
+            SectionTitle(stringResource(R.string.title_artists))
             LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) { items(artists, key = { it.id }) { a -> ArtistChip(a) { Nav.push(Route.Artist(a.id, "fav")) } } }
         }
         if (albums.isNotEmpty()) item {
-            SectionTitle("Albums")
+            SectionTitle(stringResource(R.string.title_albums))
             LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) { items(albums, key = { it.id }) { a -> AlbumCard(a, "fav") { Nav.push(Route.Album(a.id, "fav", a.coverArt)) } } }
         }
         if (songs.isNotEmpty()) {
-            item { SectionTitle("Songs") }
+            item { SectionTitle(stringResource(R.string.title_songs)) }
             item { PlayShuffle(songs, ctx) }
             itemsIndexed(songs, key = { i, s -> "$i-${s.id}" }) { i, s -> SongRow(s, showCover = true, queue = songs, index = i, ctx = ctx) }
         }
-        if (artists.isEmpty() && albums.isEmpty() && songs.isEmpty()) item { Empty(if (st.loading) "Loading…" else "Tap the heart on anything to find it here.", icon = Ic.Heart) }
+        if (artists.isEmpty() && albums.isEmpty() && songs.isEmpty()) item { Empty(stringResource(if (st.loading) R.string.status_loading else R.string.empty_favorites), icon = Ic.Heart) }
     }
 }

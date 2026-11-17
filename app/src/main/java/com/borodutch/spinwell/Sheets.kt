@@ -21,6 +21,9 @@ import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -41,7 +44,7 @@ private fun SheetFrame(tint: Color, title: String, onClose: () -> Unit, trailing
         Row(Modifier.padding(top = top + 4.dp, start = 16.dp, end = 4.dp).fillMaxWidth().height(48.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(title, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
             trailing?.invoke(this)
-            IconBtn(Ic.Down, "Close") { onClose() }
+            IconBtn(Ic.Down, stringResource(R.string.action_close)) { onClose() }
         }
         content()
     }
@@ -59,27 +62,28 @@ fun QueueSheet(tint: Color, onClose: () -> Unit) {
     val restStart = q.index + 1 + run.size
     val bottom = with(d) { WindowInsets.navigationBars.getBottom(d).toDp() } + 24.dp
 
-    SheetFrame(tint, "Up next", onClose, trailing = {
-        ToggleBtn(Ic.Shuffle, "Shuffle", q.shuffle, size = 44.dp) { Audio.toggleShuffle() }
-        ToggleBtn(if (q.repeat == 2) Ic.RepeatOne else Ic.Repeat, when (q.repeat) { 1 -> "Repeat all"; 2 -> "Repeat one"; else -> "Repeat off" }, q.repeat > 0, size = 44.dp) { Audio.cycleRepeat() }
+    SheetFrame(tint, stringResource(R.string.title_up_next), onClose, trailing = {
+        ToggleBtn(Ic.Shuffle, stringResource(R.string.action_shuffle), q.shuffle, size = 44.dp) { Audio.toggleShuffle() }
+        ToggleBtn(if (q.repeat == 2) Ic.RepeatOne else Ic.Repeat, stringResource(when (q.repeat) { 1 -> R.string.a11y_repeat_all; 2 -> R.string.a11y_repeat_one; else -> R.string.a11y_repeat_off }), q.repeat > 0, size = 44.dp) { Audio.cycleRepeat() }
     }) {
         LazyColumn(contentPadding = PaddingValues(bottom = bottom)) {
-            item(key = "h-now") { Label("Now playing") }
+            item(key = "h-now") { Label(stringResource(R.string.label_now_playing)) }
             q.current?.let { c -> item(key = "now-${c.key}") { QueueRow(c, q.index, handle = false, current = true) } }
             if (run.isNotEmpty()) {
                 item(key = "h-next") {
                     Row(Modifier.fillMaxWidth().padding(end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Box(Modifier.weight(1f)) { Label("Next in queue") }
-                        TextButton({ Audio.clearNext() }) { Text("Clear", color = Accent) }
+                        Box(Modifier.weight(1f)) { Label(stringResource(R.string.label_next_in_queue)) }
+                        TextButton({ Audio.clearNext() }) { Text(stringResource(R.string.action_clear), color = Accent) }
                     }
                 }
                 itemsIndexed(run, key = { _, it -> it.key }) { i, it -> QueueRow(it, q.index + 1 + i) }
             }
             item(key = "h-ctx") {
-                Label(if (q.ctx.name.isNotBlank()) "Next from ${q.ctx.name}" + if (q.shuffle) " · shuffled" else "" else "Next up")
+                val name = q.ctx.title
+                Label(if (name.isNotBlank()) stringResource(if (q.shuffle) R.string.label_next_from_shuffled else R.string.label_next_from, name) else stringResource(R.string.label_next_up))
             }
             val rest = q.items.drop(restStart)
-            if (rest.isEmpty()) item(key = "empty") { Empty("Nothing else is queued.") }
+            if (rest.isEmpty()) item(key = "empty") { Empty(stringResource(R.string.empty_queue)) }
             itemsIndexed(rest, key = { _, it -> it.key }) { i, it -> QueueRow(it, restStart + i) }
         }
     }
@@ -174,9 +178,10 @@ fun LyricsSheet(song: Song, tint: Color, pos: () -> Long, onClose: () -> Unit) {
     val active = if (l != null && l.synced) l.lines.indexOfLast { it.first <= now + 150 }.coerceAtLeast(0) else -1
     val d = LocalDensity.current
     LaunchedEffect(active) { if (active >= 0) state.animateScrollToItem(active, -with(d) { 220.dp.roundToPx() }) }
-    SheetFrame(tint, "Lyrics", onClose) {
+    val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
+    SheetFrame(tint, stringResource(R.string.title_lyrics), onClose) {
         when {
-            l == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text(if (loaded) "No lyrics for this song." else "Looking for lyrics…", color = Muted) }
+            l == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text(stringResource(if (loaded) R.string.empty_no_lyrics else R.string.status_loading_lyrics), color = Muted) }
             else -> LazyColumn(state = state, contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = 40.dp, bottom = 320.dp), modifier = Modifier.fillMaxSize()) {
                 itemsIndexed(l.lines) { i, line ->
                     val on = !l.synced || i == active
@@ -184,7 +189,7 @@ fun LyricsSheet(song: Song, tint: Color, pos: () -> Long, onClose: () -> Unit) {
                     val s by animateFloatAsState(if (on) 1f else 0.86f, tween(350), label = "ls")
                     Text(
                         line.second.ifBlank { "♪" }, fontSize = 28.sp, lineHeight = 36.sp, fontWeight = FontWeight.Bold,
-                        modifier = Modifier.fillMaxWidth().graphicsLayer { alpha = a; scaleX = s; scaleY = s; transformOrigin = TransformOrigin(0f, 0.5f) }
+                        modifier = Modifier.fillMaxWidth().graphicsLayer { alpha = a; scaleX = s; scaleY = s; transformOrigin = TransformOrigin(if (rtl) 1f else 0f, 0.5f) }
                             .clickable(enabled = l.synced) { Audio.seekTo(line.first) }.padding(vertical = 10.dp),
                     )
                 }

@@ -9,6 +9,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.PowerManager
+import androidx.annotation.StringRes
 import androidx.compose.runtime.*
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
@@ -24,6 +25,11 @@ import kotlin.math.min
 class DlFile(val song: Song, val ext: String, val bytes: Long)
 class Pinned(val kind: String, val id: String, val name: String, val coverArt: String, val songIds: List<String>)
 
+/** What the queue is waiting for: kept as a resource id so it reads in the current language whenever it is shown. */
+class DlStatus(@StringRes val id: Int, vararg val args: Any) {
+    fun text() = str(id, *args)
+}
+
 /**
  * Songs download one file at a time into `<files>/media/<owner>/<songId>.<ext>` (`.part` + Range resume, so a drop or a
  * restart never starts a file over). The queue and everything downloaded (full song JSON, so offline can list and play
@@ -36,7 +42,7 @@ object Downloads {
     var currentId by mutableStateOf<String?>(null)
     var currentBytes by mutableStateOf(0L)
     var paused by mutableStateOf(false)
-    var status by mutableStateOf("")
+    var status by mutableStateOf<DlStatus?>(null)
     @Volatile private var worker: Thread? = null
     private val lock = Any()
 
@@ -139,9 +145,9 @@ object Downloads {
         return got / songs.size
     }
 
-    private fun gate(): String? = when {
-        Store.session == null -> "Signed out"
-        !Settings.dlMobile && !Net.unmetered() -> "Waiting for Wi-Fi"
+    private fun gate(): DlStatus? = when {
+        Store.session == null -> DlStatus(R.string.status_signed_out)
+        !Settings.dlMobile && !Net.unmetered() -> DlStatus(R.string.status_waiting_wifi)
         else -> null
     }
 
@@ -155,21 +161,21 @@ object Downloads {
             while (!paused) {
                 val song = queue.firstOrNull() ?: break
                 val g = gate()
-                if (g != null) { status = g; Thread.sleep(2_000); if (g == "Signed out") break; continue }
+                if (g != null) { status = g; Thread.sleep(2_000); if (g.id == R.string.status_signed_out) break; continue }
                 try {
                     wake.acquire(30 * 60_000L)
                     fetch(song, s)
-                    status = ""; wait = 2_000
+                    status = null; wait = 2_000
                 } catch (e: HttpErr) {
-                    if (e.code in 400..499 && e.code !in setOf(401, 408, 429)) { queue.remove(song); status = "Skipped ${song.title} (HTTP ${e.code})"; save() }
-                    else { status = "Waiting for the server"; wait = backoff(wait) }
+                    if (e.code in 400..499 && e.code !in setOf(401, 408, 429)) { queue.remove(song); status = DlStatus(R.string.status_skipped_song, song.title, e.code); save() }
+                    else { status = DlStatus(R.string.status_waiting_server); wait = backoff(wait) }
                 } catch (e: IOException) {
-                    status = "Waiting for the server"; Net.failed(e); wait = backoff(wait)
+                    status = DlStatus(R.string.status_waiting_server); Net.failed(e); wait = backoff(wait)
                 }
             }
             if (wake.isHeld) wake.release()
             currentId = null
-            if (queue.isEmpty()) status = ""
+            if (queue.isEmpty()) status = null
             s.stop()
         }
     }
@@ -206,7 +212,7 @@ class DlService : Service() {
     override fun onBind(i: Intent?) = null
 
     override fun onStartCommand(i: Intent?, flags: Int, id: Int): Int {
-        getSystemService(NotificationManager::class.java).createNotificationChannel(NotificationChannel("dl", "Downloads", NotificationManager.IMPORTANCE_LOW))
+        getSystemService(NotificationManager::class.java).createNotificationChannel(NotificationChannel("dl", str(R.string.tab_downloads), NotificationManager.IMPORTANCE_LOW))
         runCatching { ServiceCompat.startForeground(this, 1, note(), ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC) }
         Downloads.run(this)
         return START_NOT_STICKY
@@ -218,8 +224,8 @@ class DlService : Service() {
         val pct = if (cur != null && cur.size > 0 && cur.id == Downloads.currentId) (Downloads.currentBytes * 100 / cur.size).toInt() else 0
         return NotificationCompat.Builder(this, "dl")
             .setSmallIcon(R.drawable.ic_notif)
-            .setContentTitle(cur?.title ?: "Downloads")
-            .setContentText(Downloads.status.ifEmpty { "${q.size} left" + if (cur != null) " · $pct%" else "" })
+            .setContentTitle(cur?.title ?: str(R.string.tab_downloads))
+            .setContentText(Downloads.status?.text() ?: (plural(R.plurals.fmt_left, q.size) + if (cur != null) " · " + str(R.string.fmt_percent, pct) else ""))
             .setProgress(100, pct, cur == null || cur.size == 0L)
             .setOngoing(true).setSilent(true)
             .setContentIntent(PendingIntent.getActivity(this, 0, Intent(this, Main::class.java), PendingIntent.FLAG_IMMUTABLE))

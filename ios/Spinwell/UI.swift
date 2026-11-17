@@ -61,11 +61,13 @@ struct OfflineBanner: View {
             } label: {
                 HStack(spacing: 6) {
                     Image(systemName: "wifi.slash").font(.caption.weight(.semibold))
-                    Text(app.settings.offlineMode ? "Offline mode · tap to go online" : "Offline · showing downloads").font(.footnote.weight(.medium))
+                    Group {
+                        if app.settings.offlineMode { Text("Offline mode · showing downloads") } else { Text("Offline · showing downloads · tap to retry") }
+                    }.font(.footnote.weight(.medium)).multilineTextAlignment(.center)
                 }
                 .padding(.horizontal, 12).padding(.vertical, 5)
-                .background(Color.orange.opacity(0.92), in: .capsule).foregroundStyle(.black)
-                .frame(maxWidth: .infinity).padding(.vertical, 2)
+                .background(Color.orange.opacity(0.92), in: .rect(cornerRadius: 14)).foregroundStyle(.black)
+                .padding(.horizontal, 16).frame(maxWidth: .infinity).padding(.vertical, 2)
             }
             .buttonStyle(.plain)
             .transition(.move(edge: .top).combined(with: .opacity))
@@ -131,16 +133,16 @@ struct AlbumCard: View {
 
 struct ErrorLine: View {
     let text: String
-    var body: some View { Text(text).font(.footnote).foregroundStyle(.secondary).multilineTextAlignment(.center).padding(16) }
+    var body: some View { Text("Couldn't load: \(text)").font(.footnote).foregroundStyle(.secondary).multilineTextAlignment(.center).padding(16) }
 }
 
 /// A play / shuffle / download style capsule: 40 pt tall, 44 pt to hit.
 struct Pill: View {
-    let title: String
+    let title: LocalizedStringKey
     let symbol: String
     var prominent = false
     var body: some View {
-        Label(title, systemImage: symbol).font(.subheadline.weight(.semibold)).lineLimit(1)
+        Label(title, systemImage: symbol).font(.subheadline.weight(.semibold)).lineLimit(1).minimumScaleFactor(0.8)
             .frame(maxWidth: .infinity).frame(height: 40)
             .foregroundStyle(prominent ? Color.black : Color.white)
             .glassEffect(prominent ? .regular.tint(.white).interactive() : .regular.interactive(), in: .capsule)
@@ -151,7 +153,7 @@ struct Pill: View {
 /// An empty list: a symbol and one sentence.
 struct EmptyState: View {
     let symbol: String
-    let text: String
+    let text: LocalizedStringKey
     var body: some View {
         VStack(spacing: 10) {
             Image(systemName: symbol).font(.system(size: 34, weight: .light)).foregroundStyle(.tertiary)
@@ -184,3 +186,6 @@ struct PlayRow: View {
         .disabled(disabled).padding(.horizontal, 16)
     }
 }
+
+/// Tracking for small caps labels; cursive scripts (Arabic) and conjunct scripts must not be spaced out or their letters disconnect.
+func caps(_ v: CGFloat) -> CGFloat { ["ar", "hi", "th"].contains(Locale.current.language.languageCode?.identifier) ? 0 : v }

@@ -1,6 +1,12 @@
 import SwiftUI
 
-enum LibTab: String, CaseIterable { case artists = "Artists", albums = "Albums", playlists = "Playlists", songs = "Songs", favorites = "Favorites" }
+/// The raw values are the hook ids (`-libtab Albums`), the titles are what the user reads.
+enum LibTab: String, CaseIterable {
+    case artists = "Artists", albums = "Albums", playlists = "Playlists", songs = "Songs", favorites = "Favorites"
+    var title: LocalizedStringKey {
+        switch self { case .artists: "Artists"; case .albums: "Albums"; case .playlists: "Playlists"; case .songs: "Songs"; case .favorites: "Favorites" }
+    }
+}
 
 struct LibraryView: View {
     @State private var tab: LibTab = LibTab(rawValue: (Hooks.string("libtab") ?? "").capitalized) ?? .albums
@@ -10,7 +16,7 @@ struct LibraryView: View {
                 HStack(spacing: 8) {
                     ForEach(LibTab.allCases, id: \.self) { t in
                         Button { withAnimation(.smooth(duration: 0.25)) { tab = t } } label: {
-                            Text(t.rawValue).font(.footnote.weight(.semibold)).padding(.horizontal, 14).frame(height: 32)
+                            Text(t.title).font(.footnote.weight(.semibold)).lineLimit(1).padding(.horizontal, 14).frame(height: 32)
                                 .foregroundStyle(tab == t ? Color.black : .white)
                                 .glassEffect(tab == t ? .regular.tint(.white).interactive() : .regular.interactive(), in: .capsule)
                                 .padding(.vertical, 6).contentShape(Rectangle()) // 44 pt to hit
@@ -77,7 +83,7 @@ struct ArtistsList: View {
     private func row(_ a: Artist, _ src: String, dim: Bool) -> some View {
         let n = a.albumCount ?? 0
         return NavigationLink(value: Route.artist(a.id, src)) {
-            ListRow(cover: a.coverArt, radius: 20, symbol: "person.fill", title: a.title, caption: "\(n) album\(n == 1 ? "" : "s")", dim: dim)
+            ListRow(cover: a.coverArt, radius: 20, symbol: "person.fill", title: a.title, caption: n > 0 ? String(localized: "\(n) albums") : String(localized: "Artist"), dim: dim)
         }.buttonStyle(.plain)
     }
 
@@ -86,15 +92,16 @@ struct ArtistsList: View {
             ScrollView {
                 LazyVStack(spacing: 0, pinnedViews: .sectionHeaders) {
                     if let error, loaded.isEmpty, downloaded.isEmpty { ErrorLine(text: error) }
+                    if offlineMode, loaded.isEmpty, downloaded.isEmpty, error == nil { EmptyState(symbol: "person.2", text: "No downloaded artists yet.") }
                     if !downloaded.isEmpty {
                         Section {
                             ForEach(downloaded) { row($0, "lib-dl-artist-\($0.id)", dim: false) }
-                        } header: { header("Downloaded") }
+                        } header: { header(Text("Downloaded")) }
                     }
                     ForEach(groups, id: \.0) { letter, list in
                         Section {
                             ForEach(list) { row($0, "lib-artist-\($0.id)", dim: offlineMode) }
-                        } header: { header(letter) }
+                        } header: { header(Text(verbatim: letter)) }
                         .id(letter)
                     }
                     Color.clear.frame(height: 90)
@@ -111,8 +118,8 @@ struct ArtistsList: View {
         .task(id: app.offline) { error = (await app.load("getArtists", [], Artists.self) { loaded = $0.list })?.localizedDescription }
     }
 
-    private func header(_ t: String) -> some View {
-        Text(t).font(.footnote.weight(.bold)).foregroundStyle(.secondary).padding(.horizontal, 16).padding(.vertical, 3)
+    private func header(_ t: Text) -> some View {
+        t.font(.footnote.weight(.bold)).foregroundStyle(.secondary).padding(.horizontal, 16).padding(.vertical, 3)
             .frame(maxWidth: .infinity, alignment: .leading).background(.black.opacity(0.7))
     }
 }
@@ -120,6 +127,16 @@ struct ArtistsList: View {
 struct AlbumsGrid: View {
     enum Sort: String, CaseIterable {
         case name = "Name", artist = "Artist", added = "Recently added", year = "Year", played = "Most played"
+        /// What the user reads (the raw value is only an id).
+        var title: String {
+            switch self {
+            case .name: String(localized: "Name")
+            case .artist: String(localized: "Artist")
+            case .added: String(localized: "Recently added")
+            case .year: String(localized: "Year")
+            case .played: String(localized: "Most played")
+            }
+        }
         var type: String { switch self { case .name: "alphabeticalByName"; case .artist: "alphabeticalByArtist"; case .added: "newest"; case .year: "byYear"; case .played: "frequent" } }
         var extra: [(String, String)] { self == .year ? [("fromYear", "3000"), ("toYear", "0")] : [] }
     }
@@ -142,11 +159,12 @@ struct AlbumsGrid: View {
             let cols = [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
             HStack {
                 Menu {
-                    Picker("Sort by", selection: $sort) { ForEach(Sort.allCases, id: \.self) { Text($0.rawValue) } }
-                } label: { Label(sort.rawValue, systemImage: "arrow.up.arrow.down").font(.footnote.weight(.semibold)).frame(minHeight: 32) }
+                    Picker(selection: $sort) { ForEach(Sort.allCases, id: \.self) { Text(verbatim: $0.title) } } label: { Text("Sort: \(sort.title)") }
+                } label: { Label("Sort: \(sort.title)", systemImage: "arrow.up.arrow.down").font(.footnote.weight(.semibold)).frame(minHeight: 32) }
                 Spacer()
             }.padding(.horizontal, 16)
             if let error, albums.isEmpty, !app.offline { ErrorLine(text: error) }
+            if app.offline, albums.isEmpty { EmptyState(symbol: "square.stack", text: "No downloaded albums yet.") }
             LazyVGrid(columns: cols, spacing: 14) {
                 ForEach(albums) { a in
                     AlbumCard(album: a, width: nil, source: "grid-\(a.id)")
@@ -187,11 +205,13 @@ struct PlaylistsList: View {
         ScrollView {
             LazyVStack(spacing: 0) {
                 if let error, ordered.isEmpty { ErrorLine(text: error) }
-                if ordered.isEmpty, error == nil { EmptyState(symbol: "music.note.list", text: "No playlists yet. Create one in Navidrome and it shows up here.") }
+                if ordered.isEmpty, error == nil {
+                    if app.offline { EmptyState(symbol: "music.note.list", text: "No downloaded playlists yet.") } else { EmptyState(symbol: "music.note.list", text: "No playlists yet.") }
+                }
                 ForEach(ordered) { p in
                     NavigationLink(value: Route.playlist(p.id, "lib-pl-\(p.id)")) {
                         ListRow(cover: p.coverArt, symbol: "music.note.list", title: p.title,
-                                caption: "\(p.songCount ?? 0) songs · \(minutes(p.duration ?? 0))", dim: app.offline && !pinnedIds.contains(p.id))
+                                caption: "\(String(localized: "\(p.songCount ?? 0) songs")) · \(minutes(p.duration ?? 0))", dim: app.offline && !pinnedIds.contains(p.id))
                     }.buttonStyle(.plain)
                 }
                 Color.clear.frame(height: 90)
@@ -215,8 +235,9 @@ struct AllSongs: View {
         ScrollView {
             LazyVStack(spacing: 0) {
                 if let error, songs.isEmpty { ErrorLine(text: error) }
+                if app.offline, songs.isEmpty { EmptyState(symbol: "music.note", text: "No downloaded songs yet.") }
                 if !songs.isEmpty {
-                    PlayRow { player.start(songs, context: ref) } shuffle: { Task { await shuffleAllSongs(name: "Songs") } }.padding(.bottom, 4)
+                    PlayRow { player.start(songs, context: ref) } shuffle: { Task { await shuffleAllSongs() } }.padding(.bottom, 4)
                 }
                 ForEach(Array(songs.enumerated()), id: \.element.id) { i, s in
                     SongRow(song: s, cover: true) { player.play(songs, from: s, context: ref) }
@@ -249,7 +270,7 @@ struct FavoritesView: View {
             VStack(alignment: .leading, spacing: 14) {
                 if let error, songs.isEmpty, albums.isEmpty, artists.isEmpty { ErrorLine(text: error) }
                 if songs.isEmpty && albums.isEmpty && artists.isEmpty && error == nil {
-                    EmptyState(symbol: "heart", text: "Tap the heart on a song, album or artist and it appears here.")
+                    EmptyState(symbol: "heart", text: "Tap the heart on anything to find it here.")
                 }
                 if !artists.isEmpty {
                     Text("Artists").font(.title3.bold()).padding(.horizontal, 16)

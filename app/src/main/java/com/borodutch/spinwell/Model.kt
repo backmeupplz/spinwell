@@ -111,15 +111,14 @@ fun JSONObject.list(key: String): List<JSONObject> = optJSONArray(key)?.let { a 
 
 // ---------- display helpers (pure) ----------
 
-fun songsLabel(n: Int) = if (n == 1) "1 song" else "$n songs"
+fun songsLabel(n: Int) = plural(R.plurals.fmt_songs, n)
 fun fmtTime(sec: Int): String { val s = sec.coerceAtLeast(0); return "%d:%02d".format(s / 60, s % 60) }
-fun fmtLong(sec: Int): String { val m = (sec + 30) / 60; return if (m >= 60) "${m / 60} h ${m % 60} min" else "$m min" }
-fun fmtBytes(b: Long): String = when {
-    b >= 1L shl 30 -> "%.1f GB".format(b / 1073741824.0)
-    b >= 1L shl 20 -> "%.0f MB".format(b / 1048576.0)
-    else -> "%.0f KB".format(b / 1024.0)
+fun fmtLong(sec: Int): String {
+    val m = (sec + 30) / 60
+    return if (m >= 60 && m % 60 == 0) str(R.string.dur_h, m / 60) else if (m >= 60) str(R.string.dur_h_min, m / 60, m % 60) else str(R.string.dur_min, m)
 }
-private fun khz(hz: Int) = if (hz % 1000 == 0) "${hz / 1000}" else "%.1f".format(hz / 1000.0)
+fun fmtBytes(b: Long): String = android.text.format.Formatter.formatShortFileSize(Store.app, b)
+fun khz(hz: Int) = if (hz % 1000 == 0) "${hz / 1000}" else "%.1f".format(hz / 1000.0)
 
 fun qualityOf(s: Song): String = when (s.suffix.lowercase()) {
     "flac", "alac", "wav", "aiff", "ape", "wv" -> {

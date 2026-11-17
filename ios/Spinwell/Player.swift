@@ -305,7 +305,7 @@ struct Saved: Codable { var queue: QueueState; var position: Double; var wasPlay
         if let e, Srv.isNetwork(e) { app.markUnreachable() }
         failedRun += 1
         if failedRun < 8, skipToPlayable() { error = nil; return }
-        error = app.offline ? "Can't reach the server, and no downloaded song is next." : e?.localizedDescription
+        error = app.offline ? String(localized: "Can't reach the server, and no downloaded song is next.") : e?.localizedDescription
         ap.pause()
     }
 
@@ -389,7 +389,7 @@ struct Saved: Codable { var queue: QueueState; var position: Double; var wasPlay
             MainActor.assumeIsolated { self?.setRepeat(r) }
             return .success
         }
-        c.likeCommand.localizedTitle = "Favorite"
+        c.likeCommand.localizedTitle = String(localized: "Favorite")
         c.likeCommand.addTarget { [weak self] _ in
             MainActor.assumeIsolated { if let s = self?.current { app.toggleStar(s.id, now: !app.isStarred(s)); self?.updateInfo() } }
             return .success

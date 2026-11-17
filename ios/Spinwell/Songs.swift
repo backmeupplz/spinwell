@@ -7,19 +7,19 @@ struct SongInfo: View {
             List {
                 row("Title", song.title); row("Artist", song.artist); row("Album", song.album)
                 row("Format", song.suffix?.uppercased())
-                row("Bitrate", song.bitRate.map { "\($0) kbps" })
-                row("Sample rate", song.samplingRate.map { "\($0) Hz" })
-                row("Bit depth", song.bitDepth.map { "\($0)-bit" })
+                row("Bitrate", song.bitRate.map { String(localized: "\($0) kbps") })
+                row("Sample rate", song.samplingRate.map { hz in String(localized: "\(hz % 1000 == 0 ? String(hz / 1000) : String(format: "%.1f", Double(hz) / 1000)) kHz") })
+                row("Bit depth", song.bitDepth.map(String.init))
                 row("Size", song.size.map(bytes))
                 row("Duration", song.duration.map { clock(Double($0)) })
-                row("Play count", song.playCount.map(String.init))
+                row("Plays", song.playCount.map(String.init))
                 row("Path", song.path)
             }
             .navigationTitle("Song info").navigationBarTitleDisplayMode(.inline)
         }
         .presentationDetents([.medium, .large])
     }
-    @ViewBuilder private func row(_ k: String, _ v: String?) -> some View {
+    @ViewBuilder private func row(_ k: LocalizedStringKey, _ v: String?) -> some View {
         if let v, !v.isEmpty { LabeledContent(k) { Text(v).foregroundStyle(.secondary).multilineTextAlignment(.trailing) } }
     }
 }
@@ -36,7 +36,8 @@ struct SongMenu: View {
         if let a = song.albumId { Button("Go to album", systemImage: "square.stack") { nav?.open(.album(a, "menu-\(a)")) } }
         if let a = song.artistId { Button("Go to artist", systemImage: "music.mic") { nav?.open(.artist(a, "menu-\(a)")) } }
         let fav = app.isStarred(song)
-        Button(fav ? "Unfavorite" : "Favorite", systemImage: fav ? "heart.slash" : "heart") { app.toggleStar(song.id, now: !fav) }
+        if fav { Button("Unfavorite", systemImage: "heart.slash") { app.toggleStar(song.id, now: false) } }
+        else { Button("Favorite", systemImage: "heart") { app.toggleStar(song.id, now: true) } }
         if app.downloads.has(song.id) || app.downloads.queued(song.id) {
             Button("Remove download", systemImage: "trash", role: .destructive) { app.downloads.remove(song.id) }
         } else {
@@ -65,6 +66,7 @@ struct SongRow: View {
     var swipe = true // swipe left to download / remove the download (List rows have their own swipe actions)
     let play: () -> Void
     @State private var info = false
+    @Environment(\.layoutDirection) private var direction
     @State private var dx: CGFloat = 0
     @State private var swiped = 0
     @State private var swipeEnd = Date.distantPast
@@ -105,7 +107,7 @@ struct SongRow: View {
                 else {
                     ZStack {
                         if isCurrent { EqBars(active: player.playing).foregroundStyle(.tint) }
-                        else if let number { Text("\(number)").font(.callout).monospacedDigit().foregroundStyle(.secondary) }
+                        else if let number { Text(verbatim: "\(number)").font(.callout).monospacedDigit().foregroundStyle(.secondary) }
                     }.frame(width: 26)
                 }
                 VStack(alignment: .leading, spacing: 2) {
@@ -121,7 +123,7 @@ struct SongRow: View {
                 Text(clock(song.seconds)).font(.callout).monospacedDigit().foregroundStyle(.secondary)
                 Menu { SongMenu(song: song) { info = true } } label: {
                     Image(systemName: "ellipsis").foregroundStyle(.secondary).frame(width: 36, height: 44)
-                }
+                }.accessibilityLabel("More")
             }
             .frame(minHeight: 40)
             .contentShape(Rectangle())
@@ -132,7 +134,7 @@ struct SongRow: View {
         .contextMenu { SongMenu(song: song) { info = true } }
         .sheet(isPresented: $info) { SongInfo(song: song) }
         .offset(x: dx)
-        .background(alignment: .trailing) { swipeReveal }
+        .background(alignment: direction == .rightToLeft ? .leading : .trailing) { swipeReveal } // the row is dragged physically left, so the reveal sits on the physical right
         .simultaneousGesture(swipeGesture)
         .sensoryFeedback(.impact(weight: .light), trigger: swiped)
         .padding(.vertical, cover ? 8 : 6)
@@ -157,9 +159,9 @@ struct SongList: View {
 }
 
 /// Shuffle the whole library: 200 random songs from the server, or every download when the server is gone.
-@MainActor func shuffleAllSongs(name: String) async {
+@MainActor func shuffleAllSongs() async {
     if !app.offline, let r = try? await app.fetch("getRandomSongs", [("size", "200")], RandomSongs.self), !r.list.isEmpty {
-        player.start(r.list, context: Ref(kind: "shuffle", id: "all", name: name), randomStart: true)
+        player.start(r.list, context: Ref(kind: "shuffle", id: "all", name: ""), randomStart: true) // named by Ref.title
     } else if app.offline { // also when that very request found the server gone
         player.start(app.downloads.songs, context: Ref(kind: "shuffle", id: "all", name: "Downloads"), randomStart: true)
     }

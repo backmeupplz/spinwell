@@ -78,7 +78,20 @@ struct Song: Codable, Hashable, Identifiable {
     }
 }
 
-struct Ref: Codable, Hashable { var kind: String; var id: String; var name: String }
+struct Ref: Codable, Hashable {
+    var kind: String; var id: String; var name: String
+    /// What the player and the queue call this list: the generic lists are named here, not stored, so a saved queue follows the language.
+    var title: String {
+        switch kind {
+        case "songs": String(localized: "Songs")
+        case "favorites": String(localized: "Favorites")
+        case "shuffle": String(localized: "Shuffle all")
+        case "downloads": String(localized: "Downloads")
+        case "search": String(localized: "Search: \(id)")
+        default: name
+        }
+    }
+}
 
 // MARK: responses (each is the body of `subsonic-response`)
 

@@ -1,0 +1,144 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "NSLocalNetworkUsageDescription" : {
+      "comment" : "iOS permission prompt for local network access (Info.plist NSLocalNetworkUsageDescription). \"Spinwell\" and \"Navidrome\" are product names: do not translate",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يتصل Spinwell بخادم Navidrome الخاص بك، وقد يكون على شبكتك المحلية."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spinwell verbindet sich mit deinem Navidrome-Server, der sich möglicherweise in deinem lokalen Netzwerk befindet."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spinwell connects to your Navidrome server, which may be on your local network."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spinwell se conecta a tu servidor Navidrome, que puede estar en tu red local."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spinwell se connecte à votre serveur Navidrome, qui peut se trouver sur votre réseau local."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spinwell आपके Navidrome सर्वर से कनेक्ट होता है, जो आपके लोकल नेटवर्क पर हो सकता है।"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spinwell terhubung ke server Navidrome Anda, yang mungkin berada di jaringan lokal Anda."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spinwell si connette al tuo server Navidrome, che potrebbe trovarsi nella tua rete locale."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spinwellは、ローカルネットワーク上にある可能性のあるNavidromeサーバーに接続します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spinwell은 로컬 네트워크에 있을 수 있는 Navidrome 서버에 연결합니다."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spinwell maakt verbinding met je Navidrome-server, die zich mogelijk op je lokale netwerk bevindt."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spinwell łączy się z Twoim serwerem Navidrome, który może znajdować się w Twojej sieci lokalnej."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Spinwell se conecta ao seu servidor Navidrome, que pode estar na sua rede local."
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Spinwell liga-se ao seu servidor Navidrome, que pode estar na sua rede local."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spinwell подключается к вашему серверу Navidrome, который может находиться в вашей локальной сети."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spinwell ansluter till din Navidrome-server, som kan finnas på ditt lokala nätverk."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spinwell เชื่อมต่อกับเซิร์ฟเวอร์ Navidrome ของคุณ ซึ่งอาจอยู่ในเครือข่ายภายในของคุณ"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spinwell, yerel ağında olabilecek Navidrome sunucuna bağlanır."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spinwell підключається до вашого сервера Navidrome, який може перебувати у вашій локальній мережі."
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spinwell kết nối với máy chủ Navidrome của bạn, có thể nằm trong mạng cục bộ của bạn."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spinwell 会连接到你的 Navidrome 服务器，该服务器可能位于你的本地网络中。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spinwell 會連線到你的 Navidrome 伺服器，該伺服器可能位於你的區域網路中。"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

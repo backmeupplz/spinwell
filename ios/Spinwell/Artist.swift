@@ -62,22 +62,22 @@ struct ArtistPage: View {
                         .disabled(offline && pinnedSongs.isEmpty)
                     Menu {
                         RepeatMenuItem(noun: "artist", ref: ref) { await allSongs() }
-                    } label: { RoundGlyph(symbol: "ellipsis") }
+                    } label: { RoundGlyph(symbol: "ellipsis") }.accessibilityLabel("More")
                 }.padding(.horizontal, 16).disabled(busy)
                 if let error, artist == nil { ErrorLine(text: error).frame(maxWidth: .infinity) }
                 if !songs.isEmpty {
                     VStack(alignment: .leading, spacing: 0) {
-                        Text(offline ? "Downloaded songs" : "Top songs").font(.title3.bold()).padding(.bottom, 2)
+                        (offline ? Text("Downloaded songs") : Text("Top songs")).font(.title3.bold()).padding(.bottom, 2)
                         let shown = showAllTop ? songs : Array(songs.prefix(5))
                         ForEach(shown) { s in
-                            SongRow(song: s, cover: true) { player.play(songs, from: s, context: Ref(kind: "artist", id: id, name: offline ? name : "\(name) Top songs")) }
+                            SongRow(song: s, cover: true) { player.play(songs, from: s, context: ref) }
                         }
-                        if songs.count > 5 { Button(showAllTop ? "Show less" : "Show more") { withAnimation(.smooth) { showAllTop.toggle() } }.font(.subheadline.weight(.semibold)).padding(.top, 4).frame(minHeight: 36) }
+                        if songs.count > 5 { Button { withAnimation(.smooth) { showAllTop.toggle() } } label: { showAllTop ? Text("Show less") : Text("Show more") }.font(.subheadline.weight(.semibold)).padding(.top, 4).frame(minHeight: 36) }
                     }.padding(.horizontal, 16)
                 }
                 let main = albums.filter { !isSingle($0) }, singles = albums.filter(isSingle)
-                shelf("Albums", main)
-                shelf("Singles & EPs", singles)
+                shelf(Text("Albums"), main)
+                shelf(Text("Singles & EPs"), singles)
                 let sim = offline ? similar.filter { app.downloads.artistIds.contains($0.id) } : similar
                 if !sim.isEmpty {
                     Text("Similar artists").font(.title3.bold()).padding(.horizontal, 16)
@@ -108,7 +108,7 @@ struct ArtistPage: View {
         .scrollIndicators(.hidden)
         .navigationBarTitleDisplayMode(.inline)
         .task(id: app.offline) { await load() }
-        .confirmationDialog("Remove downloaded songs?", isPresented: $confirmRemove, titleVisibility: .visible) {
+        .confirmationDialog("Remove downloads?", isPresented: $confirmRemove, titleVisibility: .visible) {
             Button("Remove download", role: .destructive) {
                 if let p = app.downloads.state.pinned.first(where: { $0.id == "artist:" + id }) { app.downloads.removeContainer(p) }
             }
@@ -131,17 +131,17 @@ struct ArtistPage: View {
                 LinearGradient(colors: [.clear, .black.opacity(0.35), .black], startPoint: .center, endPoint: .bottom)
                 VStack(alignment: .leading, spacing: 0) {
                     Text(name).font(.system(size: 30, weight: .bold)).lineLimit(2).minimumScaleFactor(0.7)
-                    Text("\(albums.count) album\(albums.count == 1 ? "" : "s")\(offline ? " downloaded" : "")").font(.footnote).foregroundStyle(.white.opacity(0.7))
+                    Text("\(albums.count) albums").font(.footnote).foregroundStyle(.white.opacity(0.7))
                 }.padding(.horizontal, 16).padding(.bottom, 8)
             }
         }
         .frame(height: 240)
     }
 
-    @ViewBuilder private func shelf(_ title: String, _ list: [Album]) -> some View {
+    @ViewBuilder private func shelf(_ title: Text, _ list: [Album]) -> some View {
         if !list.isEmpty {
             VStack(alignment: .leading, spacing: 6) {
-                Text(title).font(.title3.bold()).padding(.horizontal, 16)
+                title.font(.title3.bold()).padding(.horizontal, 16)
                 ScrollView(.horizontal, showsIndicators: false) {
                     LazyHStack(alignment: .top, spacing: 12) {
                         ForEach(list) { AlbumCard(album: $0, source: "artist-\(id)-\($0.id)") }

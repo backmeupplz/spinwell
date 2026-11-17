@@ -57,7 +57,7 @@ struct CollectionPage: View {
             if let u = Covers.color(c) { tint = Color(uiColor: u) }
         }
         .onChange(of: songs) { _, s in if app.downloads.isPinned(kind, id) { app.downloads.sync(kind, id, songs: s) } }
-        .confirmationDialog("Remove downloaded songs?", isPresented: $confirmRemove, titleVisibility: .visible) {
+        .confirmationDialog("Remove downloads?", isPresented: $confirmRemove, titleVisibility: .visible) {
             Button("Remove download", role: .destructive) { if let p = app.downloads.state.pinned.first(where: { $0.id == kind + ":" + id }) { app.downloads.removeContainer(p) } else { songs.forEach { app.downloads.remove($0.id) } } }
         }
     }
@@ -99,7 +99,7 @@ struct CollectionPage: View {
                     starred.toggle(); app.toggleStar(id, now: starred, kind: "albumId")
                 } label: {
                     RoundGlyph(symbol: starred ? "heart.fill" : "heart", color: starred ? .pink : .white).symbolEffect(.bounce, value: starred)
-                }.buttonStyle(.plain)
+                }.buttonStyle(.plain).accessibilityLabel(starred ? Text("Remove from favorites") : Text("Add to favorites"))
             }
             Menu {
                 Button("Play next", systemImage: "text.line.first.and.arrowtriangle.forward") { player.playNext(songs) }
@@ -107,7 +107,7 @@ struct CollectionPage: View {
                 RepeatMenuItem(noun: kind, ref: ref) { songs }
             } label: {
                 RoundGlyph(symbol: "ellipsis")
-            }
+            }.accessibilityLabel("More")
         }
         .padding(.horizontal, 16)
     }
@@ -141,13 +141,13 @@ struct CollectionPage: View {
                 title = a.title; artist = a.artist; artistId = a.artistId; coverArt = a.coverArt
                 songs = Self.inDiscOrder(a.song ?? []); starred = app.isStarred(id, a.starred != nil)
                 let genre = a.genre.map { [$0] } ?? []
-                meta = ([a.year.map(String.init)].compactMap { $0 } + genre + ["\(songs.count) songs", minutes(a.duration ?? Int(songs.reduce(0) { $0 + $1.seconds }))]).joined(separator: " · ")
+                meta = ([a.year.map(String.init)].compactMap { $0 } + genre + [String(localized: "\(songs.count) songs"), minutes(a.duration ?? Int(songs.reduce(0) { $0 + $1.seconds }))]).joined(separator: " · ")
                 loaded = true
             }
             if songs.isEmpty, app.offline, let a = app.downloads.albums.first(where: { $0.id == id }) {
                 title = a.title; artist = a.artist; artistId = a.artistId; coverArt = a.coverArt
                 songs = Self.inDiscOrder(app.downloads.songs(album: id))
-                meta = ([a.year.map(String.init)].compactMap { $0 } + ["\(songs.count) songs"]).joined(separator: " · ")
+                meta = ([a.year.map(String.init)].compactMap { $0 } + [String(localized: "\(songs.count) songs")]).joined(separator: " · ")
                 loaded = true
             } else if let e { error = e.localizedDescription }
             if !app.offline, let n = try? await app.fetch("getAlbumInfo2", [("id", id)], AlbumInfoR.self) { notes = n.albumInfo?.notes }
@@ -156,13 +156,13 @@ struct CollectionPage: View {
                 let p = r.playlist
                 title = p.title; coverArt = p.coverArt; artist = nil
                 songs = p.entry ?? []
-                meta = [p.owner, "\(p.songCount ?? songs.count) songs", minutes(p.duration ?? Int(songs.reduce(0) { $0 + $1.seconds }))].compactMap { $0 }.joined(separator: " · ")
+                meta = [p.owner, String(localized: "\(p.songCount ?? songs.count) songs"), minutes(p.duration ?? Int(songs.reduce(0) { $0 + $1.seconds }))].compactMap { $0 }.joined(separator: " · ")
                 loaded = true
             }
             if songs.isEmpty, app.offline, let p = app.downloads.state.pinned.first(where: { $0.id == "playlist:" + id }) {
                 title = p.name; coverArt = p.coverArt
                 songs = p.songIds.compactMap { app.downloads.state.songs[$0] }
-                meta = "\(songs.count) songs"; loaded = true
+                meta = String(localized: "\(songs.count) songs"); loaded = true
             } else if let e { error = e.localizedDescription }
         }
     }
@@ -197,7 +197,9 @@ struct DownloadButton: View {
             .frame(width: 40, height: 40).glassEffect(.regular.interactive(), in: .circle).padding(2).contentShape(Circle())
             .animation(.smooth, value: done)
         }
-        .buttonStyle(.plain).disabled((songs.isEmpty && start == nil) || loading).accessibilityIdentifier("download")
+        .buttonStyle(.plain).disabled((songs.isEmpty && start == nil) || loading)
+        .accessibilityLabel(complete ? Text("Downloaded, tap to remove") : busy ? Text("Cancel download") : Text("Download"))
+        .accessibilityIdentifier("download")
     }
 }
 
@@ -208,7 +210,15 @@ struct RepeatMenuItem: View {
     let songs: () async -> [Song]
     var body: some View {
         let on = player.isRepeating(ref)
-        Button(on ? "Stop repeating \(noun)" : "Repeat \(noun)", systemImage: on ? "repeat.circle.fill" : "repeat") {
+        let title: LocalizedStringKey = switch (noun, on) {
+        case ("artist", false): "Repeat artist"
+        case ("artist", true): "Stop repeating artist"
+        case ("playlist", false): "Repeat playlist"
+        case ("playlist", true): "Stop repeating playlist"
+        case (_, false): "Repeat album"
+        case (_, true): "Stop repeating album"
+        }
+        Button(title, systemImage: on ? "repeat.circle.fill" : "repeat") {
             Task { await player.repeatContext(await songs(), ref) }
         }
     }

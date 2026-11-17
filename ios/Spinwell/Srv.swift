@@ -13,11 +13,11 @@ enum ApiError: LocalizedError {
     case offline, notSignedIn, server(Int, String), http(Int), unreachable
     var errorDescription: String? {
         switch self {
-        case .offline: "You're offline."
-        case .notSignedIn: "Not signed in."
+        case .offline: String(localized: "You're offline.")
+        case .notSignedIn: String(localized: "Not signed in.")
         case .server(_, let m): m
-        case .http(let c): c == 404 ? "That doesn't look like a Subsonic server." : "The server answered with error \(c)."
-        case .unreachable: "Can't reach the server."
+        case .http(let c): c == 404 ? String(localized: "That doesn't look like a Subsonic server.") : String(localized: "That doesn't look like a Subsonic server (HTTP \(c)).")
+        case .unreachable: String(localized: "Can't reach the server. Check the address and your connection.")
         }
     }
 }
@@ -122,21 +122,24 @@ struct Pending: Codable { var kind: String; var id: String; var at: Double }
     func signIn(server: String, user: String, password: String) async {
         signInError = nil
         let a = Account.make(server: server, user: user.trimmingCharacters(in: .whitespaces), password: password)
-        guard !user.isEmpty, !password.isEmpty, URL(string: a.server)?.host() != nil else { signInError = "Fill in the server, username and password."; return }
+        guard !user.isEmpty, !password.isEmpty, URL(string: a.server)?.host() != nil else { signInError = String(localized: "Enter your server address, username and password."); return }
         do {
             guard let url = a.url("ping") else { throw ApiError.http(0) }
             var r = URLRequest(url: url); r.timeoutInterval = 10
             let (d, resp) = try await session.data(for: r)
             if let c = (resp as? HTTPURLResponse)?.statusCode, c != 200 { throw ApiError.http(c) }
             guard let env = try? JSONDecoder().decode(Envelope<Empty>.self, from: d) else { throw ApiError.http(404) }
-            if env.status != "ok" { throw ApiError.server(env.error?.code ?? 0, env.error?.message ?? "Sign in failed.") }
+            if env.status != "ok" {
+                let code = env.error?.code ?? 0
+                throw ApiError.server(code, code == 40 || code == 41 ? String(localized: "Wrong username or password.") : env.error?.message ?? String(localized: "Couldn't sign in."))
+            }
             Self.kcWrite(a)
             account = a
             unreachable = false
             didSignIn()
         } catch let e as ApiError { signInError = e.errorDescription }
         catch let e as URLError {
-            signInError = e.code == .appTransportSecurityRequiresSecureConnection ? "This server needs a secure connection." : "Can't reach \(a.server). Check the address and your network."
+            signInError = e.code == .appTransportSecurityRequiresSecureConnection ? String(localized: "This server needs a secure connection.") : String(localized: "Can't reach the server. Check the address and your connection.")
         } catch { signInError = error.localizedDescription }
     }
 
@@ -193,7 +196,7 @@ struct Pending: Codable { var kind: String; var id: String; var at: Double }
 
     nonisolated static func decode<T: Decodable>(_ d: Data, _ t: T.Type) async throws -> T {
         let env = try JSONDecoder().decode(Envelope<T>.self, from: d)
-        guard env.status == "ok", let b = env.body else { throw ApiError.server(env.error?.code ?? 0, env.error?.message ?? "Request failed.") }
+        guard env.status == "ok", let b = env.body else { throw ApiError.server(env.error?.code ?? 0, env.error?.message ?? String(localized: "The request failed.")) }
         return b
     }
 

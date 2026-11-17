@@ -272,9 +272,9 @@ object Audio {
         buttonsFor = now
         session?.setMediaButtonPreferences(listOf(
             CommandButton.Builder(if (q.shuffle) CommandButton.ICON_SHUFFLE_ON else CommandButton.ICON_SHUFFLE_OFF)
-                .setDisplayName("Shuffle").setSessionCommand(cmdShuffle).setSlots(CommandButton.SLOT_BACK).build(),
+                .setDisplayName(str(R.string.action_shuffle)).setSessionCommand(cmdShuffle).setSlots(CommandButton.SLOT_BACK).build(),
             CommandButton.Builder(when (q.repeat) { 1 -> CommandButton.ICON_REPEAT_ALL; 2 -> CommandButton.ICON_REPEAT_ONE; else -> CommandButton.ICON_REPEAT_OFF })
-                .setDisplayName("Repeat").setSessionCommand(cmdRepeat).setSlots(CommandButton.SLOT_FORWARD).build(),
+                .setDisplayName(str(R.string.action_repeat)).setSessionCommand(cmdRepeat).setSlots(CommandButton.SLOT_FORWARD).build(),
         ))
     }
     fun savePos() {

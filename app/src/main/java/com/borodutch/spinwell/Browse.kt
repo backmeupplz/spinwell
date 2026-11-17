@@ -22,6 +22,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -34,14 +35,15 @@ import org.json.JSONObject
 fun parseAlbums(j: JSONObject): List<Album> = j.optJSONObject("albumList2")?.list("album")?.map(Album::of).orEmpty()
 
 private val shelves = listOf(
-    "recent" to "Recently played", "newest" to "Recently added", "frequent" to "Most played", "starred" to "Favorite albums", "random" to "Rediscover",
+    "recent" to R.string.shelf_recently_played, "newest" to R.string.sort_recently_added, "frequent" to R.string.sort_most_played,
+    "starred" to R.string.shelf_favorite_albums, "random" to R.string.shelf_rediscover,
 )
 
 fun shuffleAllSongs() = Store.scope.launch {
     val songs = (if (Net.offline) null else withContext(Dispatchers.IO) {
         runCatching { Api.call("getRandomSongs", mapOf("size" to "200")).optJSONObject("randomSongs")?.list("song")?.map(Song::of) }.getOrNull()
     }) ?: Downloads.done.values.map { it.song }
-    if (songs.isNotEmpty()) Audio.shuffleAll(songs, Ctx("shuffle", "all", "Shuffle all"))
+    if (songs.isNotEmpty()) Audio.shuffleAll(songs, Ctx("shuffle", "all"))
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -57,23 +59,23 @@ fun HomeScreen() {
         LazyColumn(Modifier.fillMaxSize(), Scroll.list("home"), contentPadding = pagePadding(2.dp)) {
             item {
                 Row(Modifier.padding(end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                    ScreenTitle("Spinwell", Modifier.weight(1f))
-                    IconBtn(Ic.Settings, "Settings") { Nav.push(Route.Settings) }
+                    ScreenTitle(stringResource(R.string.app_name), Modifier.weight(1f))
+                    IconBtn(Ic.Settings, stringResource(R.string.title_settings)) { Nav.push(Route.Settings) }
                 }
             }
             item {
                 Row(Modifier.padding(horizontal = 16.dp, vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Pill("Shuffle all", Ic.Shuffle, true, Modifier.weight(1f)) { shuffleAllSongs() }
-                    Pill("Favorites", Ic.Heart, false, Modifier.weight(1f)) { Nav.libraryTab = 4; Nav.go(Route.Library) }
+                    Pill(stringResource(R.string.action_shuffle_all), Ic.Shuffle, true, Modifier.weight(1f)) { shuffleAllSongs() }
+                    Pill(stringResource(R.string.title_favorites), Ic.Heart, false, Modifier.weight(1f)) { Nav.libraryTab = 4; Nav.go(Route.Library) }
                 }
             }
-            if (!any && have.isEmpty() && offline) item { Empty("Offline. Open Downloads to play what you saved.", icon = Ic.CloudOff) }
-            if (have.isNotEmpty()) item(key = "shelf-downloaded") { Shelf("Downloaded albums", have, "home-dl") }
+            if (!any && have.isEmpty() && offline) item { Empty(stringResource(R.string.empty_home_offline), icon = Ic.CloudOff) }
+            if (have.isNotEmpty()) item(key = "shelf-downloaded") { Shelf(stringResource(R.string.title_downloaded_albums), have, "home-dl") }
             states.forEachIndexed { i, st ->
                 val list = st.value.orEmpty()
                 if (list.isNotEmpty()) {
                     val (type, title) = shelves[i]
-                    item(key = "shelf-$type") { Shelf(title, list, "home-$type") }
+                    item(key = "shelf-$type") { Shelf(stringResource(title), list, "home-$type") }
                 }
             }
         }
@@ -151,22 +153,22 @@ fun CollectionScreen(id: String, playlist: Boolean, share: String, routeCover: S
                         if (!playlist) Heart(Fav.on(id, c.starred), size = 44.dp) { Fav.toggle(id, c.starred, "albumId") }
                         var menu by remember { mutableStateOf(false) }
                         Box {
-                            IconBtn(Ic.More, "More", size = 44.dp) { menu = true }
+                            IconBtn(Ic.More, stringResource(R.string.a11y_more), size = 44.dp) { menu = true }
                             DropdownMenu(menu, { menu = false }, containerColor = Surface2) {
-                                DropdownMenuItem({ Text("Play next") }, { menu = false; songs.asReversed().forEach { Audio.playNext(it) } })
-                                DropdownMenuItem({ Text("Add to queue") }, { menu = false; songs.forEach { Audio.addToQueue(it) } })
+                                DropdownMenuItem({ Text(stringResource(R.string.menu_play_next)) }, { menu = false; songs.asReversed().forEach { Audio.playNext(it) } })
+                                DropdownMenuItem({ Text(stringResource(R.string.menu_add_to_queue)) }, { menu = false; songs.forEach { Audio.addToQueue(it) } })
                                 RepeatMenuItem(kind, id, songs, ctx) { menu = false }
-                                if (c.artistId.isNotEmpty()) DropdownMenuItem({ Text("Go to artist") }, { menu = false; Nav.push(Route.Artist(c.artistId, "album")) })
+                                if (c.artistId.isNotEmpty()) DropdownMenuItem({ Text(stringResource(R.string.menu_go_to_artist)) }, { menu = false; Nav.push(Route.Artist(c.artistId, "album")) })
                             }
                         }
                     }
                 }
             }
-            if (c == null && st.error != null) item { Empty(if (Net.offline) "This isn't available offline." else "Couldn't load: ${st.error}") }
+            if (c == null && st.error != null) item { Empty(if (Net.offline) stringResource(R.string.err_not_available_offline) else stringResource(R.string.err_load_failed, st.error.orEmpty())) }
             val multi = !playlist && songs.map { it.disc }.distinct().size > 1
             songs.forEachIndexed { i, s ->
                 if (multi && (i == 0 || songs[i - 1].disc != s.disc)) item(key = "disc-${s.disc}") {
-                    Text("Disc ${s.disc}", color = Muted, style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(start = 16.dp, top = 10.dp, bottom = 2.dp))
+                    Text(stringResource(R.string.label_disc, s.disc), color = Muted, style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(start = 16.dp, top = 10.dp, bottom = 2.dp))
                 }
                 item(key = "s-$i-${s.id}") {
                     if (playlist) SongRow(s, showCover = true, queue = songs, index = i, ctx = ctx)
@@ -187,8 +189,12 @@ fun CollectionScreen(id: String, playlist: Boolean, share: String, routeCover: S
 fun RepeatMenuItem(kind: String, id: String, songs: List<Song>, ctx: Ctx, dismiss: () -> Unit) {
     val q = Audio.q
     val on = q.ctx.kind == kind && q.ctx.id == id && q.items.isNotEmpty() && q.repeat == 1
-    val noun = if (kind == "playlist") "playlist" else if (kind == "artist") "artist" else "album"
-    DropdownMenuItem({ Text(if (on) "Stop repeating $noun" else "Repeat $noun", color = if (on) Accent else Color.Unspecified) }, {
+    val label = when (kind) {
+        "playlist" -> if (on) R.string.menu_stop_repeating_playlist else R.string.menu_repeat_playlist
+        "artist" -> if (on) R.string.menu_stop_repeating_artist else R.string.menu_repeat_artist
+        else -> if (on) R.string.menu_stop_repeating_album else R.string.menu_repeat_album
+    }
+    DropdownMenuItem({ Text(stringResource(label), color = if (on) Accent else Color.Unspecified) }, {
         dismiss()
         if (on) Audio.setRepeat(0)
         else if (q.ctx.kind == kind && q.ctx.id == id && q.items.isNotEmpty()) Audio.setRepeat(1)
@@ -212,7 +218,7 @@ fun DownloadButton(kind: String, id: String, name: String, cover: String, songs:
     val scope = rememberCoroutineScope()
     Box(Modifier.size(44.dp), contentAlignment = Alignment.Center) {
         if (busy) CircularProgressIndicator({ p.coerceAtLeast(0.03f) }, Modifier.size(28.dp), Accent, strokeWidth = 2.5.dp)
-        IconBtn(if (pin != null && p >= 1f) Ic.DownloadDone else Ic.Download, if (pin != null) "Downloaded, tap to remove" else "Download", tint = if (pin != null) Accent else LocalContentColor.current, size = 44.dp, glyph = if (busy) 16.dp else 22.dp) {
+        IconBtn(if (pin != null && p >= 1f) Ic.DownloadDone else Ic.Download, stringResource(if (pin != null) R.string.a11y_downloaded_tap_remove else R.string.action_download), tint = if (pin != null) Accent else LocalContentColor.current, size = 44.dp, glyph = if (busy) 16.dp else 22.dp) {
             if (pin != null) menu = true
             else if (!Net.offline) scope.launch {
                 val l = if (songs.isNotEmpty() || load == null) songs else load()
@@ -221,7 +227,7 @@ fun DownloadButton(kind: String, id: String, name: String, cover: String, songs:
         }
         DropdownMenu(menu, { menu = false }, containerColor = Surface2) {
             val bytes = have.sumOf { Downloads.done[it.id]?.bytes ?: 0L }
-            DropdownMenuItem({ Text(if (busy) "Cancel download" else "Remove download" + if (bytes > 0) " · ${fmtBytes(bytes)}" else "") }, { menu = false; pin?.let { Downloads.removeContainer(it) } })
+            DropdownMenuItem({ Text(if (busy) stringResource(R.string.action_cancel_download) else stringResource(R.string.action_remove_download) + if (bytes > 0) " · ${fmtBytes(bytes)}" else "") }, { menu = false; pin?.let { Downloads.removeContainer(it) } })
         }
     }
 }
@@ -266,7 +272,7 @@ fun ArtistScreen(id: String, share: String) {
                 Box(Modifier.fillMaxWidth().height(240.dp).clipToBounds()) {
                     CoverArt(img, 1200, Modifier.fillMaxWidth().wrapContentHeight(BiasAlignment.Vertical(-0.4f), unbounded = true), 0.dp, "cover-$share-$id", placeholderIcon = false, behind = fallback)
                     Box(Modifier.matchParentSize().background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.25f), Color.Transparent, Bg), startY = 0f)))
-                    Text(name.ifBlank { " " }, style = MaterialTheme.typography.headlineMedium.copy(fontSize = 28.sp, lineHeight = 34.sp), modifier = Modifier.align(Alignment.BottomStart).padding(start = 16.dp, end = 16.dp, bottom = 8.dp), maxLines = 2)
+                    Text(name.ifBlank { " " }, style = MaterialTheme.typography.headlineMedium.copy(fontSize = 28.sp, lineHeight = 34.sp), modifier = Modifier.align(Alignment.BottomStart).padding(start = 16.dp, end = 16.dp, bottom = 8.dp), maxLines = 2, overflow = TextOverflow.Ellipsis)
                 }
             }
             item {
@@ -276,7 +282,7 @@ fun ArtistScreen(id: String, share: String) {
                     if (a != null && !(offline && mine.isEmpty())) DownloadButton("artist", id, name, fallback.orEmpty(), emptyList(), load = { withContext(Dispatchers.IO) { allArtistSongs(albums) } })
                     if (a != null) Heart(Fav.on(id, a.starred), size = 44.dp) { Fav.toggle(id, a.starred, "artistId") }
                     Box {
-                        IconBtn(Ic.More, "More", size = 44.dp) { menu = true }
+                        IconBtn(Ic.More, stringResource(R.string.a11y_more), size = 44.dp) { menu = true }
                         DropdownMenu(menu, { menu = false }, containerColor = Surface2) {
                             var repeatSongs by remember { mutableStateOf(emptyList<Song>()) }
                             LaunchedEffect(menu) { if (menu) repeatSongs = allSongs() }
@@ -286,15 +292,15 @@ fun ArtistScreen(id: String, share: String) {
                 }
             }
             if (songsShown.isNotEmpty()) {
-                item { SectionTitle(if (offline) "Downloaded songs" else "Top songs") }
+                item { SectionTitle(stringResource(if (offline) R.string.title_downloaded_songs else R.string.title_top_songs)) }
                 items(shown.size, key = { "top-${shown[it].id}" }) { i -> SongRow(shown[i], showCover = true, queue = songsShown, index = i, ctx = ctx, showAlbum = false) }
-                if (songsShown.size > 5) item { TextButton({ allTop = !allTop }, Modifier.padding(start = 8.dp)) { Text(if (allTop) "Show less" else "Show more", color = Accent) } }
+                if (songsShown.size > 5) item { TextButton({ allTop = !allTop }, Modifier.padding(start = 8.dp)) { Text(stringResource(if (allTop) R.string.action_show_less else R.string.action_show_more), color = Accent) } }
             }
-            if (main.isNotEmpty()) item { AlbumList(if (offline) "Downloaded albums" else "Albums", main, "artist-$id") }
-            if (singles.isNotEmpty()) item { AlbumList("Singles & EPs", singles, "artist-$id") }
+            if (main.isNotEmpty()) item { AlbumList(stringResource(if (offline) R.string.title_downloaded_albums else R.string.title_albums), main, "artist-$id") }
+            if (singles.isNotEmpty()) item { AlbumList(stringResource(R.string.title_singles_eps), singles, "artist-$id") }
             val similar = if (offline) emptyList() else info?.second.orEmpty()
             if (similar.isNotEmpty()) item {
-                SectionTitle("Similar artists")
+                SectionTitle(stringResource(R.string.title_similar_artists))
                 LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     items(similar, key = { it.id }) { s -> ArtistChip(s) { Nav.push(Route.Artist(s.id, "similar")) } }
                 }
@@ -302,12 +308,12 @@ fun ArtistScreen(id: String, share: String) {
             val bio = info?.first.orEmpty()
             if (bio.isNotBlank()) item {
                 Column(Modifier.padding(16.dp).clickable { bioOpen = !bioOpen }) {
-                    Text("About", style = MaterialTheme.typography.titleLarge)
+                    Text(stringResource(R.string.title_about), style = MaterialTheme.typography.titleLarge)
                     Spacer(Modifier.height(4.dp))
                     Text(bio, color = Muted, style = MaterialTheme.typography.bodyMedium, maxLines = if (bioOpen) Int.MAX_VALUE else 3, overflow = TextOverflow.Ellipsis)
                 }
             }
-            if (a == null && st.error != null) item { Empty(if (offline) "Nothing from this artist is downloaded." else "Couldn't load: ${st.error}") }
+            if (a == null && st.error != null) item { Empty(if (offline) stringResource(R.string.empty_artist_not_downloaded) else stringResource(R.string.err_load_failed, st.error.orEmpty())) }
         }
         StatusScrim(Modifier.align(Alignment.TopCenter), LocalTop.current, visible = { list.firstVisibleItemIndex > 0 || list.firstVisibleItemScrollOffset > 300 })
         BackButton(Modifier.padding(top = LocalTop.current))

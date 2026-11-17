@@ -23,6 +23,8 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -38,23 +40,23 @@ fun DownloadsScreen() {
     Column(Modifier.fillMaxSize().padding(top = LocalTop.current)) {
         LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = LocalBottom.current + 16.dp)) {
             item {
-                ScreenTitle("Downloads")
+                ScreenTitle(stringResource(R.string.tab_downloads))
                 Text("${fmtBytes(dl.totalBytes())} · ${songsLabel(dl.done.size)}", color = Muted, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = 16.dp, bottom = 2.dp))
             }
-            if (dl.done.isNotEmpty()) item(key = "ps") { PlayShuffle(Offline.songs, Ctx("downloads", "all", "Downloads")) }
+            if (dl.done.isNotEmpty()) item(key = "ps") { PlayShuffle(Offline.songs, Ctx("downloads", "all")) }
             if (dl.queue.isNotEmpty()) item {
                 val cur = dl.queue.firstOrNull { it.id == dl.currentId } ?: dl.queue.first()
                 Column(Modifier.padding(horizontal = 16.dp, vertical = 6.dp).background(Surface1, RoundedCornerShape(12.dp)).padding(start = 14.dp, end = 6.dp, top = 8.dp, bottom = 12.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
-                            Text("Downloading", style = MaterialTheme.typography.labelLarge, color = Accent)
+                            Text(stringResource(R.string.status_downloading), style = MaterialTheme.typography.labelLarge, color = Accent)
                             Text(cur.title, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             Text(
-                                when { dl.paused -> "Paused"; dl.status.isNotEmpty() -> dl.status; else -> "" } + (if (dl.paused || dl.status.isNotEmpty()) " · " else "") + "${dl.queue.size} in queue",
+                                listOfNotNull(if (dl.paused) stringResource(R.string.status_paused) else dl.status?.text(), pluralStringResource(R.plurals.fmt_in_queue, dl.queue.size, dl.queue.size)).joinToString(" · "),
                                 color = Muted, style = MaterialTheme.typography.bodySmall,
                             )
                         }
-                        TextButton({ if (dl.paused) dl.resumeAll() else dl.pauseAll() }) { Text(if (dl.paused) "Resume all" else "Pause all", color = Accent) }
+                        TextButton({ if (dl.paused) dl.resumeAll() else dl.pauseAll() }) { Text(stringResource(if (dl.paused) R.string.action_resume_all else R.string.action_pause_all), color = Accent) }
                     }
                     Spacer(Modifier.height(6.dp))
                     val p = if (cur.id == dl.currentId && cur.size > 0) (dl.currentBytes.toFloat() / cur.size).coerceIn(0f, 1f) else 0f
@@ -62,21 +64,23 @@ fun DownloadsScreen() {
                 }
             }
             if (dl.pinned.isNotEmpty()) {
-                item { SectionTitle("Albums and playlists") }
+                item { SectionTitle(stringResource(R.string.title_albums_playlists)) }
                 items(dl.pinned.toList(), key = { "${it.kind}-${it.id}" }) { p ->
                     var menu by remember { mutableStateOf(false) }
                     val songs = p.songIds.mapNotNull { dl.done[it]?.song }
                     val pr = dl.progress(p.songIds.mapNotNull { id -> dl.done[id]?.song ?: dl.queue.firstOrNull { it.id == id } })
                     val ctx = Ctx(p.kind, p.id, p.name)
-                    MediaRow(p.coverArt, p.name, round = p.kind == "artist", sub = "${p.kind.replaceFirstChar { it.uppercase() }} · ${songs.size}/${p.songIds.size} songs · ${fmtBytes(songs.sumOf { dl.done[it.id]?.bytes ?: 0 })}" + if (pr < 1f && dl.queue.isNotEmpty()) " · downloading" else "",
+                    val kindName = stringResource(when (p.kind) { "album" -> R.string.label_album; "artist" -> R.string.label_artist; else -> R.string.label_playlist })
+                    val progress = pluralStringResource(R.plurals.fmt_songs_progress, p.songIds.size, songs.size, p.songIds.size)
+                    MediaRow(p.coverArt, p.name, round = p.kind == "artist", sub = "$kindName · $progress · ${fmtBytes(songs.sumOf { dl.done[it.id]?.bytes ?: 0 })}" + if (pr < 1f && dl.queue.isNotEmpty()) " · " + stringResource(R.string.status_downloading) else "",
                         trailing = {
                             Box {
-                                IconBtn(Ic.More, "More", size = 44.dp, tint = Muted) { menu = true }
+                                IconBtn(Ic.More, stringResource(R.string.a11y_more), size = 44.dp, tint = Muted) { menu = true }
                                 DropdownMenu(menu, { menu = false }, containerColor = Surface2) {
-                                    DropdownMenuItem({ Text("Play") }, { menu = false; if (songs.isNotEmpty()) Audio.play(songs, 0, ctx) })
-                                    DropdownMenuItem({ Text("Shuffle") }, { menu = false; if (songs.isNotEmpty()) Audio.shuffleAll(songs, ctx) })
+                                    DropdownMenuItem({ Text(stringResource(R.string.action_play)) }, { menu = false; if (songs.isNotEmpty()) Audio.play(songs, 0, ctx) })
+                                    DropdownMenuItem({ Text(stringResource(R.string.action_shuffle)) }, { menu = false; if (songs.isNotEmpty()) Audio.shuffleAll(songs, ctx) })
                                     RepeatMenuItem(p.kind, p.id, songs, ctx) { menu = false }
-                                    DropdownMenuItem({ Text("Remove download") }, { menu = false; dl.removeContainer(p) })
+                                    DropdownMenuItem({ Text(stringResource(R.string.action_remove_download)) }, { menu = false; dl.removeContainer(p) })
                                 }
                             }
                         }) { Nav.push(when (p.kind) { "album" -> Route.Album(p.id, "dl", p.coverArt); "artist" -> Route.Artist(p.id, "dl"); else -> Route.Playlist(p.id, "dl", p.coverArt) }) }
@@ -84,11 +88,11 @@ fun DownloadsScreen() {
             }
             val loose = dl.loose.map { it.song }
             if (loose.isNotEmpty()) {
-                item { SectionTitle("Songs") }
-                itemsIndexed(loose, key = { _, s -> "l-${s.id}" }) { i, s -> SongRow(s, showCover = true, queue = loose, index = i, ctx = Ctx("downloads", "loose", "Downloads")) }
+                item { SectionTitle(stringResource(R.string.title_songs)) }
+                itemsIndexed(loose, key = { _, s -> "l-${s.id}" }) { i, s -> SongRow(s, showCover = true, queue = loose, index = i, ctx = Ctx("downloads", "loose")) }
             }
             if (dl.done.isEmpty() && dl.queue.isEmpty()) item {
-                Empty("Nothing downloaded yet. Tap the download arrow on an album, playlist or artist, or swipe a song left. Downloads play without a connection.", icon = Ic.Download)
+                Empty(stringResource(R.string.empty_downloads), icon = Ic.Download)
             }
         }
     }
@@ -111,7 +115,7 @@ fun IconTile(icon: ImageVector, tint: Color, size: androidx.compose.ui.unit.Dp =
 /** a titled group of rows on one card */
 @Composable
 private fun Section(title: String, content: @Composable ColumnScope.() -> Unit) {
-    Text(title.uppercase(), style = MaterialTheme.typography.labelSmall, color = Muted, letterSpacing = 0.8.sp, modifier = Modifier.padding(start = 28.dp, top = 18.dp, bottom = 6.dp))
+    Text(title.uppercase(java.util.Locale.getDefault()), style = MaterialTheme.typography.labelSmall, color = Muted, letterSpacing = caps(0.8f), modifier = Modifier.padding(start = 28.dp, top = 18.dp, bottom = 6.dp))
     Column(Modifier.padding(horizontal = 16.dp).fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Surface1), content = content)
 }
 
@@ -140,8 +144,8 @@ fun SettingRow(
                 if (sub != null) Text(sub, color = Muted, style = MaterialTheme.typography.bodySmall)
                 below?.invoke()
             }
-            if (value != null) Text(value, color = Muted, style = MaterialTheme.typography.bodyMedium, maxLines = 1, modifier = Modifier.padding(start = 8.dp).widthIn(max = 130.dp))
-            if (value != null && onClick != null) Icon(Ic.Chevron, null, Modifier.size(18.dp), Muted)
+            if (value != null) Text(value, color = Muted, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = 8.dp).widthIn(max = 130.dp))
+            if (value != null && onClick != null) Icon(Ic.Chevron, null, Modifier.size(18.dp).mirrorRtl(), Muted)
             trailing?.invoke()
             InfoButton(title, info)
         }
@@ -150,12 +154,13 @@ fun SettingRow(
 }
 
 @Composable
-private fun Choice(title: String, options: List<Pair<Int, String>>, selected: Int, onPick: (Int) -> Unit, onDismiss: () -> Unit) = AlertDialog(
-    onDismissRequest = onDismiss, containerColor = Surface2, confirmButton = {}, dismissButton = { TextButton(onDismiss) { Text("Cancel") } },
+private fun Choice(title: String, options: List<Int>, selected: Int, onPick: (Int) -> Unit, onDismiss: () -> Unit) = AlertDialog(
+    onDismissRequest = onDismiss, containerColor = Surface2, confirmButton = {}, dismissButton = { TextButton(onDismiss) { Text(stringResource(R.string.action_cancel)) } },
     title = { Text(title) },
     text = {
         Column {
-            options.forEach { (k, n) ->
+            options.forEach { k ->
+                val n = kbpsName(k)
                 Row(Modifier.fillMaxWidth().clickable { onPick(k); onDismiss() }.padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                     RadioButton(k == selected, { onPick(k); onDismiss() }, colors = RadioButtonDefaults.colors(selectedColor = Accent))
                     Text(n)
@@ -165,8 +170,9 @@ private fun Choice(title: String, options: List<Pair<Int, String>>, selected: In
     },
 )
 
-private val kbpsOptions = listOf(0 to "Original", 320 to "320 kbps", 256 to "256 kbps", 192 to "192 kbps", 128 to "128 kbps")
-private fun kbpsName(k: Int) = if (k <= 0) "Original" else "$k kbps"
+private val kbpsOptions = listOf(0, 320, 256, 192, 128)
+@Composable
+private fun kbpsName(k: Int) = if (k <= 0) stringResource(R.string.label_original) else stringResource(R.string.fmt_kbps, k)
 
 @Composable
 private fun SwitchRow(title: String, info: String, icon: ImageVector, tint: Color, on: Boolean, divider: Boolean = true, set: (Boolean) -> Unit) =
@@ -185,7 +191,7 @@ fun SettingsScreen() {
     val total = (cacheBytes + dlBytes).coerceAtLeast(1)
     Box(Modifier.fillMaxSize()) {
         LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(top = LocalTop.current + 48.dp, bottom = LocalBottom.current + 16.dp)) {
-            item { ScreenTitle("Settings") }
+            item { ScreenTitle(stringResource(R.string.title_settings)) }
             item {
                 // the account: server, user, version, and whether it answers right now
                 Column(Modifier.padding(horizontal = 16.dp, vertical = 6.dp).fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Surface1)) {
@@ -199,48 +205,48 @@ fun SettingsScreen() {
                                 val up = !Net.offline
                                 Box(Modifier.size(8.dp).background(if (up) Green else Orange, androidx.compose.foundation.shape.CircleShape))
                                 Spacer(Modifier.width(6.dp))
-                                Text(if (up) "Online" else if (Settings.offlineMode) "Offline mode" else "Can't reach the server", style = MaterialTheme.typography.bodySmall, color = if (up) Green else Orange)
+                                Text(stringResource(if (up) R.string.status_online else if (Settings.offlineMode) R.string.settings_offline_mode else R.string.status_unreachable), style = MaterialTheme.typography.bodySmall, color = if (up) Green else Orange)
                             }
                         }
                     }
                     HorizontalDivider(color = Color.White.copy(alpha = 0.06f))
                     Row(Modifier.fillMaxWidth().clickable { dialog = "signout" }.padding(start = 16.dp, end = 0.dp).heightIn(min = 44.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text("Sign out", color = Accent, style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
-                        InfoButton("Server", "The server you're signed in to. Signing out keeps your downloads; they come back when you sign in to the same account.")
+                        Text(stringResource(R.string.action_sign_out), color = Accent, style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
+                        InfoButton(stringResource(R.string.label_server), stringResource(R.string.info_server))
                     }
                 }
             }
             item {
-                Section("Playback") {
-                    SettingRow("Streaming quality on Wi-Fi", "How songs are sent when you're on Wi-Fi. Original plays the file as it is on your server, so FLAC stays lossless; a number asks the server to convert to MP3 at that bitrate, which uses less data but can't sound better than the original.",
+                Section(stringResource(R.string.settings_group_playback)) {
+                    SettingRow(stringResource(R.string.settings_wifi_quality), stringResource(R.string.info_wifi_quality),
                         Ic.Wifi, Accent, kbpsName(Settings.wifiKbps), onClick = { dialog = "wifi" })
-                    SettingRow("Streaming quality on mobile data", "The same choice for when you're on mobile data. A lower bitrate saves your data plan and starts faster on a weak signal.",
+                    SettingRow(stringResource(R.string.settings_mobile_quality), stringResource(R.string.info_mobile_quality),
                         Ic.Cell, Accent, kbpsName(Settings.mobileKbps), onClick = { dialog = "mobile" })
-                    SwitchRow("Resume playing on open", "If music was playing when the app was closed, start it again right away when you open the app. When this is off, the player opens where you left off, paused, so one tap continues.",
+                    SwitchRow(stringResource(R.string.settings_resume), stringResource(R.string.info_resume),
                         Ic.PlayCircle, Accent, Settings.resume) { Settings.resume = it }
-                    SwitchRow("Report plays to server", "Tell your server what you listen to, so Recently played and Most played stay accurate and play counts go up. Plays made offline are sent once you're back online.",
+                    SwitchRow(stringResource(R.string.settings_scrobble), stringResource(R.string.info_scrobble),
                         Ic.History, Accent, Settings.scrobble, divider = false) { Settings.scrobble = it }
                 }
-                Section("Downloads") {
-                    SettingRow("Download quality", "How songs are saved for offline listening. Original keeps the exact file from your server and takes the most space; 320 or 192 asks the server to convert to MP3, which can make a FLAC album several times smaller.",
+                Section(stringResource(R.string.tab_downloads)) {
+                    SettingRow(stringResource(R.string.settings_download_quality), stringResource(R.string.info_download_quality),
                         Ic.Tune, Green, kbpsName(Settings.dlKbps), onClick = { dialog = "dl" })
-                    SwitchRow("Download over mobile data", "When this is off, downloads wait for Wi-Fi and start again by themselves once you're connected.",
+                    SwitchRow(stringResource(R.string.settings_download_mobile), stringResource(R.string.info_download_mobile),
                         Ic.Download, Green, Settings.dlMobile, divider = false) { Settings.dlMobile = it }
                 }
-                Section("Offline") {
-                    SwitchRow("Offline mode", "Use only what's downloaded and never contact the server. The app also switches to this by itself whenever your server can't be reached, for example when Tailscale is off.",
+                Section(stringResource(R.string.settings_group_offline)) {
+                    SwitchRow(stringResource(R.string.settings_offline_mode), stringResource(R.string.info_offline_mode),
                         Ic.CloudOff, Orange, Settings.offlineMode, divider = false) { Settings.offlineMode = it; if (!it) Net.ping() }
                 }
-                Section("Storage") {
-                    SettingRow("Downloads", "Songs saved for offline listening. Removing them frees the space; you can download them again any time.",
+                Section(stringResource(R.string.settings_group_storage)) {
+                    SettingRow(stringResource(R.string.tab_downloads), stringResource(R.string.info_downloads),
                         Ic.Storage, Green, sub = "${fmtBytes(dlBytes)} · ${songsLabel(Downloads.done.size)}", below = { UsageBar(dlBytes.toFloat() / total, Green) },
-                        trailing = { TextButton({ dialog = "rmdl" }, enabled = Downloads.done.isNotEmpty()) { Text("Remove all", color = if (Downloads.done.isNotEmpty()) Accent else Muted) } })
-                    SettingRow("Cache", "Album covers and library pages kept on your phone so screens open instantly and you can browse offline. Clearing it is safe; it fills up again as you browse.",
-                        Ic.Storage, Blue, sub = "Covers and library: ${fmtBytes(cacheBytes)}", below = { UsageBar(cacheBytes.toFloat() / total, Blue) }, divider = false,
-                        trailing = { TextButton({ Api.clearCache(); dialog = "x" }) { Text("Clear", color = Accent) } })
+                        trailing = { TextButton({ dialog = "rmdl" }, enabled = Downloads.done.isNotEmpty()) { Text(stringResource(R.string.action_remove_all), color = if (Downloads.done.isNotEmpty()) Accent else Muted) } })
+                    SettingRow(stringResource(R.string.settings_cache), stringResource(R.string.info_cache),
+                        Ic.Storage, Blue, sub = stringResource(R.string.fmt_cache_size, fmtBytes(cacheBytes)), below = { UsageBar(cacheBytes.toFloat() / total, Blue) }, divider = false,
+                        trailing = { TextButton({ Api.clearCache(); dialog = "x" }) { Text(stringResource(R.string.action_clear), color = Accent) } })
                 }
-                Section("About") {
-                    SettingRow("About", "Spinwell is a free, open source player for your own Navidrome or OpenSubsonic server. No ads, no analytics.",
+                Section(stringResource(R.string.title_about)) {
+                    SettingRow(stringResource(R.string.title_about), stringResource(R.string.info_about),
                         Ic.Info, Pink, sub = "Spinwell $version", divider = false)
                 }
                 Text("git.borodutch.com/backmeupplz/spinwell", color = Muted, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = 28.dp, top = 8.dp))
@@ -249,12 +255,12 @@ fun SettingsScreen() {
         BackButton(Modifier.padding(top = LocalTop.current))
     }
     when (dialog) {
-        "wifi" -> Choice("Streaming quality on Wi-Fi", kbpsOptions, Settings.wifiKbps, { Settings.wifiKbps = it }) { dialog = "" }
-        "mobile" -> Choice("Streaming quality on mobile data", kbpsOptions, Settings.mobileKbps, { Settings.mobileKbps = it }) { dialog = "" }
-        "dl" -> Choice("Download quality", kbpsOptions.filter { it.first in setOf(0, 320, 192) }, Settings.dlKbps, { Settings.dlKbps = it }) { dialog = "" }
-        "signout" -> AlertDialog({ dialog = "" }, containerColor = Surface2, title = { Text("Sign out?") }, text = { Text("Your downloads stay on this phone and come back when you sign in to the same account.") },
-            confirmButton = { TextButton({ dialog = ""; Nav.stack.clear(); Nav.stack.add(Route.Home); Store.signOut() }) { Text("Sign out", color = Accent) } }, dismissButton = { TextButton({ dialog = "" }) { Text("Cancel") } })
-        "rmdl" -> AlertDialog({ dialog = "" }, containerColor = Surface2, title = { Text("Remove all downloads?") }, text = { Text("This frees ${fmtBytes(Downloads.totalBytes())}. You can download songs again any time.") },
-            confirmButton = { TextButton({ dialog = ""; Downloads.removeAll() }) { Text("Remove all", color = Accent) } }, dismissButton = { TextButton({ dialog = "" }) { Text("Cancel") } })
+        "wifi" -> Choice(stringResource(R.string.settings_wifi_quality), kbpsOptions, Settings.wifiKbps, { Settings.wifiKbps = it }) { dialog = "" }
+        "mobile" -> Choice(stringResource(R.string.settings_mobile_quality), kbpsOptions, Settings.mobileKbps, { Settings.mobileKbps = it }) { dialog = "" }
+        "dl" -> Choice(stringResource(R.string.settings_download_quality), kbpsOptions.filter { it in setOf(0, 320, 192) }, Settings.dlKbps, { Settings.dlKbps = it }) { dialog = "" }
+        "signout" -> AlertDialog({ dialog = "" }, containerColor = Surface2, title = { Text(stringResource(R.string.title_sign_out_confirm)) }, text = { Text(stringResource(R.string.msg_sign_out_confirm)) },
+            confirmButton = { TextButton({ dialog = ""; Nav.stack.clear(); Nav.stack.add(Route.Home); Store.signOut() }) { Text(stringResource(R.string.action_sign_out), color = Accent) } }, dismissButton = { TextButton({ dialog = "" }) { Text(stringResource(R.string.action_cancel)) } })
+        "rmdl" -> AlertDialog({ dialog = "" }, containerColor = Surface2, title = { Text(stringResource(R.string.title_remove_all_downloads)) }, text = { Text(stringResource(R.string.msg_remove_all_downloads, fmtBytes(Downloads.totalBytes()))) },
+            confirmButton = { TextButton({ dialog = ""; Downloads.removeAll() }) { Text(stringResource(R.string.action_remove_all), color = Accent) } }, dismissButton = { TextButton({ dialog = "" }) { Text(stringResource(R.string.action_cancel)) } })
     }
 }

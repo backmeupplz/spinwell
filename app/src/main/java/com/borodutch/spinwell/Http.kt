@@ -20,7 +20,7 @@ fun getJson(url: String, timeoutMs: Int = 15_000, onOpen: (HttpURLConnection) ->
         val body = c.inputStream.use { it.readBytes().toString(Charsets.UTF_8) }
         val r = runCatching { JSONObject(body).getJSONObject("subsonic-response") }.getOrNull()
             ?: throw ApiError(0, "Not a Subsonic server")
-        if (r.optString("status") == "failed") r.optJSONObject("error").let { throw ApiError(it?.optInt("code") ?: 0, it?.optString("message") ?: "Failed") }
+        if (r.optString("status") == "failed") r.optJSONObject("error").let { throw ApiError(it?.optInt("code") ?: 0, it?.optString("message") ?: str(R.string.err_request_failed)) }
         return r
     } finally { c.disconnect() }
 }

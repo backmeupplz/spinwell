@@ -71,7 +71,7 @@ struct SearchView: View {
             LazyVStack(alignment: .leading, spacing: 12) {
                 if q.isEmpty { recentList }
                 else {
-                    if resultsFor == q, results.isEmpty, !loading { ContentUnavailableView.search(text: q).padding(.top, 40) }
+                    if resultsFor == q, results.isEmpty, !loading { ContentUnavailableView { Image(systemName: "magnifyingglass") } description: { Text("Nothing found for “\(q)”.") }.padding(.top, 40) }
                     content
                 }
                 Color.clear.frame(height: 90)
@@ -80,7 +80,7 @@ struct SearchView: View {
         }
         .scrollDismissesKeyboard(.immediately)
         .navigationTitle("Search").navigationBarTitleDisplayMode(.inline)
-        .searchable(text: $query, prompt: "Artists, albums, songs")
+        .searchable(text: $query, prompt: app.offline ? Text("Search downloads") : Text("Artists, albums, songs"))
         .searchFocused($focus)
         .onSubmit(of: .search) { Recents.add(q); recents = Recents.all }
         .onAppear { focus = true; recents = Recents.all }
@@ -92,7 +92,7 @@ struct SearchView: View {
 
     @ViewBuilder private var recentList: some View {
         if recents.isEmpty {
-            ContentUnavailableView("Search your library", systemImage: "magnifyingglass", description: Text("Artists, albums and songs, even offline."))
+            ContentUnavailableView { Image(systemName: "magnifyingglass") } description: { Text("Find anything in your library.") }
                 .padding(.top, 60)
         } else {
             HStack {
@@ -106,7 +106,7 @@ struct SearchView: View {
                         Image(systemName: "clock").foregroundStyle(.secondary).frame(width: 24)
                         Text(r).lineLimit(1)
                         Spacer()
-                        Image(systemName: "arrow.up.left").font(.footnote).foregroundStyle(.tertiary)
+                        Image(systemName: "arrow.up.left").font(.footnote).foregroundStyle(.tertiary).flipsForRightToLeftLayoutDirection(true)
                     }.padding(.horizontal, 16).frame(minHeight: 44).contentShape(Rectangle())
                 }.buttonStyle(.plain)
             }
@@ -139,7 +139,7 @@ struct SearchView: View {
             }
         }
         if !results.songs.isEmpty {
-            let ref = Ref(kind: "search", id: q, name: "Search \"\(q)\"")
+            let ref = Ref(kind: "search", id: q, name: q)
             let songs = results.songs
             Text("Songs").font(.title3.bold()).padding(.horizontal, 16)
             PlayRow { remember(); player.start(songs, context: ref) } shuffle: { remember(); player.start(songs, context: ref, randomStart: true) }
@@ -147,7 +147,7 @@ struct SearchView: View {
                 SongRow(song: s, cover: true) { remember(); player.play(songs, from: s, context: ref) }.padding(.horizontal, 16)
             }
             if songs.count > 5 {
-                Button(allSongs ? "Show less" : "See all \(songs.count) songs") { withAnimation(.smooth) { allSongs.toggle() } }
+                Button { withAnimation(.smooth) { allSongs.toggle() } } label: { allSongs ? Text("Show less") : Text("See all") }
                     .font(.subheadline.weight(.semibold)).padding(.horizontal, 16).frame(minHeight: 44)
             }
         }
@@ -158,14 +158,14 @@ struct SearchView: View {
         Text("Top result").font(.title3.bold()).padding(.horizontal, 16)
         switch t {
         case .artist(let a):
-            NavigationLink(value: Route.artist(a.id, "search-top-\(a.id)")) { topRow(a.coverArt, 28, "person.fill", a.title, "Artist") }
+            NavigationLink(value: Route.artist(a.id, "search-top-\(a.id)")) { topRow(a.coverArt, 28, "person.fill", a.title, String(localized: "Artist")) }
                 .buttonStyle(Press()).simultaneousGesture(TapGesture().onEnded { remember() })
         case .album(let a):
-            NavigationLink(value: Route.album(a.id, "search-top-\(a.id)")) { topRow(a.coverArt, 8, "music.note", a.title, "Album · \(a.artist ?? "")") }
+            NavigationLink(value: Route.album(a.id, "search-top-\(a.id)")) { topRow(a.coverArt, 8, "music.note", a.title, "\(String(localized: "Album")) · \(a.artist ?? "")") }
                 .buttonStyle(Press()).simultaneousGesture(TapGesture().onEnded { remember() })
         case .song(let s):
-            Button { remember(); player.play(results.songs, from: s, context: Ref(kind: "search", id: q, name: "Search \"\(q)\"")) } label: {
-                topRow(s.coverArt, 8, "music.note", s.name, "Song · \(s.artist ?? "")")
+            Button { remember(); player.play(results.songs, from: s, context: Ref(kind: "search", id: q, name: q)) } label: {
+                topRow(s.coverArt, 8, "music.note", s.name, "\(String(localized: "Song")) · \(s.artist ?? "")")
             }.buttonStyle(Press())
         }
     }

@@ -87,7 +87,8 @@ func clock(_ s: Double) -> String {
 
 func minutes(_ s: Int) -> String {
     let m = max(1, (s + 30) / 60)
-    return m >= 60 ? "\(m / 60) h \(m % 60) min" : "\(m) min"
+    if m < 60 { return String(localized: "\(m) min") }
+    return m % 60 == 0 ? String(localized: "\(m / 60) h") : String(localized: "\(m / 60) h \(m % 60) min")
 }
 
 func bytes(_ b: Int64) -> String { ByteCountFormatter.string(fromByteCount: b, countStyle: .file) }

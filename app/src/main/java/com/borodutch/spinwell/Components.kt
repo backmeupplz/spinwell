@@ -24,8 +24,13 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -76,11 +81,11 @@ fun Pill(text: String, icon: ImageVector? = null, filled: Boolean = true, modifi
     val bg = if (filled) Accent else Surface2
     val fg = if (filled) Color(0xFF16112E) else MaterialTheme.colorScheme.onBackground
     Row(
-        modifier.heightIn(min = 40.dp).clip(RoundedCornerShape(50)).background(bg).press(onClick = onClick).padding(horizontal = 16.dp),
+        modifier.heightIn(min = 40.dp).clip(RoundedCornerShape(50)).background(bg).press(onClick = onClick).padding(horizontal = 16.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center,
     ) {
         if (icon != null) { Icon(icon, null, Modifier.size(18.dp), fg); Spacer(Modifier.width(6.dp)) }
-        Text(text, color = fg, style = MaterialTheme.typography.labelLarge, maxLines = 1)
+        Text(text, color = fg, style = MaterialTheme.typography.labelLarge, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center) // two lines so long translations fit
     }
 }
 
@@ -88,8 +93,8 @@ fun Pill(text: String, icon: ImageVector? = null, filled: Boolean = true, modifi
 @Composable
 fun PlayShuffle(onPlay: () -> Unit, onShuffle: () -> Unit, modifier: Modifier = Modifier, trailing: (@Composable RowScope.() -> Unit)? = null) =
     Row(modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-        Pill("Play", Ic.Play, true, onClick = onPlay)
-        Pill("Shuffle", Ic.Shuffle, false, onClick = onShuffle)
+        Pill(stringResource(R.string.action_play), Ic.Play, true, onClick = onPlay)
+        Pill(stringResource(R.string.action_shuffle), Ic.Shuffle, false, onClick = onShuffle)
         if (trailing != null) { Spacer(Modifier.weight(1f)); trailing() }
     }
 
@@ -127,7 +132,7 @@ fun MediaRow(
 
 @Composable
 fun ArtistRow(a: Artist, share: String, dim: Boolean = false) =
-    MediaRow(a.coverArt, a.name, if (a.albumCount > 0) (if (a.albumCount == 1) "1 album" else "${a.albumCount} albums") else "Artist", round = true, dim = dim) { Nav.push(Route.Artist(a.id, share)) }
+    MediaRow(a.coverArt, a.name, if (a.albumCount > 0) pluralStringResource(R.plurals.fmt_albums, a.albumCount, a.albumCount) else stringResource(R.string.label_artist), round = true, dim = dim) { Nav.push(Route.Artist(a.id, share)) }
 
 @Composable
 fun AlbumRow(a: Album, share: String, sub: String? = null, thumb: Dp = 40.dp) {
@@ -175,7 +180,7 @@ fun EqBars(playing: Boolean, tint: Color = Accent, modifier: Modifier = Modifier
 fun Heart(on: Boolean, modifier: Modifier = Modifier, size: Dp = 48.dp, tint: Color = LocalContentColor.current, onClick: () -> Unit) {
     val sc by animateFloatAsState(if (on) 1f else 0.9f, spring(0.35f, Spring.StiffnessMedium), label = "heart")
     val haptic = LocalHapticFeedback.current
-    IconBtn(if (on) Ic.HeartFilled else Ic.Heart, if (on) "Remove from favorites" else "Add to favorites",
+    IconBtn(if (on) Ic.HeartFilled else Ic.Heart, stringResource(if (on) R.string.a11y_remove_favorite else R.string.a11y_add_favorite),
         modifier.graphicsLayer { scaleX = sc; scaleY = sc }, if (on) Accent else tint, size) { haptic.performHapticFeedback(HapticFeedbackType.LongPress); onClick() }
 }
 
@@ -183,7 +188,7 @@ fun Heart(on: Boolean, modifier: Modifier = Modifier, size: Dp = 48.dp, tint: Co
 @Composable
 fun DlState(id: String, modifier: Modifier = Modifier) {
     when {
-        Downloads.has(id) -> Icon(Ic.DownloadDone, "Downloaded", modifier.size(16.dp), Accent)
+        Downloads.has(id) -> Icon(Ic.DownloadDone, stringResource(R.string.status_downloaded), modifier.size(16.dp), Accent)
         Downloads.queue.any { it.id == id } -> {
             val s = Downloads.queue.firstOrNull { it.id == id }
             if (id == Downloads.currentId && s != null && s.size > 0)
@@ -240,7 +245,7 @@ fun SongRow(
         swipe, modifier = modifier, enableDismissFromStartToEnd = false, enableDismissFromEndToStart = !locked || saved,
         backgroundContent = {
             Row(Modifier.fillMaxSize().background(Accent.copy(alpha = 0.18f)).padding(end = 20.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.End) {
-                Text(if (saved) "Remove download" else "Download", color = Accent, style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(if (saved) R.string.action_remove_download else R.string.action_download), color = Accent, style = MaterialTheme.typography.labelLarge)
                 Spacer(Modifier.width(8.dp))
                 Icon(if (saved) Ic.Delete else Ic.Download, null, Modifier.size(20.dp), Accent)
             }
@@ -264,7 +269,7 @@ fun SongRow(
         DlState(song.id, Modifier.padding(horizontal = 4.dp))
         Text(fmtTime(song.duration), color = Muted, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = 6.dp))
         Box {
-            IconBtn(Ic.More, "More", size = 44.dp, tint = Muted) { menu = true }
+            IconBtn(Ic.More, stringResource(R.string.a11y_more), size = 44.dp, tint = Muted) { menu = true }
             SongMenu(song, menu) { menu = false }
         }
     }
@@ -278,28 +283,31 @@ fun SongMenu(song: Song, show: Boolean, onNavigate: () -> Unit = {}, onDismiss: 
     val dl = Downloads.has(song.id) || Downloads.queue.any { it.id == song.id }
     DropdownMenu(show, onDismiss, containerColor = Surface2) {
         @Composable fun item(t: String, f: () -> Unit) = DropdownMenuItem({ Text(t) }, onClick = { onDismiss(); f() })
-        item("Play next") { Audio.playNext(song) }
-        item("Add to queue") { Audio.addToQueue(song) }
-        item(if (dl) "Remove download" else "Download") { toggleSongDownload(song) }
-        item(if (starred) "Unfavorite" else "Favorite") { Fav.toggle(song.id, song.starred) }
-        if (song.albumId.isNotEmpty()) item("Go to album") { onNavigate(); Nav.push(Route.Album(song.albumId, "song", song.coverArt)) }
-        if (song.artistId.isNotEmpty()) item("Go to artist") { onNavigate(); Nav.push(Route.Artist(song.artistId, "song")) }
-        item("Song info") { info = true }
+        item(stringResource(R.string.menu_play_next)) { Audio.playNext(song) }
+        item(stringResource(R.string.menu_add_to_queue)) { Audio.addToQueue(song) }
+        item(stringResource(if (dl) R.string.action_remove_download else R.string.action_download)) { toggleSongDownload(song) }
+        item(stringResource(if (starred) R.string.menu_unfavorite else R.string.menu_favorite)) { Fav.toggle(song.id, song.starred) }
+        if (song.albumId.isNotEmpty()) item(stringResource(R.string.menu_go_to_album)) { onNavigate(); Nav.push(Route.Album(song.albumId, "song", song.coverArt)) }
+        if (song.artistId.isNotEmpty()) item(stringResource(R.string.menu_go_to_artist)) { onNavigate(); Nav.push(Route.Artist(song.artistId, "song")) }
+        item(stringResource(R.string.menu_song_info)) { info = true }
     }
     if (info) AlertDialog(
         onDismissRequest = { info = false }, containerColor = Surface2,
-        confirmButton = { TextButton({ info = false }) { Text("Close") } },
-        title = { Text(song.title, maxLines = 2) },
+        confirmButton = { TextButton({ info = false }) { Text(stringResource(R.string.action_close)) } },
+        title = { Text(song.title, maxLines = 2, overflow = TextOverflow.Ellipsis) },
         text = {
             Column {
                 val rows = listOf(
-                    "Artist" to song.artist, "Album" to song.album, "Format" to qualityOf(song), "Bitrate" to song.bitRate.takeIf { it > 0 }?.let { "$it kbps" },
-                    "Sample rate" to song.sampleRate.takeIf { it > 0 }?.let { "${it / 1000.0} kHz" }, "Bit depth" to song.bitDepth.takeIf { it > 0 }?.toString(),
-                    "Size" to song.size.takeIf { it > 0 }?.let { fmtBytes(it) }, "Path" to song.path, "Plays" to song.playCount.toString(),
+                    stringResource(R.string.label_artist) to song.artist, stringResource(R.string.label_album) to song.album, stringResource(R.string.label_format) to qualityOf(song),
+                    stringResource(R.string.label_bitrate) to song.bitRate.takeIf { it > 0 }?.let { stringResource(R.string.fmt_kbps, it) },
+                    stringResource(R.string.label_sample_rate) to song.sampleRate.takeIf { it > 0 }?.let { stringResource(R.string.fmt_khz, khz(it)) },
+                    stringResource(R.string.label_bit_depth) to song.bitDepth.takeIf { it > 0 }?.toString(),
+                    stringResource(R.string.label_size) to song.size.takeIf { it > 0 }?.let { fmtBytes(it) }, stringResource(R.string.label_path) to song.path,
+                    stringResource(R.string.label_plays) to song.playCount.toString(),
                 )
                 rows.forEach { (k, v) -> if (!v.isNullOrBlank()) Row(Modifier.padding(vertical = 3.dp)) {
-                    Text(k, color = Muted, modifier = Modifier.width(96.dp), style = MaterialTheme.typography.bodyMedium)
-                    Text(v, style = MaterialTheme.typography.bodyMedium)
+                    Text(k, color = Muted, modifier = Modifier.weight(0.4f).padding(end = 8.dp), style = MaterialTheme.typography.bodyMedium)
+                    Text(v, modifier = Modifier.weight(0.6f), style = MaterialTheme.typography.bodyMedium)
                 } }
             }
         },
@@ -310,10 +318,10 @@ fun SongMenu(song: Song, show: Boolean, onNavigate: () -> Unit = {}, onDismiss: 
 @Composable
 fun InfoButton(title: String, text: String) {
     var open by remember { mutableStateOf(false) }
-    IconBtn(Ic.Info, "About $title", size = 44.dp, glyph = 20.dp, tint = Muted) { open = true }
+    IconBtn(Ic.Info, stringResource(R.string.a11y_about_setting, title), size = 44.dp, glyph = 20.dp, tint = Muted) { open = true }
     if (open) AlertDialog(
         onDismissRequest = { open = false }, containerColor = Surface2,
-        confirmButton = { TextButton({ open = false }) { Text("Got it") } },
+        confirmButton = { TextButton({ open = false }) { Text(stringResource(R.string.action_got_it)) } },
         title = { Text(title) }, text = { Text(text, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.85f)) },
     )
 }
@@ -322,7 +330,7 @@ fun InfoButton(title: String, text: String) {
 fun Badge(text: String, modifier: Modifier = Modifier) {
     if (text.isNotBlank()) Text(
         text, modifier.clip(RoundedCornerShape(6.dp)).border(1.dp, Muted.copy(alpha = 0.5f), RoundedCornerShape(6.dp)).padding(horizontal = 8.dp, vertical = 3.dp),
-        style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.85f), maxLines = 1,
+        style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.85f), maxLines = 1, overflow = TextOverflow.Ellipsis,
     )
 }
 
@@ -396,8 +404,12 @@ class Paged<T>(private val method: String, private val base: Map<String, String>
 @Composable
 fun BackButton(modifier: Modifier = Modifier) =
     Box(modifier.padding(start = 8.dp, top = 4.dp).size(40.dp).clip(CircleShape).background(Color.Black.copy(alpha = 0.35f)).clickable { Nav.pop() }, contentAlignment = Alignment.Center) {
-        Icon(Ic.Back, "Back", Modifier.size(22.dp), Color.White)
+        Icon(Ic.Back, stringResource(R.string.a11y_back), Modifier.size(22.dp).mirrorRtl(), Color.White)
     }
+
+/** flips a directional glyph (back arrow, chevron) in right-to-left layouts */
+@Composable
+fun Modifier.mirrorRtl(): Modifier = if (LocalLayoutDirection.current == LayoutDirection.Rtl) this.graphicsLayer { scaleX = -1f } else this
 
 /** scroll positions of the tab screens, kept while you wander into an album and back */
 object Scroll {

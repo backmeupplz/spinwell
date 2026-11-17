@@ -226,3 +226,7 @@ on every screen. Settings open from a gear on Home.
   tiny local HTTP server), JSON cache key excludes auth.
 - Local test server: `tools/fixtures.sh <dir>` builds a tagged library; run Navidrome 0.64.2 on port 4533 against it
   (README "Test server"). Real server: `https://music.icefish-betta.ts.net` (credentials only on the developer's machine).
+
+## Localization
+
+Both apps ship in English plus ar de es fr hi id it ja ko nl pl pt-BR pt-PT ru sv th tr uk vi zh-Hans zh-Hant, from one source table (`tools/l10n/strings.json`, translations in `tools/l10n/tr/`), so meaning and wording match across platforms. Plurals use each language's real forms. Arabic is right-to-left: back arrows and chevrons mirror, the seek bar fills from the right, and nothing in a button, pill or settings row may clip with long German or Russian text (rows wrap, pills take two lines).

@@ -28,6 +28,8 @@ android {
     }
     dependenciesInfo { includeInApk = false }
     testOptions { unitTests.isReturnDefaultValues = true }
+    // The in-app language list in Android 13+ settings comes from the values-* folders.
+    androidResources { generateLocaleConfig = true }
     buildTypes {
         release {
             isMinifyEnabled = true

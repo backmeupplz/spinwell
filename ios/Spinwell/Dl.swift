@@ -139,7 +139,7 @@ struct DlState: Codable {
     var current: String?
     var got: Int64 = 0
     var paused = false
-    var waitingFor: String? // "Wi-Fi" | "server"
+    var waitingFor: LocalizedStringResource? // "Waiting for Wi-Fi" | "Waiting for the server"
     var failures = 0
     @ObservationIgnored private var worker: Task<Void, Never>?
     @ObservationIgnored private var loadedScope = ""
@@ -246,8 +246,8 @@ struct DlState: Codable {
         var delay = 2.0
         while !Task.isCancelled, let id = state.order.first, !paused {
             guard let song = state.queue[id] else { state.order.removeFirst(); continue }
-            if app.cellular && !app.settings.dlCellular { waitingFor = "Wi-Fi"; try? await Task.sleep(for: .seconds(3)); continue }
-            if app.offline { waitingFor = "server"; try? await Task.sleep(for: .seconds(3)); continue }
+            if app.cellular && !app.settings.dlCellular { waitingFor = "Waiting for Wi-Fi"; try? await Task.sleep(for: .seconds(3)); continue }
+            if app.offline { waitingFor = "Waiting for the server"; try? await Task.sleep(for: .seconds(3)); continue }
             waitingFor = nil
             current = id; got = 0
             let bg = UIApplication.shared.beginBackgroundTask { }

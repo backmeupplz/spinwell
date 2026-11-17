@@ -1,0 +1,796 @@
+{
+ "signin_tagline": {
+  "en": "Your own music, anywhere.",
+  "comment": "Sign-in screen, under the app name"
+ },
+ "label_server": {
+  "en": "Server",
+  "comment": "Sign-in text field label"
+ },
+ "label_username": {
+  "en": "Username",
+  "comment": "Sign-in text field label"
+ },
+ "label_password": {
+  "en": "Password",
+  "comment": "Sign-in text field label"
+ },
+ "action_sign_in": {
+  "en": "Sign in",
+  "comment": "Sign-in button"
+ },
+ "err_sign_in_failed": {
+  "en": "Couldn't sign in.",
+  "comment": "Sign-in error when no more specific message exists"
+ },
+ "err_sign_in_empty": {
+  "en": "Enter your server address, username and password.",
+  "comment": "Sign-in error when a field is empty"
+ },
+ "err_wrong_credentials": {
+  "en": "Wrong username or password.",
+  "comment": "Sign-in error when the server rejects the login"
+ },
+ "err_not_subsonic": {
+  "en": "That doesn't look like a Subsonic server.",
+  "comment": "Sign-in error when the address does not answer like a Subsonic/Navidrome server"
+ },
+ "err_not_subsonic_http": {
+  "en": "That doesn't look like a Subsonic server (HTTP %d).",
+  "comment": "Sign-in error; %d is the HTTP status code"
+ },
+ "err_unreachable": {
+  "en": "Can't reach the server. Check the address and your connection.",
+  "comment": "Sign-in error when the server cannot be reached"
+ },
+ "err_request_failed": {
+  "en": "The request failed.",
+  "comment": "Fallback when the server reports a failure without a message"
+ },
+ "tab_home": {
+  "en": "Home",
+  "comment": "Bottom tab bar"
+ },
+ "tab_library": {
+  "en": "Library",
+  "comment": "Bottom tab bar"
+ },
+ "tab_search": {
+  "en": "Search",
+  "comment": "Bottom tab bar"
+ },
+ "tab_downloads": {
+  "en": "Downloads",
+  "comment": "Bottom tab bar"
+ },
+ "banner_offline_mode": {
+  "en": "Offline mode · showing downloads",
+  "comment": "Banner at the top while offline mode is switched on in Settings"
+ },
+ "banner_offline": {
+  "en": "Offline · showing downloads · tap to retry",
+  "comment": "Banner at the top while the server can't be reached; tapping retries"
+ },
+ "action_play": {
+  "en": "Play",
+  "comment": "Play button on albums, playlists, artists"
+ },
+ "action_shuffle": {
+  "en": "Shuffle",
+  "comment": "Shuffle button on albums, playlists, artists and in the queue"
+ },
+ "label_artist": {
+  "en": "Artist",
+  "comment": "Song info row label, and the subtitle of an artist row without an album count"
+ },
+ "label_album": {
+  "en": "Album",
+  "comment": "Song info row label"
+ },
+ "label_format": {
+  "en": "Format",
+  "comment": "Song info row label"
+ },
+ "label_bitrate": {
+  "en": "Bitrate",
+  "comment": "Song info row label"
+ },
+ "label_sample_rate": {
+  "en": "Sample rate",
+  "comment": "Song info row label"
+ },
+ "label_bit_depth": {
+  "en": "Bit depth",
+  "comment": "Song info row label"
+ },
+ "label_size": {
+  "en": "Size",
+  "comment": "Song info row label"
+ },
+ "label_path": {
+  "en": "Path",
+  "comment": "Song info row label (file path on the server)"
+ },
+ "label_plays": {
+  "en": "Plays",
+  "comment": "Song info row label (play count)"
+ },
+ "fmt_kbps": {
+  "en": "%d kbps",
+  "comment": "Bitrate value; %d is the number"
+ },
+ "fmt_khz": {
+  "en": "%s kHz",
+  "comment": "Sample rate value; %s is the number such as 44.1"
+ },
+ "fmt_albums": {
+  "en": {
+   "one": "%d album",
+   "other": "%d albums"
+  },
+  "comment": "Number of albums, e.g. under an artist name"
+ },
+ "fmt_songs": {
+  "en": {
+   "one": "%d song",
+   "other": "%d songs"
+  },
+  "comment": "Number of songs in an album, playlist or download list"
+ },
+ "dur_h": {
+  "en": "%d h",
+  "comment": "Duration of whole hours, e.g. 2 h"
+ },
+ "dur_h_min": {
+  "en": "%1$d h %2$d min",
+  "comment": "Duration: %1$d hours, %2$d minutes"
+ },
+ "dur_min": {
+  "en": "%d min",
+  "comment": "Duration in minutes"
+ },
+ "status_downloaded": {
+  "en": "Downloaded",
+  "comment": "Saved for offline listening: icon description and quality badge text"
+ },
+ "action_download": {
+  "en": "Download",
+  "comment": "Download a song, album or playlist for offline listening"
+ },
+ "action_remove_download": {
+  "en": "Remove download",
+  "comment": "Delete a downloaded item"
+ },
+ "a11y_remove_favorite": {
+  "en": "Remove from favorites",
+  "comment": "Heart button description when the item is a favorite"
+ },
+ "a11y_add_favorite": {
+  "en": "Add to favorites",
+  "comment": "Heart button description"
+ },
+ "a11y_more": {
+  "en": "More",
+  "comment": "Three-dot menu button description"
+ },
+ "a11y_back": {
+  "en": "Back",
+  "comment": "Back button description"
+ },
+ "a11y_about_setting": {
+  "en": "About %s",
+  "comment": "Info button description; %s is the setting name"
+ },
+ "menu_play_next": {
+  "en": "Play next",
+  "comment": "Song menu item"
+ },
+ "menu_add_to_queue": {
+  "en": "Add to queue",
+  "comment": "Song menu item"
+ },
+ "menu_favorite": {
+  "en": "Favorite",
+  "comment": "Song menu item"
+ },
+ "menu_unfavorite": {
+  "en": "Unfavorite",
+  "comment": "Song menu item"
+ },
+ "menu_go_to_album": {
+  "en": "Go to album",
+  "comment": "Song menu item"
+ },
+ "menu_go_to_artist": {
+  "en": "Go to artist",
+  "comment": "Song menu item"
+ },
+ "menu_song_info": {
+  "en": "Song info",
+  "comment": "Song menu item; opens a dialog with file details"
+ },
+ "action_close": {
+  "en": "Close",
+  "comment": "Dialog button"
+ },
+ "action_got_it": {
+  "en": "Got it",
+  "comment": "Button closing a setting's explanation"
+ },
+ "a11y_minimize_player": {
+  "en": "Minimize player",
+  "comment": "Button description in the full player's top bar (collapses the player)"
+ },
+ "label_playing_from": {
+  "en": "Playing from",
+  "comment": "Small caption above the album/playlist name in the full player; shown in capitals"
+ },
+ "a11y_previous": {
+  "en": "Previous",
+  "comment": "Previous track button description"
+ },
+ "a11y_next": {
+  "en": "Next",
+  "comment": "Next track button description"
+ },
+ "a11y_repeat_all": {
+  "en": "Repeat all",
+  "comment": "Repeat button description when repeating the whole queue"
+ },
+ "a11y_repeat_one": {
+  "en": "Repeat one",
+  "comment": "Repeat button description when repeating one song"
+ },
+ "a11y_repeat_off": {
+  "en": "Repeat off",
+  "comment": "Repeat button description when repeat is off"
+ },
+ "title_lyrics": {
+  "en": "Lyrics",
+  "comment": "Lyrics button description and lyrics sheet title"
+ },
+ "title_up_next": {
+  "en": "Up next",
+  "comment": "Queue button description and queue sheet title"
+ },
+ "a11y_output": {
+  "en": "Output",
+  "comment": "Button that opens the audio output picker"
+ },
+ "title_songs": {
+  "en": "Songs",
+  "comment": "Library tab, section title, and the name of the all-songs play queue"
+ },
+ "title_favorites": {
+  "en": "Favorites",
+  "comment": "Library tab and the name of the favorites play queue"
+ },
+ "action_shuffle_all": {
+  "en": "Shuffle all",
+  "comment": "Button on Home, and the name of the play queue it starts"
+ },
+ "label_search_context": {
+  "en": "Search: %s",
+  "comment": "Name of the play queue made from search results; %s is the search text"
+ },
+ "label_now_playing": {
+  "en": "Now playing",
+  "comment": "Up next sheet, header above the current song"
+ },
+ "label_next_in_queue": {
+  "en": "Next in queue",
+  "comment": "Up next sheet, header above songs added with Play next / Add to queue"
+ },
+ "action_clear": {
+  "en": "Clear",
+  "comment": "Button that empties a list (queue additions, recent searches, search field)"
+ },
+ "label_next_from": {
+  "en": "Next from %s",
+  "comment": "Up next sheet, header above the rest of the album/playlist; %s is its name"
+ },
+ "label_next_from_shuffled": {
+  "en": "Next from %s · shuffled",
+  "comment": "Same header while shuffle is on; %s is the album/playlist name"
+ },
+ "label_next_up": {
+  "en": "Next up",
+  "comment": "Up next sheet header when the queue has no name"
+ },
+ "empty_queue": {
+  "en": "Nothing else is queued.",
+  "comment": "Up next sheet, empty state"
+ },
+ "empty_no_lyrics": {
+  "en": "No lyrics for this song.",
+  "comment": "Lyrics sheet, empty state"
+ },
+ "status_loading_lyrics": {
+  "en": "Looking for lyrics…",
+  "comment": "Lyrics sheet while loading"
+ },
+ "title_artists": {
+  "en": "Artists",
+  "comment": "Library tab and section title"
+ },
+ "title_albums": {
+  "en": "Albums",
+  "comment": "Library tab and section title"
+ },
+ "title_playlists": {
+  "en": "Playlists",
+  "comment": "Library tab and section title"
+ },
+ "sort_name": {
+  "en": "Name",
+  "comment": "Album sort option in Library"
+ },
+ "sort_recently_added": {
+  "en": "Recently added",
+  "comment": "Album sort option in Library"
+ },
+ "sort_year": {
+  "en": "Year",
+  "comment": "Album sort option in Library"
+ },
+ "sort_most_played": {
+  "en": "Most played",
+  "comment": "Album sort option in Library"
+ },
+ "label_sort": {
+  "en": "Sort: %s",
+  "comment": "Library sort button; %s is the chosen sort option"
+ },
+ "label_not_downloaded": {
+  "en": "Not downloaded",
+  "comment": "Header of the dimmed artists that have no downloads, shown offline"
+ },
+ "label_downloaded_first": {
+  "en": "Downloaded first",
+  "comment": "Library note while offline: downloaded albums are listed first"
+ },
+ "status_loading": {
+  "en": "Loading…",
+  "comment": "Empty-state text while a list loads"
+ },
+ "empty_no_artists_offline": {
+  "en": "No downloaded artists yet.",
+  "comment": "Library artists, empty while offline"
+ },
+ "empty_no_artists": {
+  "en": "No artists.",
+  "comment": "Library artists, empty"
+ },
+ "empty_no_albums_offline": {
+  "en": "No downloaded albums yet.",
+  "comment": "Library albums, empty while offline"
+ },
+ "empty_no_playlists_offline": {
+  "en": "No downloaded playlists yet.",
+  "comment": "Library playlists, empty while offline"
+ },
+ "empty_no_playlists": {
+  "en": "No playlists yet.",
+  "comment": "Library playlists, empty"
+ },
+ "empty_no_songs_offline": {
+  "en": "No downloaded songs yet.",
+  "comment": "Library songs, empty while offline"
+ },
+ "empty_favorites": {
+  "en": "Tap the heart on anything to find it here.",
+  "comment": "Library favorites, empty"
+ },
+ "label_search_downloads": {
+  "en": "Search downloads",
+  "comment": "Search field placeholder while offline"
+ },
+ "label_search_hint": {
+  "en": "Artists, albums, songs",
+  "comment": "Search field placeholder"
+ },
+ "a11y_remove": {
+  "en": "Remove",
+  "comment": "Button description that removes a recent search"
+ },
+ "empty_search_start": {
+  "en": "Find anything in your library.",
+  "comment": "Search tab, empty state before typing"
+ },
+ "title_recent_searches": {
+  "en": "Recent searches",
+  "comment": "Search tab section title"
+ },
+ "empty_nothing_found": {
+  "en": "Nothing found for “%s”.",
+  "comment": "Search results, empty; %s is the search text"
+ },
+ "title_top_result": {
+  "en": "Top result",
+  "comment": "Search results section title"
+ },
+ "action_show_less": {
+  "en": "Show less",
+  "comment": "Collapses an expanded search results section"
+ },
+ "action_see_all": {
+  "en": "See all",
+  "comment": "Expands a search results section"
+ },
+ "app_name": {
+  "en": "Spinwell",
+  "comment": "App name, shown as the Home title",
+  "translate": false,
+  "only": "android"
+ },
+ "title_settings": {
+  "en": "Settings",
+  "comment": "Settings screen title and the settings button description on Home"
+ },
+ "shelf_recently_played": {
+  "en": "Recently played",
+  "comment": "Home shelf title"
+ },
+ "shelf_favorite_albums": {
+  "en": "Favorite albums",
+  "comment": "Home shelf title"
+ },
+ "shelf_rediscover": {
+  "en": "Rediscover",
+  "comment": "Home shelf of random albums"
+ },
+ "title_downloaded_albums": {
+  "en": "Downloaded albums",
+  "comment": "Home shelf and artist page section while offline"
+ },
+ "empty_home_offline": {
+  "en": "Offline. Open Downloads to play what you saved.",
+  "comment": "Home, empty state while offline"
+ },
+ "err_not_available_offline": {
+  "en": "This isn't available offline.",
+  "comment": "Album/playlist page that was never saved, shown offline"
+ },
+ "err_load_failed": {
+  "en": "Couldn't load: %s",
+  "comment": "Page load error; %s is the reason reported by the server or network"
+ },
+ "label_disc": {
+  "en": "Disc %d",
+  "comment": "Header above the tracks of a disc of a multi-disc album"
+ },
+ "menu_repeat_album": {
+  "en": "Repeat album",
+  "comment": "Album menu item"
+ },
+ "menu_repeat_playlist": {
+  "en": "Repeat playlist",
+  "comment": "Playlist menu item"
+ },
+ "menu_repeat_artist": {
+  "en": "Repeat artist",
+  "comment": "Artist menu item"
+ },
+ "menu_stop_repeating_album": {
+  "en": "Stop repeating album",
+  "comment": "Album menu item while it repeats"
+ },
+ "menu_stop_repeating_playlist": {
+  "en": "Stop repeating playlist",
+  "comment": "Playlist menu item while it repeats"
+ },
+ "menu_stop_repeating_artist": {
+  "en": "Stop repeating artist",
+  "comment": "Artist menu item while it repeats"
+ },
+ "a11y_downloaded_tap_remove": {
+  "en": "Downloaded, tap to remove",
+  "comment": "Download button description when the album/playlist/artist is saved"
+ },
+ "action_cancel_download": {
+  "en": "Cancel download",
+  "comment": "Menu item while an album/playlist/artist is downloading"
+ },
+ "title_downloaded_songs": {
+  "en": "Downloaded songs",
+  "comment": "Artist page section while offline"
+ },
+ "title_top_songs": {
+  "en": "Top songs",
+  "comment": "Artist page section"
+ },
+ "action_show_more": {
+  "en": "Show more",
+  "comment": "Expands the artist's top songs list"
+ },
+ "title_singles_eps": {
+  "en": "Singles & EPs",
+  "comment": "Artist page section"
+ },
+ "title_similar_artists": {
+  "en": "Similar artists",
+  "comment": "Artist page section"
+ },
+ "title_about": {
+  "en": "About",
+  "comment": "Artist biography heading and Settings group header"
+ },
+ "empty_artist_not_downloaded": {
+  "en": "Nothing from this artist is downloaded.",
+  "comment": "Artist page, offline and nothing saved"
+ },
+ "status_signed_out": {
+  "en": "Signed out",
+  "comment": "Download queue status when the account was signed out",
+  "only": "android"
+ },
+ "status_waiting_wifi": {
+  "en": "Waiting for Wi-Fi",
+  "comment": "Download queue status when downloads over mobile data are off"
+ },
+ "status_waiting_server": {
+  "en": "Waiting for the server",
+  "comment": "Download queue status when the server can't be reached"
+ },
+ "status_skipped_song": {
+  "en": "Skipped %1$s (HTTP %2$d)",
+  "comment": "Download queue status; %1$s is the song title, %2$d the HTTP error code"
+ },
+ "fmt_percent": {
+  "en": "%d%%",
+  "comment": "Download progress in the notification, e.g. 42%"
+ },
+ "fmt_left": {
+  "en": {
+   "one": "%d left",
+   "other": "%d left"
+  },
+  "comment": "Download notification text: number of songs still queued"
+ },
+ "fmt_in_queue": {
+  "en": {
+   "one": "%d in queue",
+   "other": "%d in queue"
+  },
+  "comment": "Downloads screen: number of songs waiting in the download queue"
+ },
+ "fmt_songs_progress": {
+  "en": {
+   "one": "%1$d/%2$d song",
+   "other": "%1$d/%2$d songs"
+  },
+  "comment": "Downloaded album/playlist row: %1$d songs saved of %2$d total (plural follows the total)",
+  "count_arg": 2
+ },
+ "label_playlist": {
+  "en": "Playlist",
+  "comment": "Kind of a downloaded item, in its subtitle"
+ },
+ "status_downloading": {
+  "en": "Downloading",
+  "comment": "Header of the active download card, and a note on a download row that is still in progress"
+ },
+ "status_paused": {
+  "en": "Paused",
+  "comment": "Download queue state"
+ },
+ "action_resume_all": {
+  "en": "Resume all",
+  "comment": "Downloads screen button"
+ },
+ "action_pause_all": {
+  "en": "Pause all",
+  "comment": "Downloads screen button"
+ },
+ "title_albums_playlists": {
+  "en": "Albums and playlists",
+  "comment": "Downloads screen section title"
+ },
+ "empty_downloads": {
+  "en": "Nothing downloaded yet. Tap the download arrow on an album, playlist or artist, or swipe a song left. Downloads play without a connection.",
+  "comment": "Downloads screen, empty state"
+ },
+ "action_cancel": {
+  "en": "Cancel",
+  "comment": "Dialog button"
+ },
+ "label_original": {
+  "en": "Original",
+  "comment": "Quality setting value: the file exactly as it is on the server"
+ },
+ "action_sign_out": {
+  "en": "Sign out",
+  "comment": "Settings button and dialog button"
+ },
+ "title_sign_out_confirm": {
+  "en": "Sign out?",
+  "comment": "Sign-out confirmation dialog title"
+ },
+ "msg_sign_out_confirm": {
+  "en": "Your downloads stay on this phone and come back when you sign in to the same account.",
+  "comment": "Sign-out confirmation dialog message"
+ },
+ "action_remove_all": {
+  "en": "Remove all",
+  "comment": "Button that deletes all downloads"
+ },
+ "title_remove_all_downloads": {
+  "en": "Remove all downloads?",
+  "comment": "Confirmation dialog title"
+ },
+ "msg_remove_all_downloads": {
+  "en": "This frees %s. You can download songs again any time.",
+  "comment": "Confirmation dialog message; %s is a file size such as 1.2 GB"
+ },
+ "status_online": {
+  "en": "Online",
+  "comment": "Settings server card status"
+ },
+ "status_unreachable": {
+  "en": "Can't reach the server",
+  "comment": "Settings server card status"
+ },
+ "fmt_cache_size": {
+  "en": "Covers and library: %s",
+  "comment": "Settings cache row; %s is a file size such as 84 MB"
+ },
+ "settings_group_playback": {
+  "en": "Playback",
+  "comment": "Settings group header (shown in capitals)"
+ },
+ "settings_group_offline": {
+  "en": "Offline",
+  "comment": "Settings group header (shown in capitals)"
+ },
+ "settings_group_storage": {
+  "en": "Storage",
+  "comment": "Settings group header (shown in capitals)"
+ },
+ "settings_wifi_quality": {
+  "en": "Streaming quality on Wi-Fi",
+  "comment": "Settings row title and its picker dialog title"
+ },
+ "settings_mobile_quality": {
+  "en": "Streaming quality on mobile data",
+  "comment": "Settings row title and its picker dialog title"
+ },
+ "settings_resume": {
+  "en": "Resume playing on open",
+  "comment": "Settings switch title"
+ },
+ "settings_scrobble": {
+  "en": "Report plays to server",
+  "comment": "Settings switch title"
+ },
+ "settings_download_quality": {
+  "en": "Download quality",
+  "comment": "Settings row title and its picker dialog title"
+ },
+ "settings_download_mobile": {
+  "en": "Download over mobile data",
+  "comment": "Settings switch title"
+ },
+ "settings_offline_mode": {
+  "en": "Offline mode",
+  "comment": "Settings switch title and the server card status while on"
+ },
+ "settings_cache": {
+  "en": "Cache",
+  "comment": "Settings storage row title"
+ },
+ "info_server": {
+  "en": "The server you're signed in to. Signing out keeps your downloads; they come back when you sign in to the same account.",
+  "comment": "Explanation (i) of the server card"
+ },
+ "info_wifi_quality": {
+  "en": "How songs are sent when you're on Wi-Fi. Original plays the file as it is on your server, so FLAC stays lossless; a number asks the server to convert to MP3 at that bitrate, which uses less data but can't sound better than the original.",
+  "comment": "Explanation (i) of Streaming quality on Wi-Fi"
+ },
+ "info_mobile_quality": {
+  "en": "The same choice for when you're on mobile data. A lower bitrate saves your data plan and starts faster on a weak signal.",
+  "comment": "Explanation (i) of Streaming quality on mobile data"
+ },
+ "info_download_quality": {
+  "en": "How songs are saved for offline listening. Original keeps the exact file from your server and takes the most space; 320 or 192 asks the server to convert to MP3, which can make a FLAC album several times smaller.",
+  "comment": "Explanation (i) of Download quality"
+ },
+ "info_download_mobile": {
+  "en": "When this is off, downloads wait for Wi-Fi and start again by themselves once you're connected.",
+  "comment": "Explanation (i) of Download over mobile data"
+ },
+ "info_resume": {
+  "en": "If music was playing when the app was closed, start it again right away when you open the app. When this is off, the player opens where you left off, paused, so one tap continues.",
+  "comment": "Explanation (i) of Resume playing on open"
+ },
+ "info_offline_mode": {
+  "en": "Use only what's downloaded and never contact the server. The app also switches to this by itself whenever your server can't be reached, for example when Tailscale is off.",
+  "comment": "Explanation (i) of Offline mode"
+ },
+ "info_scrobble": {
+  "en": "Tell your server what you listen to, so Recently played and Most played stay accurate and play counts go up. Plays made offline are sent once you're back online.",
+  "comment": "Explanation (i) of Report plays to server"
+ },
+ "info_cache": {
+  "en": "Album covers and library pages kept on your phone so screens open instantly and you can browse offline. Clearing it is safe; it fills up again as you browse.",
+  "comment": "Explanation (i) of Cache"
+ },
+ "info_downloads": {
+  "en": "Songs saved for offline listening. Removing them frees the space; you can download them again any time.",
+  "comment": "Explanation (i) of Downloads"
+ },
+ "info_about": {
+  "en": "Spinwell is a free, open source player for your own Navidrome or OpenSubsonic server. No ads, no analytics.",
+  "comment": "Explanation (i) of About"
+ },
+ "action_repeat": {
+  "en": "Repeat",
+  "comment": "Name of the repeat button on the lock screen / media notification",
+  "only": "android"
+ },
+ "err_offline": {
+  "en": "You're offline.",
+  "comment": "Error when a request is made while offline mode is on",
+  "only": "ios"
+ },
+ "err_not_signed_in": {
+  "en": "Not signed in.",
+  "comment": "Error when a request is made without an account",
+  "only": "ios"
+ },
+ "err_needs_https": {
+  "en": "This server needs a secure connection.",
+  "comment": "Sign-in error when iOS blocks a plain http address (App Transport Security)",
+  "only": "ios"
+ },
+ "err_no_downloaded_next": {
+  "en": "Can't reach the server, and no downloaded song is next.",
+  "comment": "Player error line when the server is gone and the next song is not downloaded",
+  "only": "ios"
+ },
+ "label_title": {
+  "en": "Title",
+  "comment": "Song info row label (song title)",
+  "only": "ios"
+ },
+ "label_duration": {
+  "en": "Duration",
+  "comment": "Song info row label (length of the song)",
+  "only": "ios"
+ },
+ "label_song": {
+  "en": "Song",
+  "comment": "Kind of a search top result, shown before the artist: Song · Artist",
+  "only": "ios"
+ },
+ "a11y_pause": {
+  "en": "Pause",
+  "comment": "Pause button description (the play button reads Play)",
+  "only": "ios"
+ },
+ "title_remove_downloads_confirm": {
+  "en": "Remove downloads?",
+  "comment": "Confirmation dialog title before deleting the downloaded songs of one album, playlist or artist",
+  "only": "ios"
+ },
+ "label_version": {
+  "en": "Version",
+  "comment": "Settings About row label; the value is the app version",
+  "only": "ios"
+ },
+ "label_source_code": {
+  "en": "Source code",
+  "comment": "Settings About row that opens the project page",
+  "only": "ios"
+ },
+ "fmt_free_space": {
+  "en": "%s free on this iPhone",
+  "comment": "Footer under Settings Storage; %s is a file size such as 12 GB",
+  "only": "ios"
+ },
+ "plist_local_network": {
+  "en": "Spinwell connects to your Navidrome server, which may be on your local network.",
+  "comment": "iOS permission prompt for local network access (Info.plist NSLocalNetworkUsageDescription). \"Spinwell\" and \"Navidrome\" are product names: do not translate",
+  "only": "ios",
+  "plist": "NSLocalNetworkUsageDescription"
+ }
+}

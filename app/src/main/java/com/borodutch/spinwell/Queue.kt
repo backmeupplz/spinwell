@@ -9,6 +9,16 @@ import kotlin.random.Random
 data class QItem(val key: Long, val song: Song)
 data class Ctx(val kind: String = "", val id: String = "", val name: String = "")
 
+/** Name shown in the player and the queue: the generic lists are named here, not stored, so a saved queue follows the language. */
+val Ctx.title: String get() = when (kind) {
+    "songs" -> str(R.string.title_songs)
+    "favorites" -> str(R.string.title_favorites)
+    "shuffle" -> str(R.string.action_shuffle_all)
+    "downloads" -> str(R.string.tab_downloads)
+    "search" -> str(R.string.label_search_context, id)
+    else -> name
+}
+
 object Keys {
     private val n = AtomicLong(1)
     fun next() = n.getAndIncrement()

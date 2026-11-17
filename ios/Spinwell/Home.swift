@@ -2,7 +2,7 @@ import SwiftUI
 
 struct Shelf: Identifiable {
     var id: String
-    var title: String
+    var title: LocalizedStringKey
     var type: String
     var albums: [Album] = []
 }
@@ -11,7 +11,7 @@ struct HomeView: View {
     @Environment(Nav.self) private var nav
     /// Filled from the disk cache at the first read, so the first frame after launch already shows the shelves.
     private static let first: [Shelf] = [
-        ("recent", "Recently played"), ("newest", "Recently added"), ("frequent", "Most played"), ("starred", "Favorite albums"), ("random", "Rediscover"),
+        ("recent", "Recently played" as LocalizedStringKey), ("newest", "Recently added"), ("frequent", "Most played"), ("starred", "Favorite albums"), ("random", "Rediscover"),
     ].map { id, title in
         Shelf(id: id, title: title, type: id, albums: app.cached("getAlbumList2", [("type", id), ("size", "20")], AlbumList.self)?.list ?? [])
     }
@@ -55,7 +55,7 @@ struct HomeView: View {
         .navigationTitle("Home").navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button { nav.open(.settings) } label: { Image(systemName: "gearshape") }.accessibilityIdentifier("settings")
+                Button { nav.open(.settings) } label: { Image(systemName: "gearshape") }.accessibilityLabel("Settings").accessibilityIdentifier("settings")
             }
         }
         .refreshable { await refresh() }
@@ -79,6 +79,6 @@ struct HomeView: View {
     private func shuffleAll() async {
         guard !shuffling else { return }
         shuffling = true; defer { shuffling = false }
-        await shuffleAllSongs(name: "Shuffle all")
+        await shuffleAllSongs()
     }
 }

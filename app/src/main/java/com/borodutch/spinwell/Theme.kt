@@ -40,3 +40,6 @@ private val type = Typography().run {
 fun SpinwellTheme(content: @Composable () -> Unit) = MaterialTheme(colorScheme = scheme, typography = type) {
     CompositionLocalProvider(LocalContentColor provides scheme.onBackground, content = content)
 }
+
+/** Letter spacing for small caps labels; cursive scripts (Arabic) and conjunct scripts must not be spaced out or their letters disconnect. */
+fun caps(sp: Float) = (if (java.util.Locale.getDefault().language in setOf("ar", "hi", "th")) 0f else sp).sp

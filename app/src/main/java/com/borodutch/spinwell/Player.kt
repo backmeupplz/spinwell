@@ -24,6 +24,9 @@ import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
@@ -52,7 +55,7 @@ private fun Modifier.scaledBox(width: () -> Float, scale: () -> Float) = layout 
 fun BoxScope.PlayerSheet(exp: Animatable<Float, AnimationVector1D>, barH: Dp, miniH: Dp, statusTop: Dp, navBottom: Dp) {
     // everything below reads these derived values, so queue edits (index, added items, persist) don't recompose the whole sheet
     val curState = remember { derivedStateOf { Audio.q.current } }
-    val ctxName by remember { derivedStateOf { Audio.q.ctx.name } }
+    val ctxName by remember { derivedStateOf { Audio.q.ctx.title } }
     val shuffleOn by remember { derivedStateOf { Audio.q.shuffle } }
     val repeatMode by remember { derivedStateOf { Audio.q.repeat } }
     val cur = curState.value ?: return
@@ -204,21 +207,23 @@ fun BoxScope.PlayerSheet(exp: Animatable<Float, AnimationVector1D>, barH: Dp, mi
             }
 
             // thin progress along the mini's bottom edge
+            val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
             Box(Modifier.align(Alignment.TopStart).offset { IntOffset(0, (miniHpx - px(3.dp)).roundToInt()) }.fillMaxWidth().height(3.dp).drawBehind {
-                drawRect(Accent, size = Size(size.width * (pos.toFloat() / durMs).coerceIn(0f, 1f), size.height), alpha = (1f - exp.value * 4f).coerceIn(0f, 1f))
+                val w = size.width * (pos.toFloat() / durMs).coerceIn(0f, 1f)
+                drawRect(Accent, topLeft = Offset(if (rtl) size.width - w else 0f, 0f), size = Size(w, size.height), alpha = (1f - exp.value * 4f).coerceIn(0f, 1f))
             })
 
             if (fullShown) Box(Modifier.fillMaxSize().graphicsLayer { alpha = ((exp.value - 0.55f) * 2.4f).coerceIn(0f, 1f) }) {
                 // top bar
                 Row(Modifier.padding(top = statusTop + 8.dp, start = 8.dp, end = 8.dp).fillMaxWidth().height(48.dp), verticalAlignment = Alignment.CenterVertically) {
-                    IconBtn(Ic.Down, "Minimize player") { collapse() }
+                    IconBtn(Ic.Down, stringResource(R.string.a11y_minimize_player)) { collapse() }
                     Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("PLAYING FROM", fontSize = 10.sp, color = Muted, letterSpacing = 1.sp)
+                        Text(stringResource(R.string.label_playing_from).uppercase(java.util.Locale.getDefault()), maxLines = 1, overflow = TextOverflow.Ellipsis, fontSize = 10.sp, color = Muted, letterSpacing = caps(1f))
                         Text(ctxName.ifBlank { song.album }, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.labelLarge)
                     }
                     var menu by remember { mutableStateOf(false) }
                     Box {
-                        IconBtn(Ic.More, "More") { menu = true }
+                        IconBtn(Ic.More, stringResource(R.string.a11y_more)) { menu = true }
                         SongMenu(song, menu, onNavigate = { collapse() }) { menu = false }
                     }
                 }
@@ -239,21 +244,21 @@ fun BoxScope.PlayerSheet(exp: Animatable<Float, AnimationVector1D>, barH: Dp, mi
                     Modifier.offset { IntOffset(0, (controlsY1 - px(32.dp)).roundToInt()) }.fillMaxWidth().height(64.dp).padding(horizontal = 20.dp),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    ToggleBtn(Ic.Shuffle, "Shuffle", shuffleOn) { Audio.toggleShuffle() }
-                    IconBtn(Ic.Prev, "Previous", size = 56.dp, glyph = 36.dp) { Audio.prev() }
+                    ToggleBtn(Ic.Shuffle, stringResource(R.string.action_shuffle), shuffleOn) { Audio.toggleShuffle() }
+                    IconBtn(Ic.Prev, stringResource(R.string.a11y_previous), size = 56.dp, glyph = 36.dp) { Audio.prev() }
                     Spacer(Modifier.size(72.dp))
-                    IconBtn(Ic.Next, "Next", size = 56.dp, glyph = 36.dp) { Audio.next() }
-                    ToggleBtn(if (repeatMode == 2) Ic.RepeatOne else Ic.Repeat, when (repeatMode) { 1 -> "Repeat all"; 2 -> "Repeat one"; else -> "Repeat off" }, repeatMode > 0) { Audio.cycleRepeat() }
+                    IconBtn(Ic.Next, stringResource(R.string.a11y_next), size = 56.dp, glyph = 36.dp) { Audio.next() }
+                    ToggleBtn(if (repeatMode == 2) Ic.RepeatOne else Ic.Repeat, stringResource(when (repeatMode) { 1 -> R.string.a11y_repeat_all; 2 -> R.string.a11y_repeat_one; else -> R.string.a11y_repeat_off }), repeatMode > 0) { Audio.cycleRepeat() }
                 }
                 // quality, lyrics, up next, output
                 Row(
                     Modifier.offset { IntOffset(0, rowY1.roundToInt()) }.fillMaxWidth().padding(horizontal = 24.dp),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    Box(Modifier.weight(1f)) { Badge(if (Downloads.has(song.id)) qualityOf(song).ifBlank { "Downloaded" } else qualityOf(song)) }
-                    IconBtn(Ic.Lyrics, "Lyrics") { showLyrics = true }
-                    IconBtn(Ic.Queue, "Up next") { showQueue = true }
-                    IconBtn(Ic.Output, "Output") {
+                    Box(Modifier.weight(1f)) { Badge(if (Downloads.has(song.id)) qualityOf(song).ifBlank { stringResource(R.string.status_downloaded) } else qualityOf(song)) }
+                    IconBtn(Ic.Lyrics, stringResource(R.string.title_lyrics)) { showLyrics = true }
+                    IconBtn(Ic.Queue, stringResource(R.string.title_up_next)) { showQueue = true }
+                    IconBtn(Ic.Output, stringResource(R.string.a11y_output)) {
                         val i = Intent("com.android.settings.panel.action.MEDIA_OUTPUT").putExtra("com.android.settings.panel.extra.PACKAGE_NAME", ctx.packageName).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                         runCatching { ctx.startActivity(i) }.onFailure { runCatching { ctx.startActivity(Intent(AndroidSettings.ACTION_BLUETOOTH_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) } }
                     }
@@ -277,23 +282,26 @@ fun SeekBar(pos: () -> Long, dur: () -> Long, onSeek: (Long) -> Unit) {
     val haptic = LocalHapticFeedback.current
     var drag by remember { mutableStateOf<Float?>(null) }
     var w by remember { mutableFloatStateOf(1f) }
+    val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
+    fun frac(x: Float) = (if (rtl) 1f - x / w else x / w).coerceIn(0f, 1f) // the bar fills from the right in RTL
     Canvas(
         Modifier.fillMaxWidth().height(36.dp)
-            .pointerInput(Unit) { detectTapGestures { onSeek((it.x / w * dur()).toLong().coerceIn(0, dur())); haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove) } }
-            .pointerInput(Unit) {
+            .pointerInput(rtl) { detectTapGestures { onSeek((frac(it.x) * dur()).toLong().coerceIn(0, dur())); haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove) } }
+            .pointerInput(rtl) {
                 detectHorizontalDragGestures(
-                    onDragStart = { drag = (it.x / w).coerceIn(0f, 1f); haptic.performHapticFeedback(HapticFeedbackType.LongPress) },
+                    onDragStart = { drag = frac(it.x); haptic.performHapticFeedback(HapticFeedbackType.LongPress) },
                     onDragEnd = { drag?.let { f -> onSeek((f * dur()).toLong()) }; drag = null; haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove) },
                     onDragCancel = { drag = null },
-                ) { change, _ -> change.consume(); drag = (change.position.x / w).coerceIn(0f, 1f) }
+                ) { change, _ -> change.consume(); drag = frac(change.position.x) }
             },
     ) {
         w = size.width
         val cy = size.height / 2
-        val frac = drag ?: (pos().toFloat() / dur()).coerceIn(0f, 1f)
+        val f = drag ?: (pos().toFloat() / dur()).coerceIn(0f, 1f)
         val th = 4.dp.toPx()
+        val x0 = if (rtl) size.width * (1f - f) else 0f
         drawRoundRect(Color.White.copy(alpha = 0.25f), Offset(0f, cy - th / 2), Size(size.width, th), CornerRadius(th / 2))
-        drawRoundRect(Color.White, Offset(0f, cy - th / 2), Size(size.width * frac, th), CornerRadius(th / 2))
-        drawCircle(Color.White, if (drag != null) 9.dp.toPx() else 6.dp.toPx(), Offset(size.width * frac, cy))
+        drawRoundRect(Color.White, Offset(x0, cy - th / 2), Size(size.width * f, th), CornerRadius(th / 2))
+        drawCircle(Color.White, if (drag != null) 9.dp.toPx() else 6.dp.toPx(), Offset(if (rtl) size.width * (1f - f) else size.width * f, cy))
     }
 }

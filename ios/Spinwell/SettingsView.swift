@@ -3,15 +3,15 @@ import SwiftUI
 /// A settings row: tinted icon tile, title, ⓘ, value on the right. The explanation is a required parameter,
 /// so a setting can't exist without its ⓘ.
 struct SettingRow<Content: View>: View {
-    let title: String
+    let title: LocalizedStringResource
     let symbol: String
     let tint: Color
-    let info: String
+    let info: LocalizedStringResource
     let id: String
     @ViewBuilder var content: Content
     @State private var showInfo: Bool
 
-    init(_ title: String, symbol: String, tint: Color, info: String, id: String, @ViewBuilder content: () -> Content) {
+    init(_ title: LocalizedStringResource, symbol: String, tint: Color, info: LocalizedStringResource, id: String, @ViewBuilder content: () -> Content) {
         self.title = title; self.symbol = symbol; self.tint = tint; self.info = info; self.id = id; self.content = content()
         _showInfo = State(initialValue: false)
     }
@@ -21,7 +21,7 @@ struct SettingRow<Content: View>: View {
             IconTile(symbol: symbol, tint: tint)
             Text(title).lineLimit(2).fixedSize(horizontal: false, vertical: true)
             Button { showInfo = true } label: { Image(systemName: "info.circle").font(.subheadline).foregroundStyle(.tertiary).frame(width: 28, height: 36) }
-                .buttonStyle(.plain).accessibilityLabel("About \(title)").accessibilityIdentifier("info-\(id)")
+                .buttonStyle(.plain).accessibilityLabel("About \(String(localized: title))").accessibilityIdentifier("info-\(id)")
                 .sheet(isPresented: $showInfo) { InfoSheet(title: title, text: info) }
             Spacer(minLength: 4)
             content.foregroundStyle(.secondary)
@@ -43,8 +43,8 @@ struct IconTile: View {
 
 /// The ⓘ explanation: a small bottom sheet sized to its text, on a dimmed backdrop.
 struct InfoSheet: View {
-    let title: String
-    let text: String
+    let title: LocalizedStringResource
+    let text: LocalizedStringResource
     @State private var height: CGFloat = 220
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -79,7 +79,7 @@ struct UsageBar: View {
                 ForEach(parts.indices, id: \.self) { i in
                     HStack(spacing: 5) {
                         Circle().fill(parts[i].color).frame(width: 7, height: 7)
-                        Text("\(parts[i].label) \(bytes(parts[i].bytes))").font(.caption).foregroundStyle(.secondary)
+                        Text(verbatim: "\(parts[i].label) \(bytes(parts[i].bytes))").font(.caption).foregroundStyle(.secondary)
                     }
                 }
             }
@@ -94,34 +94,30 @@ struct SettingsView: View {
     @State private var cacheBytes: Int64 = 0
     @State private var free: Int64 = 0
 
-    static let qualities = [(0, "Original"), (320, "320 kbps"), (256, "256 kbps"), (192, "192 kbps"), (128, "128 kbps")]
-    static let dlQualities = [(0, "Original"), (320, "320 kbps"), (192, "192 kbps")]
+    static let qualities = [0, 320, 256, 192, 128]
+    static let dlQualities = [0, 320, 192]
 
     var body: some View {
         @Bindable var s = app.settings
         let dl = app.downloads.storageUsed
+        let songCount = app.downloads.state.songs.count
         List {
             Section { header }
-            Section("Streaming") {
-                SettingRow("Quality on Wi-Fi", symbol: "wifi", tint: .blue, info: "How songs are sent when you're on Wi-Fi. Original plays the file as it is on your server, so FLAC stays lossless; a number asks the server to convert to MP3 at that bitrate, which uses less data but can't sound better than the original.", id: "wifi") {
+            Section("Playback") {
+                SettingRow("Streaming quality on Wi-Fi", symbol: "wifi", tint: .blue, info: "How songs are sent when you're on Wi-Fi. Original plays the file as it is on your server, so FLAC stays lossless; a number asks the server to convert to MP3 at that bitrate, which uses less data but can't sound better than the original.", id: "wifi") {
                     quality($s.wifiQuality, Self.qualities)
                 }
-                SettingRow("Quality on mobile data", symbol: "antenna.radiowaves.left.and.right", tint: .green, info: "The same choice for when you're on mobile data. A lower bitrate saves your data plan and starts faster on a weak signal.", id: "cell") {
+                SettingRow("Streaming quality on mobile data", symbol: "antenna.radiowaves.left.and.right", tint: .green, info: "The same choice for when you're on mobile data. A lower bitrate saves your data plan and starts faster on a weak signal.", id: "cell") {
                     quality($s.cellQuality, Self.qualities)
+                }
+                SettingRow("Resume playing on open", symbol: "play.circle.fill", tint: .pink, info: "If music was playing when the app was closed, start it again right away when you open the app. When this is off, the player opens where you left off, paused, so one tap continues.", id: "resume") {
+                    Toggle("", isOn: $s.resumeOnOpen).labelsHidden()
                 }
                 SettingRow("Report plays to server", symbol: "chart.bar.fill", tint: .orange, info: "Tell your server what you listen to, so Recently played and Most played stay accurate and play counts go up. Plays made offline are sent once you're back online.", id: "scrobble") {
                     Toggle("", isOn: $s.scrobble).labelsHidden()
                 }
             }
-            Section("Playback") {
-                SettingRow("Resume playing on open", symbol: "play.circle.fill", tint: .pink, info: "If music was playing when the app was closed, start it again right away when you open the app. When this is off, the player opens where you left off, paused, so one tap continues.", id: "resume") {
-                    Toggle("", isOn: $s.resumeOnOpen).labelsHidden()
-                }
-            }
-            Section("Offline") {
-                SettingRow("Offline mode", symbol: "airplane", tint: .orange, info: "Use only what's downloaded and never contact the server. The app also switches to this by itself whenever your server can't be reached, for example when Tailscale is off.", id: "offline") {
-                    Toggle("", isOn: $s.offlineMode).labelsHidden()
-                }
+            Section("Downloads") {
                 SettingRow("Download quality", symbol: "arrow.down.circle.fill", tint: .indigo, info: "How songs are saved for offline listening. Original keeps the exact file from your server and takes the most space; 320 or 192 asks the server to convert to MP3, which can make a FLAC album several times smaller.", id: "dlq") {
                     quality($s.dlQuality, Self.dlQualities)
                 }
@@ -129,20 +125,25 @@ struct SettingsView: View {
                     Toggle("", isOn: $s.dlCellular).labelsHidden()
                 }
             }
+            Section("Offline") {
+                SettingRow("Offline mode", symbol: "airplane", tint: .orange, info: "Use only what's downloaded and never contact the server. The app also switches to this by itself whenever your server can't be reached, for example when Tailscale is off.", id: "offline") {
+                    Toggle("", isOn: $s.offlineMode).labelsHidden()
+                }
+            }
             Section {
-                UsageBar(parts: [("Downloads", dl, Color.accentColor), ("Cache", cacheBytes, Color.gray)]).padding(.vertical, 4)
+                UsageBar(parts: [(String(localized: "Downloads"), dl, Color.accentColor), (String(localized: "Cache"), cacheBytes, Color.gray)]).padding(.vertical, 4)
                 SettingRow("Downloads", symbol: "internaldrive.fill", tint: .indigo, info: "Songs saved for offline listening. Removing them frees the space; you can download them again any time.", id: "downloads") {
-                    HStack(spacing: 8) {
-                        Text(app.downloads.state.songs.isEmpty ? "None" : bytes(dl)).font(.footnote).lineLimit(1)
-                        if !app.downloads.state.songs.isEmpty {
-                            Button("Remove", role: .destructive) { confirmRemove = true }.buttonStyle(.bordered).controlSize(.small).fixedSize()
+                    VStack(alignment: .trailing, spacing: 6) {
+                        Text(verbatim: "\(bytes(dl)) · \(String(localized: "\(songCount) songs"))").font(.footnote).multilineTextAlignment(.trailing)
+                        if songCount > 0 {
+                            Button("Remove all", role: .destructive) { confirmRemove = true }.buttonStyle(.bordered).controlSize(.small)
                         }
                     }
                 }
                 SettingRow("Cache", symbol: "photo.stack.fill", tint: .gray, info: "Album covers and library pages kept on your phone so screens open instantly and you can browse offline. Clearing it is safe; it fills up again as you browse.", id: "cache") {
-                    HStack(spacing: 10) {
-                        Text(bytes(cacheBytes)).font(.footnote)
-                        Button("Clear") { app.clearCache(); cacheBytes = app.cacheSize() }.buttonStyle(.bordered).controlSize(.small).fixedSize()
+                    VStack(alignment: .trailing, spacing: 6) {
+                        Text("Covers and library: \(bytes(cacheBytes))").font(.footnote).multilineTextAlignment(.trailing)
+                        Button("Clear") { app.clearCache(); cacheBytes = app.cacheSize() }.buttonStyle(.bordered).controlSize(.small)
                     }
                 }
             } header: { Text("Storage") } footer: { if free > 0 { Text("\(bytes(free)) free on this iPhone") } }
@@ -151,7 +152,7 @@ struct SettingsView: View {
                     Text(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "").foregroundStyle(.secondary)
                 } label: { HStack(spacing: 10) { IconTile(symbol: "info", tint: .gray); Text("Version") } }
                 Link(destination: URL(string: "https://git.borodutch.com/backmeupplz/spinwell")!) {
-                    HStack(spacing: 10) { IconTile(symbol: "chevron.left.forwardslash.chevron.right", tint: .purple); Text("Source code"); Spacer(); Image(systemName: "arrow.up.right").font(.footnote).foregroundStyle(.tertiary) }
+                    HStack(spacing: 10) { IconTile(symbol: "chevron.left.forwardslash.chevron.right", tint: .purple); Text("Source code"); Spacer(); Image(systemName: "arrow.up.right").font(.footnote).foregroundStyle(.tertiary).flipsForRightToLeftLayoutDirection(true) }
                 }
             }
             Section {
@@ -169,7 +170,7 @@ struct SettingsView: View {
         } message: { Text("Your downloads stay on this phone and come back when you sign in to the same account.") }
         .confirmationDialog("Remove all downloads?", isPresented: $confirmRemove, titleVisibility: .visible) {
             Button("Remove all", role: .destructive) { app.downloads.removeAll() }
-        }
+        } message: { Text("This frees \(bytes(dl)). You can download songs again any time.") }
     }
 
     /// Account card: server, user, version, online dot.
@@ -177,11 +178,13 @@ struct SettingsView: View {
         HStack(spacing: 14) {
             IconTile(symbol: "server.rack", tint: Color.accentColor, size: 52)
             VStack(alignment: .leading, spacing: 3) {
-                Text(app.account?.host ?? "").font(.headline).lineLimit(1)
-                Text([app.account?.user, app.serverVersion.isEmpty ? nil : app.serverVersion].compactMap { $0 }.joined(separator: " · ")).font(.subheadline).foregroundStyle(.secondary).lineLimit(1)
+                Text(verbatim: app.account?.host ?? "").font(.headline).lineLimit(1)
+                Text(verbatim: [app.account?.user, app.serverVersion.isEmpty ? nil : app.serverVersion].compactMap { $0 }.joined(separator: " · ")).font(.subheadline).foregroundStyle(.secondary).lineLimit(1)
                 HStack(spacing: 6) {
                     Circle().fill(app.offline ? Color.orange : Color.green).frame(width: 8, height: 8)
-                    Text(app.settings.offlineMode ? "Offline mode" : app.unreachable ? "Can't reach the server" : "Online").font(.footnote).foregroundStyle(.secondary)
+                    Group {
+                        if app.settings.offlineMode { Text("Offline mode") } else if app.unreachable { Text("Can't reach the server") } else { Text("Online") }
+                    }.font(.footnote).foregroundStyle(.secondary)
                 }.accessibilityIdentifier("status")
             }
             Spacer(minLength: 0)
@@ -189,7 +192,13 @@ struct SettingsView: View {
         .padding(.vertical, 6)
     }
 
-    private func quality(_ b: Binding<Int>, _ opts: [(Int, String)]) -> some View {
-        Picker("", selection: b) { ForEach(opts, id: \.0) { Text($0.1).tag($0.0) } }.labelsHidden().pickerStyle(.menu)
+    private func quality(_ b: Binding<Int>, _ opts: [Int]) -> some View {
+        Picker("", selection: b) { ForEach(opts, id: \.self) { QualityLabel(kbps: $0).tag($0) } }.labelsHidden().pickerStyle(.menu)
     }
+}
+
+/// `Original` or `320 kbps`.
+struct QualityLabel: View {
+    let kbps: Int
+    var body: some View { if kbps <= 0 { Text("Original") } else { Text("\(kbps) kbps") } }
 }

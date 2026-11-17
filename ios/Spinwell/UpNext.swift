@@ -24,9 +24,13 @@ struct UpNextView: View {
                     }
                 }
                 if !q.nextFromContext.isEmpty {
-                    Section("Next from \(q.context?.name ?? "queue")") {
+                    Section {
                         ForEach(Array(q.nextFromContext)) { qi in row(qi) }
                             .onMove { from, to in let b = q.index + 1 + q.addedRun; player.move(from: IndexSet(from.map { $0 + b }), to: to + b) }
+                    } header: {
+                        if let n = q.context?.title, !n.isEmpty {
+                            if q.shuffle { Text("Next from \(n) · shuffled") } else { Text("Next from \(n)") }
+                        } else { Text("Next up") }
                     }
                 }
             }
@@ -40,12 +44,12 @@ struct UpNextView: View {
                 ToolbarItemGroup(placement: .topBarLeading) {
                     Button { withAnimation(.smooth(duration: 0.5)) { player.setShuffle(!q.shuffle) } } label: {
                         ModeIcon(symbol: "shuffle", on: q.shuffle)
-                    }.accessibilityIdentifier("queue-shuffle")
+                    }.accessibilityLabel("Shuffle").accessibilityIdentifier("queue-shuffle")
                     Button { player.cycleRepeat() } label: {
                         ModeIcon(symbol: q.repeatMode == .one ? "repeat.1" : "repeat", on: q.repeatMode != .off)
-                    }.accessibilityIdentifier("queue-repeat")
+                    }.accessibilityLabel(q.repeatMode == .one ? Text("Repeat one") : q.repeatMode == .off ? Text("Repeat off") : Text("Repeat all")).accessibilityIdentifier("queue-repeat")
                 }
-                ToolbarItem(placement: .topBarTrailing) { Button("Done") { dismiss() } }
+                ToolbarItem(placement: .topBarTrailing) { Button("Close") { dismiss() } }
             }
         }
     }
@@ -88,6 +92,7 @@ struct ModeIcon: View {
 
 struct LyricsView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.layoutDirection) private var direction
     @State private var lyrics: Lyrics?
     @State private var loaded = false
 
@@ -98,11 +103,11 @@ struct LyricsView: View {
                 if let l = lyrics, let lines = l.line, !lines.isEmpty {
                     if l.synced == true { synced(lines) } else { plainLyrics(lines) }
                 } else if loaded {
-                    ContentUnavailableView("No lyrics", systemImage: "quote.bubble", description: Text("This song has no lyrics on your server."))
-                } else { ProgressView() }
+                    ContentUnavailableView { Image(systemName: "quote.bubble") } description: { Text("No lyrics for this song.") }
+                } else { ProgressView("Looking for lyrics…") }
             }
-            .navigationTitle(s?.name ?? "Lyrics").navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Done") { dismiss() } } }
+            .navigationTitle("Lyrics").navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Close") { dismiss() } } }
         }
         .task(id: s?.id) {
             guard let id = s?.id else { return }
@@ -127,7 +132,7 @@ struct LyricsView: View {
                         Text((l.value ?? "").isEmpty ? "♪" : l.value!)
                             .font(.system(size: 30, weight: .bold)).lineSpacing(2)
                             .foregroundStyle(i == active ? .white : .white.opacity(i < active ? 0.3 : 0.4))
-                            .scaleEffect(i == active ? 1 : 0.92, anchor: .leading)
+                            .scaleEffect(i == active ? 1 : 0.92, anchor: direction == .rightToLeft ? .trailing : .leading)
                             .blur(radius: i == active ? 0 : 0.6)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .contentShape(Rectangle())

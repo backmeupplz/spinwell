@@ -3,6 +3,8 @@ package com.borodutch.spinwell
 import android.app.Application
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.annotation.PluralsRes
+import androidx.annotation.StringRes
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
@@ -17,6 +19,11 @@ import java.io.File
 import java.io.IOException
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.reflect.KProperty
+
+/** Strings for code outside composition: read from the application resources at call time, so a language change applies. */
+fun str(@StringRes id: Int, vararg a: Any): String = Store.app.getString(id, *a)
+/** a plural by [n]; the format args default to just the count */
+fun plural(@PluralsRes id: Int, n: Int, vararg a: Any): String = Store.app.resources.getQuantityString(id, n, *(if (a.isEmpty()) arrayOf<Any>(n) else a))
 
 class App : Application() {
     override fun onCreate() {
@@ -86,14 +93,14 @@ object Store {
 
     suspend fun signIn(serverIn: String, user: String, password: String) {
         val server = normalizeServer(serverIn)
-        require(server.isNotEmpty() && user.isNotBlank()) { "Enter your server address, username and password." }
+        require(server.isNotEmpty() && user.isNotBlank()) { str(R.string.err_sign_in_empty) }
         val salt = (1..8).map { "0123456789abcdef".random() }.joinToString("")
         val s = Session(server, user.trim(), authToken(password, salt), salt)
         withContext(Dispatchers.IO) {
             try { getJson(s.url("ping"), 10_000) }
-            catch (e: ApiError) { throw if (e.code == 40 || e.code == 41) Exception(e.message ?: "Wrong username or password.") else Exception("That doesn't look like a Subsonic server.") }
-            catch (e: HttpErr) { throw Exception("That doesn't look like a Subsonic server (HTTP ${e.code}).") }
-            catch (e: java.io.IOException) { throw Exception("Can't reach the server. Check the address and your connection.") }
+            catch (e: ApiError) { throw if (e.code == 40 || e.code == 41) Exception(e.message ?: str(R.string.err_wrong_credentials)) else Exception(str(R.string.err_not_subsonic)) }
+            catch (e: HttpErr) { throw Exception(str(R.string.err_not_subsonic_http, e.code)) }
+            catch (e: java.io.IOException) { throw Exception(str(R.string.err_unreachable)) }
         }
         p.edit().putString("server", s.server).putString("user", s.user).putString("token", s.token).putString("salt", s.salt).apply()
         session = s

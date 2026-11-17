@@ -25,8 +25,8 @@ struct MiniPlayer: View {
             Button { player.toggle() } label: {
                 Image(systemName: player.playing ? "pause.fill" : "play.fill").font(.title3).frame(width: 36, height: 36)
                     .contentTransition(.symbolEffect(.replace))
-            }.buttonStyle(.plain).accessibilityIdentifier("mini-play")
-            Button { player.next() } label: { Image(systemName: "forward.fill").font(.body).frame(width: 34, height: 36) }.buttonStyle(.plain)
+            }.buttonStyle(.plain).accessibilityLabel(player.playing ? Text("Pause") : Text("Play")).accessibilityIdentifier("mini-play")
+            Button { player.next() } label: { Image(systemName: "forward.fill").font(.body).frame(width: 34, height: 36) }.buttonStyle(.plain).accessibilityLabel("Next")
         }
         .padding(.horizontal, 14)
         .frame(maxWidth: .infinity)
@@ -34,6 +34,7 @@ struct MiniPlayer: View {
         .overlay(alignment: .bottom) {
             GeometryReader { g in
                 Capsule().fill(.white.opacity(0.55)).frame(width: g.size.width * min(1, player.pos / max(player.duration, 1)), height: 2)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }.frame(height: 2).padding(.horizontal, 16)
         }
         .offset(x: drag * 0.4)
@@ -51,6 +52,7 @@ struct MiniPlayer: View {
 
 struct SeekBar: View {
     @State private var dragging: Double?
+    @Environment(\.layoutDirection) private var direction
     var body: some View {
         let dur = max(player.duration, 1)
         let value = dragging ?? player.pos
@@ -67,7 +69,8 @@ struct SeekBar: View {
                 .gesture(DragGesture(minimumDistance: 0)
                     .onChanged { v in
                         if dragging == nil { UIImpactFeedbackGenerator(style: .light).impactOccurred() }
-                        let t = max(0, min(1, v.location.x / w)) * dur
+                        let x = direction == .rightToLeft ? w - v.location.x : v.location.x
+                        let t = max(0, min(1, x / w)) * dur
                         withAnimation(.snappy(duration: 0.15)) { dragging = t }
                     }
                     .onEnded { _ in
@@ -78,7 +81,7 @@ struct SeekBar: View {
             }
             .frame(height: 22)
             HStack {
-                Text(clock(value)); Spacer(); Text("-" + clock(max(0, dur - value)))
+                Text(clock(value)); Spacer(); Text(verbatim: "-" + clock(max(0, dur - value)))
             }.font(.caption).monospacedDigit().foregroundStyle(.white.opacity(0.6))
         }
     }
@@ -105,14 +108,14 @@ struct FullPlayer: View {
             LinearGradient(colors: [tint, tint.opacity(0.45), .black], startPoint: .top, endPoint: .bottom).ignoresSafeArea()
             VStack(spacing: 0) {
                 HStack {
-                    Button { dismiss() } label: { Image(systemName: "chevron.down").font(.title3.weight(.semibold)).frame(width: 44, height: 44) }.accessibilityLabel("Close player").accessibilityIdentifier("player-close")
+                    Button { dismiss() } label: { Image(systemName: "chevron.down").font(.title3.weight(.semibold)).frame(width: 44, height: 44) }.accessibilityLabel("Minimize player").accessibilityIdentifier("player-close")
                     Spacer()
                     VStack(spacing: 1) {
-                        Text("PLAYING FROM").font(.system(size: 10, weight: .semibold)).tracking(1).foregroundStyle(.white.opacity(0.6))
-                        Text(player.q.context?.name ?? "Queue").font(.footnote.weight(.semibold)).lineLimit(1)
+                        Text("Playing from").textCase(.uppercase).font(.system(size: 10, weight: .semibold)).tracking(caps(1)).foregroundStyle(.white.opacity(0.6)).lineLimit(1)
+                        Text(verbatim: player.q.context?.title ?? String(localized: "Up next")).font(.footnote.weight(.semibold)).lineLimit(1)
                     }
                     Spacer()
-                    Menu { if let s { SongMenu(song: s) } } label: { Image(systemName: "ellipsis").font(.title3).frame(width: 44, height: 44) }
+                    Menu { if let s { SongMenu(song: s) } } label: { Image(systemName: "ellipsis").font(.title3).frame(width: 44, height: 44) }.accessibilityLabel("More")
                 }
                 .foregroundStyle(.white).padding(.horizontal, 12)
                 Spacer(minLength: 8)
@@ -170,7 +173,7 @@ struct FullPlayer: View {
                 Button { app.toggleStar(s.id, now: !fav) } label: {
                     Image(systemName: fav ? "heart.fill" : "heart").font(.title2).foregroundStyle(fav ? .pink : .white)
                         .frame(width: 44, height: 44).symbolEffect(.bounce, value: fav)
-                }.accessibilityIdentifier("player-heart")
+                }.accessibilityLabel(fav ? Text("Remove from favorites") : Text("Add to favorites")).accessibilityIdentifier("player-heart")
             }
         }
         .animation(.smooth, value: player.q.current?.id)
@@ -181,22 +184,22 @@ struct FullPlayer: View {
             Button { player.setShuffle(!player.q.shuffle) } label: {
                 ModeIcon(symbol: "shuffle", on: player.q.shuffle, inactive: .white.opacity(0.7)).font(.title3).frame(width: 48, height: 56)
                     .symbolEffect(.bounce, value: player.q.shuffle)
-            }.accessibilityIdentifier("shuffle-toggle")
+            }.accessibilityLabel("Shuffle").accessibilityIdentifier("shuffle-toggle")
             Spacer()
-            Button { player.previous() } label: { Image(systemName: "backward.fill").font(.system(size: 30)).frame(width: 60, height: 60) }
+            Button { player.previous() } label: { Image(systemName: "backward.fill").font(.system(size: 30)).frame(width: 60, height: 60) }.accessibilityLabel("Previous")
             Spacer()
             Button { player.toggle() } label: {
                 Image(systemName: player.playing ? "pause.fill" : "play.fill").font(.system(size: 40))
                     .frame(width: 76, height: 76).contentTransition(.symbolEffect(.replace))
                     .glassEffect(.regular.interactive(), in: .circle)
-            }.accessibilityIdentifier("player-play")
+            }.accessibilityLabel(player.playing ? Text("Pause") : Text("Play")).accessibilityIdentifier("player-play")
             Spacer()
-            Button { player.next() } label: { Image(systemName: "forward.fill").font(.system(size: 30)).frame(width: 60, height: 60) }
+            Button { player.next() } label: { Image(systemName: "forward.fill").font(.system(size: 30)).frame(width: 60, height: 60) }.accessibilityLabel("Next")
             Spacer()
             Button { player.cycleRepeat() } label: {
                 ModeIcon(symbol: player.repeatMode == .one ? "repeat.1" : "repeat", on: player.repeatMode != .off, inactive: .white.opacity(0.7))
                     .font(.title3).frame(width: 48, height: 56)
-            }.accessibilityIdentifier("repeat-toggle")
+            }.accessibilityLabel(player.repeatMode == .one ? Text("Repeat one") : player.repeatMode == .off ? Text("Repeat off") : Text("Repeat all")).accessibilityIdentifier("repeat-toggle")
         }
         .buttonStyle(.plain).padding(.horizontal, 20)
         .sensoryFeedback(.selection, trigger: player.q.shuffle).sensoryFeedback(.selection, trigger: player.repeatMode)
@@ -207,9 +210,9 @@ struct FullPlayer: View {
             Text(s?.badge ?? "").font(.caption2.weight(.semibold)).padding(.horizontal, 9).padding(.vertical, 5)
                 .background(.white.opacity(0.14), in: .capsule)
             Spacer()
-            Button { showLyrics = true } label: { Image(systemName: "quote.bubble").font(.title3).frame(width: 44, height: 44) }.accessibilityIdentifier("lyrics-button")
-            Button { showQueue = true } label: { Image(systemName: "list.bullet").font(.title3).frame(width: 44, height: 44) }.accessibilityIdentifier("upnext-button")
-            RoutePicker().frame(width: 44, height: 44)
+            Button { showLyrics = true } label: { Image(systemName: "quote.bubble").font(.title3).frame(width: 44, height: 44) }.accessibilityLabel("Lyrics").accessibilityIdentifier("lyrics-button")
+            Button { showQueue = true } label: { Image(systemName: "list.bullet").font(.title3).frame(width: 44, height: 44) }.accessibilityLabel("Up next").accessibilityIdentifier("upnext-button")
+            RoutePicker().frame(width: 44, height: 44).accessibilityLabel("Output")
         }
     }
 }
