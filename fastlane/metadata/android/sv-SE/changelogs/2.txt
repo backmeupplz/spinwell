@@ -1,0 +1,1 @@
+Första versionen: bläddra i hela biblioteket, strömma i originalkvalitet, ladda ner album och spellistor för offlinelyssning, läs synkade låttexter och fortsätt precis där du slutade.

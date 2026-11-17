@@ -334,6 +334,9 @@ class PlayerService : MediaSessionService() {
                 }
             })
             .build()
+        // The UI drives Audio.player directly, so no MediaController ever asks for this session through onGetSession.
+        // Without addSession the service never tracks it: no media notification, no foreground service, no lock screen controls.
+        addSession(session!!)
         Audio.session = session
         Audio.updateButtons(force = true)
     }
