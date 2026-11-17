@@ -218,6 +218,17 @@ on every screen. Settings open from a gear on Home.
 - Performance: no work on the main thread beyond layout; lazy lists everywhere; covers decoded at display size;
   first frame on launch from cache with no spinner. Target cold start < 500 ms on the OnePlus 8 and 60/120 fps scrolling.
 
+## Tablets (Android, 7" and 10")
+
+On a tablet (smallest width 600 dp or more, in either orientation; a phone turned sideways stays a phone) the phone layouts stay as they are and the screens adapt:
+- **Lists** (Library tabs, Search, Downloads, Settings, queue and lyrics sheets) sit in a centered column of at most 640 dp
+  (720 dp for the Library, 1040 dp in landscape); the Library's album grid goes from 100 dp to 140 dp cells.
+- **Album and playlist pages:** a centered 640 dp column with a larger cover in portrait; from 720 dp wide in landscape
+  the cover, title and buttons stay on the left and the tracks scroll in a rounded card on the right.
+- **Full player:** the cover and controls form a column of at most 680 dp, centered, in portrait; in landscape the cover is on
+  the left half and title, seek bar and controls on the right half, vertically centered.
+- Home, the mini player and the tab bar use the full width.
+
 ## Checks
 
 - Unit tests (Android JVM tests, iOS XCTest target), small: auth token, URL building + iOS transcode rule,

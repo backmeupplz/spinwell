@@ -41,12 +41,14 @@ private fun SheetFrame(tint: Color, title: String, onClose: () -> Unit, trailing
         Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.55f).compositeOver2(tint), Bg, Bg)))
             .pointerInput(Unit) { detectTapGestures { } },
     ) {
-        Row(Modifier.padding(top = top + 4.dp, start = 16.dp, end = 4.dp).fillMaxWidth().height(48.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(title, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
-            trailing?.invoke(this)
-            IconBtn(Ic.Down, stringResource(R.string.action_close)) { onClose() }
-        }
-        content()
+        Centered(640.dp) { Column(Modifier.fillMaxSize()) {
+            Row(Modifier.padding(top = top + 4.dp, start = 16.dp, end = 4.dp).fillMaxWidth().height(48.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(title, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
+                trailing?.invoke(this)
+                IconBtn(Ic.Down, stringResource(R.string.action_close)) { onClose() }
+            }
+            content()
+        } }
     }
 }
 

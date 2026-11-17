@@ -344,6 +344,15 @@ fun Empty(text: String, modifier: Modifier = Modifier, icon: ImageVector? = Ic.N
         Text(text, color = Muted, style = MaterialTheme.typography.bodyMedium, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
     }
 
+/** a tablet (7" and up, in either orientation: a phone turned sideways stays a phone): lists get a readable column, album pages and the player use the width */
+@Composable
+fun isWide() = androidx.compose.ui.platform.LocalConfiguration.current.smallestScreenWidthDp >= 600
+
+/** a column of at most [max] in the middle of a wide window; on a phone it changes nothing */
+@Composable
+fun Centered(max: Dp = 640.dp, content: @Composable () -> Unit) =
+    Box(Modifier.fillMaxSize(), Alignment.TopCenter) { Box(Modifier.then(if (isWide()) Modifier.widthIn(max = max) else Modifier).fillMaxSize()) { content() } }
+
 /** page padding that clears the status bar (+offline banner) and the mini player + tab bar */
 @Composable
 fun pagePadding(extraTop: Dp = 8.dp) = PaddingValues(top = LocalTop.current + extraTop, bottom = LocalBottom.current + 16.dp)

@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -15,7 +16,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.draw.shadow
@@ -123,60 +126,98 @@ fun CollectionScreen(id: String, playlist: Boolean, share: String, routeCover: S
     LaunchedEffect(c?.songs, Net.offline) { if (c != null && playlist && !Net.offline) Downloads.sync("playlist", id, c.name, c.coverArt, c.songs) }
 
     val list = rememberLazyListState()
+    val wide = isWide()
+    val conf = androidx.compose.ui.platform.LocalConfiguration.current
+    val twoPane = conf.screenWidthDp >= 720 && conf.screenWidthDp > conf.screenHeightDp // landscape: cover and buttons left, tracks right
+    val coverBox: @Composable (androidx.compose.ui.unit.Dp) -> Unit = { size ->
+        CoverArt(cover, 600, Modifier.size(size).shadow(20.dp, RoundedCornerShape(10.dp), spotColor = Color.Black), 10.dp, "cover-$share-$id")
+    }
+    val info: @Composable () -> Unit = {
+        Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 2.dp)) {
+            Text(c?.name ?: " ", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            if (c != null && c.artist.isNotBlank()) Text(c.artist, color = Accent, style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.clickable(enabled = c.artistId.isNotEmpty()) { Nav.push(Route.Artist(c.artistId, "album")) }.padding(vertical = 1.dp))
+            if (c != null) {
+                val meta = if (playlist) listOf(c.owner, songsLabel(songs.size), fmtLong(c.duration))
+                else listOf(c.year.takeIf { it > 0 }?.toString(), c.genre.ifBlank { null }, songsLabel(songs.size), fmtLong(c.duration)).filterNotNull()
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(meta.filter { it.isNotBlank() }.joinToString(" · "), color = Muted, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                    Badge(bestQuality(songs))
+                }
+            }
+        }
+    }
+    val actions: @Composable () -> Unit = {
+        PlayShuffle(songs, ctx) {
+            if (c != null) {
+                DownloadButton(c.kind, c.id, c.name, c.coverArt, c.songs)
+                if (!playlist) Heart(Fav.on(id, c.starred), size = 44.dp) { Fav.toggle(id, c.starred, "albumId") }
+                var menu by remember { mutableStateOf(false) }
+                Box {
+                    IconBtn(Ic.More, stringResource(R.string.a11y_more), size = 44.dp) { menu = true }
+                    DropdownMenu(menu, { menu = false }, containerColor = Surface2) {
+                        DropdownMenuItem({ Text(stringResource(R.string.menu_play_next)) }, { menu = false; songs.asReversed().forEach { Audio.playNext(it) } })
+                        DropdownMenuItem({ Text(stringResource(R.string.menu_add_to_queue)) }, { menu = false; songs.forEach { Audio.addToQueue(it) } })
+                        RepeatMenuItem(kind, id, songs, ctx) { menu = false }
+                        if (c.artistId.isNotEmpty()) DropdownMenuItem({ Text(stringResource(R.string.menu_go_to_artist)) }, { menu = false; Nav.push(Route.Artist(c.artistId, "album")) })
+                    }
+                }
+            }
+        }
+    }
+    val rows: androidx.compose.foundation.lazy.LazyListScope.() -> Unit = {
+        if (c == null && st.error != null) item { Empty(if (Net.offline) stringResource(R.string.err_not_available_offline) else stringResource(R.string.err_load_failed, st.error.orEmpty())) }
+        val multi = !playlist && songs.map { it.disc }.distinct().size > 1
+        songs.forEachIndexed { i, s ->
+            if (multi && (i == 0 || songs[i - 1].disc != s.disc)) item(key = "disc-${s.disc}") {
+                Text(stringResource(R.string.label_disc, s.disc), color = Muted, style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(start = 16.dp, top = 10.dp, bottom = 2.dp))
+            }
+            item(key = "s-$i-${s.id}") {
+                if (playlist) SongRow(s, showCover = true, queue = songs, index = i, ctx = ctx)
+                else SongRow(s, number = if (s.track > 0) s.track else i + 1, queue = songs, index = i, ctx = ctx)
+            }
+        }
+        if (notes.isNotBlank()) item {
+            Text(stripHtml(notes), color = Muted, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(16.dp))
+        }
+    }
+    val pad = PaddingValues(bottom = LocalBottom.current + 16.dp)
     Box(Modifier.fillMaxSize()) {
-        LazyColumn(Modifier.fillMaxSize(), list, contentPadding = PaddingValues(bottom = LocalBottom.current + 16.dp)) {
+        if (!wide) LazyColumn(Modifier.fillMaxSize(), list, contentPadding = pad) {
             item {
                 Column(Modifier.fillMaxWidth().background(Brush.verticalGradient(listOf(tint.copy(alpha = 0.75f), Bg)))) {
                     Spacer(Modifier.height(LocalTop.current.coerceAtLeast(0.dp) + 44.dp))
-                    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        CoverArt(cover, 600, Modifier.size(208.dp).shadow(20.dp, RoundedCornerShape(10.dp), spotColor = Color.Black), 10.dp, "cover-$share-$id")
+                    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { coverBox(208.dp) }
+                    info()
+                }
+            }
+            item { actions() }
+            rows()
+        } else Box(Modifier.fillMaxSize().drawBehind { drawRect(Brush.verticalGradient(listOf(tint.copy(alpha = 0.75f), Bg), endY = 520.dp.toPx())) }) {
+            if (twoPane) Row(Modifier.fillMaxSize().padding(top = LocalTop.current.coerceAtLeast(0.dp) + 44.dp)) {
+                // cover, title and buttons stay put on the left while the tracks scroll on the right
+                Column(Modifier.width(360.dp).verticalScroll(androidx.compose.foundation.rememberScrollState()).padding(start = 24.dp, bottom = LocalBottom.current)) {
+                    Box(Modifier.fillMaxWidth().padding(top = 12.dp), contentAlignment = Alignment.Center) { coverBox(280.dp) }
+                    info()
+                    actions()
+                }
+                Box(Modifier.weight(1f).fillMaxHeight().padding(start = 16.dp, end = 24.dp, bottom = LocalBottom.current + 8.dp), Alignment.TopCenter) {
+                    Box(Modifier.widthIn(max = 560.dp).fillMaxHeight().clip(RoundedCornerShape(16.dp)).background(Bg)) {
+                        LazyColumn(Modifier.fillMaxSize(), list, contentPadding = PaddingValues(vertical = 8.dp)) { rows() }
                     }
-                    Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 2.dp)) {
-                        Text(c?.name ?: " ", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                        if (c != null && c.artist.isNotBlank()) Text(c.artist, color = Accent, style = MaterialTheme.typography.titleMedium,
-                            modifier = Modifier.clickable(enabled = c.artistId.isNotEmpty()) { Nav.push(Route.Artist(c.artistId, "album")) }.padding(vertical = 1.dp))
-                        if (c != null) {
-                            val meta = if (playlist) listOf(c.owner, songsLabel(songs.size), fmtLong(c.duration))
-                            else listOf(c.year.takeIf { it > 0 }?.toString(), c.genre.ifBlank { null }, songsLabel(songs.size), fmtLong(c.duration)).filterNotNull()
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Text(meta.filter { it.isNotBlank() }.joinToString(" · "), color = Muted, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
-                                Badge(bestQuality(songs))
-                            }
+                }
+            } else Centered(640.dp) {
+                LazyColumn(Modifier.fillMaxSize(), list, contentPadding = pad) {
+                    item {
+                        Column(Modifier.fillMaxWidth()) {
+                            Spacer(Modifier.height(LocalTop.current.coerceAtLeast(0.dp) + 44.dp))
+                            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { coverBox(if (conf.screenWidthDp >= 720) 300.dp else 240.dp) }
+                            info()
                         }
                     }
+                    item { actions() }
+                    rows()
                 }
-            }
-            item {
-                PlayShuffle(songs, ctx) {
-                    if (c != null) {
-                        DownloadButton(c.kind, c.id, c.name, c.coverArt, c.songs)
-                        if (!playlist) Heart(Fav.on(id, c.starred), size = 44.dp) { Fav.toggle(id, c.starred, "albumId") }
-                        var menu by remember { mutableStateOf(false) }
-                        Box {
-                            IconBtn(Ic.More, stringResource(R.string.a11y_more), size = 44.dp) { menu = true }
-                            DropdownMenu(menu, { menu = false }, containerColor = Surface2) {
-                                DropdownMenuItem({ Text(stringResource(R.string.menu_play_next)) }, { menu = false; songs.asReversed().forEach { Audio.playNext(it) } })
-                                DropdownMenuItem({ Text(stringResource(R.string.menu_add_to_queue)) }, { menu = false; songs.forEach { Audio.addToQueue(it) } })
-                                RepeatMenuItem(kind, id, songs, ctx) { menu = false }
-                                if (c.artistId.isNotEmpty()) DropdownMenuItem({ Text(stringResource(R.string.menu_go_to_artist)) }, { menu = false; Nav.push(Route.Artist(c.artistId, "album")) })
-                            }
-                        }
-                    }
-                }
-            }
-            if (c == null && st.error != null) item { Empty(if (Net.offline) stringResource(R.string.err_not_available_offline) else stringResource(R.string.err_load_failed, st.error.orEmpty())) }
-            val multi = !playlist && songs.map { it.disc }.distinct().size > 1
-            songs.forEachIndexed { i, s ->
-                if (multi && (i == 0 || songs[i - 1].disc != s.disc)) item(key = "disc-${s.disc}") {
-                    Text(stringResource(R.string.label_disc, s.disc), color = Muted, style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(start = 16.dp, top = 10.dp, bottom = 2.dp))
-                }
-                item(key = "s-$i-${s.id}") {
-                    if (playlist) SongRow(s, showCover = true, queue = songs, index = i, ctx = ctx)
-                    else SongRow(s, number = if (s.track > 0) s.track else i + 1, queue = songs, index = i, ctx = ctx)
-                }
-            }
-            if (notes.isNotBlank()) item {
-                Text(stripHtml(notes), color = Muted, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(16.dp))
             }
         }
         StatusScrim(Modifier.align(Alignment.TopCenter), LocalTop.current, visible = { list.firstVisibleItemIndex > 0 || list.firstVisibleItemScrollOffset > 300 })

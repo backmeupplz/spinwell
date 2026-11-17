@@ -86,15 +86,22 @@ fun BoxScope.PlayerSheet(exp: Animatable<Float, AnimationVector1D>, barH: Dp, mi
         val miniHpx = px(miniH)
         val miniTop = H - px(barH) - miniHpx - px(8.dp)
         // laid out from the bottom up so a small phone (5.4") never clips; the cover takes what's left under the top bar
-        val rowY1 = H - px(navBottom) - px(64.dp)
+        // a tablet keeps the controls in a column of at most 680 dp (560 in landscape): centered in portrait, on the right half in landscape beside the cover
+        val tablet = minOf(W, H) >= px(600.dp)
+        val land = tablet && W > H
+        val cw = if (!tablet) W else if (land) minOf(W / 2f - px(48.dp), px(560.dp)) else minOf(W, px(680.dp))
+        val cx0 = if (!tablet) 0f else if (land) W / 2f + (W / 2f - cw) / 2f else (W - cw) / 2f
+        val padW = cw - px(56.dp)
+        val rowY1 = if (land) (H + px(statusTop)) / 2f + px(104.dp) else H - px(navBottom) - px(64.dp)
         val controlsY1 = rowY1 - px(60.dp)
         val seekY1 = controlsY1 - px(100.dp)
         val titleY1 = seekY1 - px(96.dp)
         val top0 = px(statusTop) + px(60.dp)
         val avail = titleY1 - px(18.dp) - top0
-        val cs = minOf(W - px(56.dp), avail).coerceAtLeast(px(120.dp))
-        val coverTop1 = top0 + (avail - cs) / 2f
-        val sidePad = px(28.dp)
+        val cs = (if (land) minOf(W / 2f - px(64.dp), H - top0 - px(32.dp)) else minOf(cw - px(56.dp), avail)).coerceAtLeast(px(120.dp))
+        val coverTop1 = if (land) top0 + (H - top0 - px(24.dp) - cs) / 2f else top0 + (avail - cs) / 2f
+        val coverX1 = if (land) (W / 2f - cs) / 2f else (W - cs) / 2f
+        val sidePad = cx0 + px(28.dp)
         val miniMargin = px(8.dp)
 
         fun expand() = scope.launch { exp.animateTo(1f, spring(0.85f, Spring.StiffnessMediumLow)) }
@@ -139,7 +146,7 @@ fun BoxScope.PlayerSheet(exp: Animatable<Float, AnimationVector1D>, barH: Dp, mi
             // cover
             Box(
                 Modifier
-                    .offset { IntOffset((lerp(px(10.dp), (W - cs) / 2f, exp.value) + coverDx.value * exp.value + miniDx * 0.4f * (1 - exp.value)).roundToInt(), lerp(px(8.dp), coverTop1, exp.value).roundToInt()) }
+                    .offset { IntOffset((lerp(px(10.dp), coverX1, exp.value) + coverDx.value * exp.value + miniDx * 0.4f * (1 - exp.value)).roundToInt(), lerp(px(8.dp), coverTop1, exp.value).roundToInt()) }
                     .layout { m, _ ->
                         val s = lerp(px(48.dp), cs, exp.value).roundToInt()
                         val p = m.measure(Constraints.fixed(s, s)); layout(s, s) { p.place(0, 0) }
@@ -180,11 +187,11 @@ fun BoxScope.PlayerSheet(exp: Animatable<Float, AnimationVector1D>, barH: Dp, mi
                 Text(
                     song.title, style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold, fontSize = 24.sp, lineHeight = 30.sp),
                     maxLines = if (twoLines) 2 else 1, overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.scaledBox({ lerp(W - px(70.dp) - px(112.dp), W - 2 * sidePad - px(52.dp), exp.value) }, { lerp(0.625f, 1f, exp.value) }),
+                    modifier = Modifier.scaledBox({ lerp(W - px(70.dp) - px(112.dp), padW - px(52.dp), exp.value) }, { lerp(0.625f, 1f, exp.value) }),
                 )
                 Text(
                     song.artist, style = MaterialTheme.typography.titleMedium.copy(fontSize = 16.sp), color = Muted, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.scaledBox({ lerp(W - px(70.dp) - px(112.dp), W - 2 * sidePad - px(52.dp), exp.value) }, { lerp(0.8125f, 1f, exp.value) })
+                    modifier = Modifier.scaledBox({ lerp(W - px(70.dp) - px(112.dp), padW - px(52.dp), exp.value) }, { lerp(0.8125f, 1f, exp.value) })
                         .clickable(enabled = fullShown && song.artistId.isNotEmpty()) { collapse(); Nav.push(Route.Artist(song.artistId, "player")) },
                 )
             }
@@ -192,7 +199,7 @@ fun BoxScope.PlayerSheet(exp: Animatable<Float, AnimationVector1D>, barH: Dp, mi
             // play / pause: a small button in the mini row that becomes the big one
             Box(
                 Modifier
-                    .offset { IntOffset(lerp(W - 2 * miniMargin - px(56.dp), W / 2f - px(36.dp), exp.value).roundToInt(), lerp(px(8.dp), controlsY1 - px(36.dp), exp.value).roundToInt()) }
+                    .offset { IntOffset(lerp(W - 2 * miniMargin - px(56.dp), cx0 + cw / 2f - px(36.dp), exp.value).roundToInt(), lerp(px(8.dp), controlsY1 - px(36.dp), exp.value).roundToInt()) }
                     .layout { m, _ ->
                         val s = lerp(px(48.dp), px(72.dp), exp.value).roundToInt()
                         val p = m.measure(Constraints.fixed(s, s)); layout(s, s) { p.place(0, 0) }
@@ -228,10 +235,10 @@ fun BoxScope.PlayerSheet(exp: Animatable<Float, AnimationVector1D>, barH: Dp, mi
                     }
                 }
                 // favorite beside the title
-                Heart(Fav.on(song.id, song.starred), Modifier.offset { IntOffset((W - sidePad - px(48.dp)).roundToInt(), (titleY1 - px(8.dp)).roundToInt()) }) { Fav.toggle(song.id, song.starred) }
+                Heart(Fav.on(song.id, song.starred), Modifier.offset { IntOffset((cx0 + cw - px(28.dp) - px(48.dp)).roundToInt(), (titleY1 - px(8.dp)).roundToInt()) }) { Fav.toggle(song.id, song.starred) }
 
                 // seek bar + times
-                Column(Modifier.offset { IntOffset(sidePad.roundToInt(), seekY1.roundToInt()) }.width(with(d) { (W - 2 * sidePad).toDp() })) {
+                Column(Modifier.offset { IntOffset(sidePad.roundToInt(), seekY1.roundToInt()) }.width(with(d) { padW.toDp() })) {
                     SeekBar({ pos }, { durMs }, { ms -> pos = ms; Audio.seekTo(ms) })
                     Row(Modifier.fillMaxWidth()) {
                         Text(fmtTime((pos / 1000).toInt()), style = MaterialTheme.typography.labelSmall, color = Muted)
@@ -241,7 +248,7 @@ fun BoxScope.PlayerSheet(exp: Animatable<Float, AnimationVector1D>, barH: Dp, mi
                 }
                 // transport (the big play button is the element above, in the middle)
                 Row(
-                    Modifier.offset { IntOffset(0, (controlsY1 - px(32.dp)).roundToInt()) }.fillMaxWidth().height(64.dp).padding(horizontal = 20.dp),
+                    Modifier.offset { IntOffset(cx0.roundToInt(), (controlsY1 - px(32.dp)).roundToInt()) }.width(with(d) { cw.toDp() }).height(64.dp).padding(horizontal = 20.dp),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     ToggleBtn(Ic.Shuffle, stringResource(R.string.action_shuffle), shuffleOn) { Audio.toggleShuffle() }
@@ -252,7 +259,7 @@ fun BoxScope.PlayerSheet(exp: Animatable<Float, AnimationVector1D>, barH: Dp, mi
                 }
                 // quality, lyrics, up next, output
                 Row(
-                    Modifier.offset { IntOffset(0, rowY1.roundToInt()) }.fillMaxWidth().padding(horizontal = 24.dp),
+                    Modifier.offset { IntOffset(cx0.roundToInt(), rowY1.roundToInt()) }.width(with(d) { cw.toDp() }).padding(horizontal = 24.dp),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Box(Modifier.weight(1f)) { Badge(if (Downloads.has(song.id)) qualityOf(song).ifBlank { stringResource(R.string.status_downloaded) } else qualityOf(song)) }

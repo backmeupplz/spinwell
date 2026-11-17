@@ -154,10 +154,10 @@ fun Shell() {
                         Box(Modifier.fillMaxSize().background(Bg)) {
                             when (route) {
                                 Route.Home -> HomeScreen()
-                                Route.Library -> LibraryScreen()
-                                Route.Search -> SearchScreen()
-                                Route.Downloads -> DownloadsScreen()
-                                Route.Settings -> SettingsScreen()
+                                Route.Library -> Centered(if (androidx.compose.ui.platform.LocalConfiguration.current.let { it.screenWidthDp > it.screenHeightDp }) 1040.dp else 720.dp) { LibraryScreen() }
+                                Route.Search -> Centered { SearchScreen() }
+                                Route.Downloads -> Centered { DownloadsScreen() }
+                                Route.Settings -> Centered { SettingsScreen() }
                                 is Route.Album -> CollectionScreen(route.id, false, route.share, route.cover)
                                 is Route.Playlist -> CollectionScreen(route.id, true, route.share, route.cover)
                                 is Route.Artist -> ArtistScreen(route.id, route.share)
