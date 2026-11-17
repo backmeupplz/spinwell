@@ -154,6 +154,9 @@ also make sure like with other apps we get our fast ci build and upload to plays
 and make sure our ci for publishing releases to playstore/appstore is functional</blockquote>
 <p class="what">Claude checked every release secret against Vaultwarden by hash: the Android upload keystore opens with its stored password and matches the release certificate. It added a Vaultwarden note mapping each CI secret to its item, and deleted the last plaintext copy of the keystore on disk.</p>
 <p class="what">Apple had also quietly blocked the first submission over new China-mainland compliance forms, so Claude took China out of the App Store availability, and the iPhone app went to Waiting for Review. A full pipeline dry run in CI with a throwaway build 3 then went green: Play accepted the release, and the iPhone build archived and exported. By then Google had already approved the app, so <b>Spinwell went live on Google Play</b> and the site got its Play button. <span class="live">App Store in review</span></p></li>
+<li><blockquote>wireless debugging is on, test it on the oneplus</blockquote>
+<p class="what">Claude installed build 2 over the test build, keeping the sign-in, and started a shuffle of the real library at low volume. Playback ran in the foreground with its media notification, the lock screen showed the song with shuffle, pause and repeat, and it kept playing with the screen off.</p>
+<p class="what">Then it switched Tailscale off on the phone: about 15 seconds later the stream failed with "no network", and with nothing downloaded in that queue, playback stopped. Once Tailscale was back on, one press of play resumed the song where it left off. The on-screen offline banner went unchecked, because the phone sat on its PIN lock screen.</p></li>
 </ol>
 <footer>Spinwell is free and open source. <a href="https://spinwell.app/">spinwell.app</a> · <a href="https://github.com/backmeupplz/spinwell">Source code</a></footer>
 </div></body>
