@@ -1,0 +1,27 @@
+Spinwell es un reproductor de música para Navidrome en Android: una app pequeña, rápida y muy bonita, sin anuncios, que reproduce por streaming tu propia colección musical desde tu servidor y la descarga para que la escuches sin conexión. Funciona con Navidrome y con cualquier otro servidor que use la API de OpenSubsonic o Subsonic. Inicia sesión con la dirección de tu servidor, tu usuario y tu contraseña, y ahí estarán tus álbumes, artistas y playlists.
+
+ESCUCHAR
+• Reproduce las canciones en su calidad original, FLAC incluido, o elige una calidad más baja para ahorrar datos móviles
+• Controles en la pantalla bloqueada, la notificación, los audífonos y el Bluetooth
+• Letras sincronizadas que siguen la canción; si tocas una línea, salta a ese punto
+• Reproducción aleatoria inteligente que evita que el mismo artista suene dos veces seguidas
+• Una lista «A continuación» que puedes reordenar, con «Reproducir a continuación» y «Agregar a la fila» en cada canción
+• Continúa donde te quedaste: tu canción, tu fila y el punto exacto de la pista
+
+TU BIBLIOTECA
+• Una pantalla de inicio con los álbumes escuchados recientemente, agregados recientemente, más escuchados y favoritos
+• Artistas, álbumes, playlists, canciones y favoritos, con portadas grandes y nítidas
+• Una búsqueda que encuentra artistas, álbumes y canciones mientras escribes, sin importar mayúsculas ni acentos
+• Favoritos que se sincronizan con tu servidor
+• Tus reproducciones se reportan a tu servidor para que los contadores y el historial queden bien; puedes desactivarlo
+
+SIN CONEXIÓN
+• Descarga una canción, un álbum, una playlist o todas las canciones de un artista; una descarga interrumpida continúa donde se quedó
+• Conserva los archivos originales o guarda MP3 más pequeños
+• Cuando no hay acceso a tu servidor, por ejemplo con Tailscale apagado, Spinwell cambia solo a tus descargas y se actualiza en cuanto vuelves a conectarte
+• Consulta y elimina todas las descargas en un solo lugar
+
+PRIVADA DESDE EL DISEÑO
+Spinwell solo se comunica con el servidor en el que inicias sesión. No hay ninguna cuenta con nosotros, y la app no incluye analíticas, anuncios ni rastreo. Es gratuita y de código abierto.
+
+Spinwell necesita un servidor Navidrome u OpenSubsonic que tú o alguien que conozcas administre. Spinwell es una app independiente, sin afiliación ni respaldo del proyecto Navidrome.

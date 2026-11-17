@@ -1,0 +1,1 @@
+ご自身のNavidromeやOpenSubsonicサーバーで使う、速くて美しい音楽プレーヤーです。

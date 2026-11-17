@@ -1,0 +1,27 @@
+Spinwell, Android için küçük, hızlı ve şık bir Navidrome müzik çalardır: reklamsız çalışır, kendi müzik koleksiyonunuzu sunucunuzdan akışla dinletir ve çevrimdışı dinlemek için indirir. Navidrome ile ve OpenSubsonic ya da Subsonic API'sini konuşan her sunucuyla çalışır. Sunucu adresiniz, kullanıcı adınız ve şifrenizle giriş yaptığınızda albümleriniz, sanatçılarınız ve çalma listeleriniz hemen karşınıza gelir.
+
+DİNLEYİN
+• Şarkıları özgün kalitesinde, FLAC dahil, akışla dinleyin ya da mobil veri için daha düşük bir kalite seçin
+• Kilit ekranından, bildirimden, kulaklıktan ve Bluetooth'tan kontrol edebilirsiniz
+• Şarkıyı takip eden senkronize sözler; bir satıra dokunmak o satıra atlar
+• Aynı sanatçıyı üst üste iki kez çalmayan akıllı karışık çalma
+• Yeniden sıralayabileceğiniz bir Sıradaki listesi; her şarkıda Sıradaki olarak çal ve Kuyruğa ekle seçenekleri
+• Kaldığınız yerden devam eder: şarkınız, kuyruğunuz ve parçadaki yeriniz
+
+KİTAPLIĞINIZ
+• Son çalınan, son eklenen, en çok çalınan ve favori albümleri gösteren bir ana ekran
+• Büyük ve net kapaklarla sanatçılar, albümler, çalma listeleri, şarkılar ve favoriler
+• Siz yazarken sanatçıları, albümleri ve şarkıları bulan, büyük küçük harfe ve aksanlara bakmayan arama
+• Sunucunuzla senkronize olan favoriler
+• Dinlemeleriniz sunucunuza bildirilir; böylece çalma sayıları ve geçmiş doğru kalır; bunu kapatabilirsiniz
+
+ÇEVRİMDIŞI
+• Bir şarkıyı, bir albümü, bir çalma listesini ya da bir sanatçının tüm şarkılarını indirin; yarıda kalan indirme kaldığı yerden sürer
+• Özgün dosyaları saklayın ya da daha küçük MP3 dosyaları kaydedin
+• Sunucunuza ulaşılamadığında, örneğin Tailscale kapalıyken, Spinwell kendiliğinden indirdiklerinize geçer ve yeniden bağlandığınızda eksikleri tamamlar
+• Tüm indirmeleri tek bir yerde görebilir ve kaldırabilirsiniz
+
+GİZLİLİK ESASTIR
+Spinwell yalnızca giriş yaptığınız sunucuyla iletişim kurar. Bizde hesap açmanız gerekmez; uygulamada analiz, reklam ya da takip yoktur. Uygulama ücretsizdir ve açık kaynaklıdır.
+
+Spinwell için sizin ya da tanıdığınız birinin çalıştırdığı bir Navidrome veya OpenSubsonic sunucusu gerekir. Spinwell bağımsız bir uygulamadır; Navidrome projesiyle bağlantılı değildir ve bu proje tarafından onaylanmamıştır.

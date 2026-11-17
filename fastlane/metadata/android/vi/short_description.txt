@@ -1,0 +1,1 @@
+Trình phát nhạc nhanh, đẹp cho máy chủ Navidrome hoặc OpenSubsonic của bạn.

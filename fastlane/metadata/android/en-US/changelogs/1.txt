@@ -1,1 +1,1 @@
-The first release of Spinwell: stream your Navidrome library, download albums to listen offline, and keep playing in the background with your lock screen controls.
+First release: browse your whole library, stream in original quality, download albums and playlists for offline listening, read synced lyrics and pick up exactly where you left off.

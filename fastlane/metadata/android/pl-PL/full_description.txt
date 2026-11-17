@@ -1,0 +1,27 @@
+Spinwell to odtwarzacz muzyki dla Navidrome na Androida: mała, szybka i ładna aplikacja bez reklam, która odtwarza strumieniowo Twoją własną kolekcję muzyki z Twojego serwera i pobiera ją do słuchania offline. Działa z Navidrome i z każdym innym serwerem obsługującym API OpenSubsonic lub Subsonic. Zaloguj się, podając adres serwera, nazwę użytkownika i hasło, a Twoje albumy, wykonawcy i playlisty od razu będą na miejscu.
+
+SŁUCHANIE
+• Słuchaj utworów strumieniowo w oryginalnej jakości, także w FLAC, albo wybierz niższą jakość na czas transmisji danych w sieci komórkowej
+• Sterowanie z ekranu blokady, powiadomienia, słuchawek i przez Bluetooth
+• Zsynchronizowane teksty, które podążają za utworem; dotknięcie wiersza przeskakuje do niego
+• Inteligentne odtwarzanie losowe, które nie puszcza tego samego wykonawcy dwa razy z rzędu
+• Lista Następne, którą możesz przestawiać, z opcjami Odtwórz jako następny i Dodaj do kolejki przy każdym utworze
+• Wznawia od miejsca, w którym przerwano: Twój utwór, Twoja kolejka i miejsce w utworze
+
+TWOJA BIBLIOTEKA
+• Ekran główny z ostatnio odtwarzanymi, ostatnio dodanymi, najczęściej odtwarzanymi i ulubionymi albumami
+• Wykonawcy, albumy, playlisty, utwory i ulubione, z dużymi, ostrymi okładkami
+• Wyszukiwanie, które znajduje wykonawców, albumy i utwory już podczas pisania, bez względu na wielkość liter i znaki diakrytyczne
+• Ulubione synchronizowane z Twoim serwerem
+• Twoje odtworzenia są zgłaszane do serwera, dzięki czemu liczniki i historia się zgadzają; możesz to wyłączyć
+
+OFFLINE
+• Pobieraj utwór, album, playlistę lub wszystkie utwory wykonawcy; przerwane pobieranie trwa dalej od miejsca, w którym stanęło
+• Zachowaj oryginalne pliki albo zapisuj mniejsze pliki MP3
+• Gdy serwer jest nieosiągalny, na przykład przy wyłączonym Tailscale, Spinwell sam przechodzi na Twoje pobrane utwory i nadrabia zaległości, gdy tylko wrócisz online
+• Wszystkie pobrane pliki w jednym miejscu, gdzie możesz je przejrzeć i usunąć
+
+PRYWATNOŚĆ OD PODSTAW
+Spinwell łączy się tylko z serwerem, na którym się logujesz. Nie zakładasz u nas konta, a aplikacja nie zbiera statystyk, nie wyświetla reklam i nie śledzi użytkowników. Aplikacja jest darmowa i ma otwarty kod źródłowy.
+
+Spinwell wymaga serwera Navidrome lub OpenSubsonic, który prowadzisz Ty lub ktoś, kogo znasz. Spinwell to niezależna aplikacja, niepowiązana z projektem Navidrome ani przez niego niepopierana.

@@ -1,0 +1,1 @@
+A fast, beautiful music player for your own Navidrome or OpenSubsonic server.

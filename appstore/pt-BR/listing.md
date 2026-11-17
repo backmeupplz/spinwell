@@ -1,0 +1,58 @@
+# App Store listing (pt-BR)
+
+## Name (max 30)
+Spinwell para Navidrome
+
+## Subtitle (max 30)
+Player de música offline
+
+## Promotional text (max 170)
+Um player pequeno e rápido para o seu servidor Navidrome ou OpenSubsonic. Navegue pela biblioteca, baixe músicas para ouvir offline e continue de onde parou.
+
+## Description (max 4000)
+O Spinwell é um player de música Navidrome para iPhone: um app pequeno, rápido e bonito, sem anúncios, que toca por streaming a sua própria coleção de músicas direto do seu servidor e baixa tudo para você ouvir offline. Ele funciona com o Navidrome e com qualquer outro servidor que fale a API OpenSubsonic ou Subsonic. Entre com o endereço do servidor, o seu usuário e a sua senha, e os seus álbuns, artistas e playlists já aparecem ali.
+
+OUVIR
+• Ouça as músicas na qualidade original, FLAC incluído, ou escolha uma qualidade menor para os dados móveis
+• Controles na Tela Bloqueada, na Central de Controle, nos fones de ouvido e pelo AirPlay
+• Letras sincronizadas que acompanham a música; um toque em uma linha pula direto para ela
+• Reprodução aleatória inteligente que evita tocar o mesmo artista duas vezes seguidas
+• Uma lista Próximas que você pode reordenar, com Tocar a seguir e Adicionar à fila em todas as músicas
+• Continua de onde você parou: a sua música, a sua fila e o ponto exato da faixa
+
+SUA BIBLIOTECA
+• Uma tela inicial com os álbuns tocados recentemente, adicionados recentemente, mais tocados e favoritos
+• Artistas, álbuns, playlists, músicas e favoritos, com capas grandes e nítidas
+• Uma busca que encontra artistas, álbuns e músicas enquanto você digita, sem diferenciar maiúsculas de minúsculas nem acentos
+• Favoritos sincronizados com o seu servidor
+• As suas reproduções são enviadas ao seu servidor, para que as contagens e o histórico fiquem certos; você pode desativar isso
+
+OFFLINE
+• Baixe uma música, um álbum, uma playlist ou todas as músicas de um artista; um download interrompido continua de onde parou
+• Mantenha os arquivos originais ou salve MP3s menores
+• Quando o seu servidor não pode ser alcançado, por exemplo com o Tailscale desligado, o Spinwell passa sozinho para os seus downloads e se atualiza assim que você volta
+• Veja e remova todos os downloads em um só lugar
+
+PRIVADO POR PROJETO
+O Spinwell só conversa com o servidor em que você entra. Não há conta conosco, nem análise de uso, nem anúncios, nem rastreamento. O app é gratuito e de código aberto.
+
+O Spinwell precisa de um servidor Navidrome ou OpenSubsonic que você ou alguém que você conhece mantenha. O Spinwell é um app independente, sem afiliação com o projeto Navidrome e sem aprovação dele.
+
+## Keywords (max 100)
+servidor,streaming,baixar,biblioteca,letras,sem,perdas,álbuns,artistas,reprodutor,autohospedado
+
+## Screenshot captions
+1. Recentes e adicionados, na tela Início
+2. Artistas, álbuns e playlists em capas
+3. Capas grandes e cada faixa à vista
+4. Um player nas cores da sua capa
+5. Letras sincronizadas que acompanham
+6. Baixe álbuns e ouça offline
+
+## Feature graphic tagline (max 60)
+Sua biblioteca Navidrome, bem tocada
+
+## URLs
+- Support: https://spinwell.app
+- Marketing: https://spinwell.app
+- Privacy policy: https://spinwell.app/privacy/

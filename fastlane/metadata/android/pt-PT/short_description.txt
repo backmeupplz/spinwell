@@ -1,0 +1,1 @@
+Leitor de música rápido e bonito para o seu servidor Navidrome ou OpenSubsonic

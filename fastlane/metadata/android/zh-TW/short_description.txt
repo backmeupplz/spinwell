@@ -1,0 +1,1 @@
+為你自己的 Navidrome 或 OpenSubsonic 伺服器打造的快速、好看的音樂播放器。
