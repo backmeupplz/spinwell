@@ -10,7 +10,9 @@ final class Drive: XCTestCase {
     let app = XCUIApplication()
 
     func testSteps() throws {
-        guard let path = env["SW_STEPS"], let text = try? String(contentsOfFile: path, encoding: .utf8) else { throw XCTSkip("no SW_STEPS") }
+        // on a real device the runner can't read Mac files: SW_STEPS_TEXT carries the steps inline, separated by `|`
+        let inline = env["SW_STEPS_TEXT"]?.replacingOccurrences(of: "|", with: "\n")
+        guard let text = inline ?? env["SW_STEPS"].flatMap({ try? String(contentsOfFile: $0, encoding: .utf8) }) else { throw XCTSkip("no SW_STEPS") }
         continueAfterFailure = true
         for raw in text.split(separator: "\n") {
             let line = raw.trimmingCharacters(in: .whitespaces)
@@ -59,6 +61,15 @@ final class Drive: XCTestCase {
         case "taprow": // tap the Nth song row: `taprow 0`
             let rows = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'song-'"))
             let e = rows.element(boundBy: Int(arg) ?? 0); if e.waitForExistence(timeout: 15) { e.tap() } else { XCTFail("no song row \(arg)") }
+        case "typeenv": app.typeText(env[arg] ?? "") // types a secret from the runner's environment; it never touches a file
+        case "clearfield": // `clearfield Server`: tap the text field with that label/placeholder and delete what is in it
+            let f = app.textFields.matching(NSPredicate(format: "label == %@ OR placeholderValue == %@ OR identifier == %@", arg, arg, arg)).firstMatch
+            if f.waitForExistence(timeout: 10) { f.tap(); f.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: ((f.value as? String)?.count ?? 0) + 2)) } else { XCTFail("no field \(arg)") }
+        case "tapsecure": let f = app.secureTextFields.firstMatch; if f.waitForExistence(timeout: 10) { f.tap() } else { XCTFail("no secure field") }
+        case "tapbtnlast": // the lowest button with this exact label (e.g. a confirmation dialog's)
+            _ = app.buttons[arg].firstMatch.waitForExistence(timeout: 10)
+            let b = app.buttons.matching(NSPredicate(format: "label == %@", arg)).allElementsBoundByIndex.filter { $0.isHittable }.max { $0.frame.minY < $1.frame.minY }
+            if let b { b.tap() } else { XCTFail("no button \(arg)") }
         case "rmlog": try? FileManager.default.removeItem(atPath: arg)
         case "shotnow": shot(arg)
         case "exists": print("EXISTS \(arg): \(find(arg).waitForExistence(timeout: 5))")
