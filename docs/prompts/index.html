@@ -148,7 +148,12 @@ also make sure like with other apps we get our fast ci build and upload to plays
 <li><blockquote>saved now</blockquote>
 <p class="what">Claude finished Google Play: target audience 18+, data safety (no data collected), the Music &amp; Audio category, contact details, the icon and all 178 countries.</p>
 <p class="what">While recording the review video Play asks for, it found a real bug: the Android player never registered its media session with the service. That meant no media notification, no lock screen controls, and playback that Android could kill in the background. Claude fixed it as build 2, swapped it into the Play draft, recorded the video and hosted it on spinwell.app.</p>
-<p class="what">Then it sent Spinwell to Google Play review, published "Data Not Collected" on the App Store, and released v1.0.0, which submits the iPhone app for review and puts the APK on GitHub. <span class="live">in review</span></p></li>
+<p class="what">Then it sent Spinwell to Google Play review, published "Data Not Collected" on the App Store, and released v1.0.0. The pipeline put the APK on GitHub, but both store steps stopped: Play already had build 2, and Apple wanted support and privacy URLs in every language. Claude added the URLs and submitted the iPhone build with the pipeline's own script.</p></li>
+<li><blockquote>make sure to save all the required secrets to vaultwarden (e.g. signing for android apps)
+
+and make sure our ci for publishing releases to playstore/appstore is functional</blockquote>
+<p class="what">Claude checked every release secret against Vaultwarden by hash: the Android upload keystore opens with its stored password and matches the release certificate. It added a Vaultwarden note mapping each CI secret to its item, and deleted the last plaintext copy of the keystore on disk.</p>
+<p class="what">Apple had also quietly blocked the first submission over new China-mainland compliance forms, so Claude took China out of the App Store availability, and the iPhone app went to Waiting for Review. A full pipeline dry run in CI with a throwaway build 3 then went green: Play accepted the release, and the iPhone build archived and exported. By then Google had already approved the app, so <b>Spinwell went live on Google Play</b> and the site got its Play button. <span class="live">App Store in review</span></p></li>
 </ol>
 <footer>Spinwell is free and open source. <a href="https://spinwell.app/">spinwell.app</a> · <a href="https://github.com/backmeupplz/spinwell">Source code</a></footer>
 </div></body>
