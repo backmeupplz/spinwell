@@ -1,0 +1,30 @@
+# Spinwell
+
+> Spinwell is a small, fast player for Android and iPhone that connects to your own Navidrome or OpenSubsonic server, at home or with no signal at all.
+
+It's free and open source under the MIT license, with no ads and no analytics, and it talks only to the server you sign in to. It's an independent app, not affiliated with or endorsed by the Navidrome project, made by Nikita Kolmogorov.
+
+## What it does
+
+- Browses artists, albums, playlists, songs and favorites, with recently played, recently added and most played albums on the home screen.
+- Downloads an album, a playlist or a single song for offline listening, and an interrupted download resumes instead of starting over.
+- Switches to your downloads when the server can't be reached, for example with Tailscale switched off, and catches up once you're back.
+- Has an up-next list you can reorder, and a shuffle that spreads artists and albums apart.
+- Plays FLAC as it is on your server, or a lower streaming quality on mobile data that the server converts on the fly.
+- Reopens on your song, your queue and your place in the track.
+
+## What you need
+
+A Navidrome server, or any other server that speaks the Subsonic or OpenSubsonic API, plus its address, your username and your password.
+
+## Get it
+
+- [Google Play](https://play.google.com/store/apps/details?id=com.borodutch.spinwell)
+- [APK for sideloading](https://github.com/backmeupplz/spinwell/releases/latest/download/spinwell.apk)
+- The iPhone app is waiting for App Store review.
+
+## Links
+
+- [Home page](https://spinwell.app/)
+- [Privacy policy](https://spinwell.app/privacy/)
+- [Source code](https://github.com/backmeupplz/spinwell)
