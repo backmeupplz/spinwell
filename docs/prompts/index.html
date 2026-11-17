@@ -136,9 +136,11 @@ also make sure like with other apps we get our fast ci build and upload to plays
 <li><blockquote>make sure app icons are the same on ios and android</blockquote>
 <p class="what">Claude compared the iPhone icon file with the shared render (byte for byte the same) and the record on both home screens. The only difference left is each system's own mask: rounded square on iPhone, circle on this launcher.</p></li>
 <li><blockquote>also make sure to add spinwell to radiant and optimize the store listings with radiant rules (don't mention android in ios store listing please)</blockquote>
-<p class="what">Spinwell joins Radiant, the marketing system, with per-locale keywords tracked weekly and store copy written to its rules. The iPhone listing never mentions Android. <span class="live">in progress</span></p></li>
+<p class="what">Spinwell joined Radiant, the marketing system: a project file with its App Store and Play ids, keyword research and weekly rank tracking for all 24 store languages, and its site set up for the daily translator. The store copy follows Radiant's rules, and the iPhone listing never mentions Android (a CI check enforces it).</p></li>
 <li><blockquote>while working on this, get all the prompts i've sent you here (no replies from you) and build prompts.spinwell.app list of all the prompts i've sent you with summary of what happened after my prompts, and update them while we're still working in this dialogue</blockquote>
 <p class="what">This page, which Claude keeps updating as the conversation goes on.</p></li>
+<li><blockquote>both play store and app store are logged in</blockquote>
+<p class="what">Claude created <b>Spinwell for Navidrome</b> in App Store Connect and Google Play Console. It gave the release pipeline's service account rights on the Play app, filled in most of Play's policy declarations, and uploaded version 1.0.0 to Play as a draft. Through the App Store Connect API it set the category, age rating, copyright, free price and all 175 territories. Meanwhile the parallel builders finished: 21 app languages, 24 store listings, a public demo server with original music for reviewers, and screenshots for every phone and tablet size in every language, all merged. The last steps wait on Nikita typing the review account's password into both consoles. <span class="live">in progress</span></p></li>
 </ol>
 <footer>Spinwell is free and open source. <a href="https://spinwell.app/">spinwell.app</a> · <a href="https://github.com/backmeupplz/spinwell">Source code</a></footer>
 </div></body>
