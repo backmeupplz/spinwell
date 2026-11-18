@@ -19,9 +19,9 @@ A Navidrome server, or any other server that speaks the Subsonic or OpenSubsonic
 
 ## Get it
 
+- [App Store](https://apps.apple.com/app/spinwell-for-navidrome/id6835678238)
 - [Google Play](https://play.google.com/store/apps/details?id=com.borodutch.spinwell)
 - [APK for sideloading](https://github.com/backmeupplz/spinwell/releases/latest/download/spinwell.apk)
-- The iPhone app is waiting for App Store review.
 
 ## Links
 
