@@ -325,8 +325,9 @@ struct Saved: Codable { var queue: QueueState; var position: Double; var wasPlay
         if st == .playing { failedRun = 0 }
         watchStall(st)
         updateInfo()
-        // the player emptied itself: a failed song is handled as such; after a stop on one, stay on it
-        if st == .paused && ap.currentItem == nil && hasSong && error == nil { if let f = failedCurrent { itemFailed(f) } else { endOfQueue() } }
+        // the player emptied itself (paused, or still at rate 1 waiting with no item to play): a failed song is handled as such; after a stop on one, stay on it
+        let emptied = ap.currentItem == nil && (st == .paused || ap.reasonForWaitingToPlay == .noItemToPlay)
+        if emptied && hasSong && error == nil { if let f = failedCurrent { itemFailed(f) } else { endOfQueue() } }
         save()
     }
 
@@ -334,7 +335,8 @@ struct Saved: Codable { var queue: QueueState; var position: Double; var wasPlay
         // The player ran out of items: carry on with the next playable song (offline skips what isn't downloaded), or stop.
         let from = q.index
         for _ in 0..<max(q.items.count, 1) {
-            guard q.advance(auto: true) else { break }
+            // repeat one stays on a song only while it can play: offline, a stream from before the flip moves on
+            guard q.advance(auto: playable(q.current)) else { break }
             if playable(q.current) { rebuild(play: true); changed(); return }
         }
         pos = 0 // a message stop here replays the song from its start
