@@ -113,7 +113,9 @@ whose project layout, cover cache and download design we reuse.
   fetched once more before the queue moves on), and seeking it stays within what is already buffered (a stream that can't
   seek stays put). After that it counts as not downloaded: Play (from the app or any controller) on a song that
   isn't downloaded, even one paused mid-stream before the flip, goes on to the next downloaded one, and one downloaded
-  meanwhile goes on from the file.
+  meanwhile goes on from the file. On Android, a song that isn't downloaded and is stopped on offline keeps its saved
+  position: back online, once it is downloaded, or after a relaunch that stays on it, it goes on from where it was paused (one that
+  played to its end starts over).
 
 ## Screens
 
@@ -232,7 +234,8 @@ on every screen. Settings open from a gear on Home.
 - **Restore on launch:** persist queue + index + position (every 5 s while playing, and on pause/background/track change)
   + `wasPlaying`. On launch load the queue into the player paused at the saved position, immediately, before any
   network call. If `wasPlaying`: open the full player (expanded), and start playing if "Resume playing on open" is on.
-  If not playing: just show the mini player.
+  If not playing: just show the mini player. On Android, a queue that played to its end restores paused at the start of
+  its last song.
 - **Restore the screen:** the navigation stack (tab, library sub-tab, pushed album/playlist/artist pages) is saved when the
   app stops and restored on launch, so a relaunch lands where you were.
 - **Scrobble:** `submission=false` when a song starts, `submission=true` once it has played 50 % or 4 min; outbox when offline.

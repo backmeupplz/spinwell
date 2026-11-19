@@ -117,7 +117,7 @@ object Store {
     fun signOut() {
         Audio.clear()
         Downloads.pauseAll(unload = true)
-        p.edit().remove("token").remove("queue").remove("pos").remove("nav").apply()
+        p.edit().remove("token").remove("queue").remove("pos").remove("posKey").remove("nav").apply()
         session = null
     }
 

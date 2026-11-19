@@ -159,6 +159,14 @@ class CoreTest {
     }
 }
 
+class PosForTest {
+    @Test fun savedForThisItem() {
+        assertEquals(30_000L, posFor(7, 7, 30_000)) // the silence for the paused song keeps where it was
+        assertEquals(0L, posFor(8, 7, 30_000)) // another song's position never carries over
+        assertEquals(0L, posFor(null, -1, 30_000))
+    }
+}
+
 class OfflinePrevTest {
     private val dl = setOf(0, 2, 4) // downloaded songs of 5
     private fun prev(i: Int, all: Boolean = false, restart: Boolean = false, item: Boolean = false) = offlinePrev(i, 5, all, restart, item) { it in dl }

@@ -105,7 +105,10 @@ object Audio {
                 if (state == Player.STATE_READY) { silent = onSilence(); durationMs = duration() }
                 // a song still streaming from before the flip ended with nothing downloaded after it: Play mustn't fetch it again
                 // (and only while it still is ended: stopOn's seek back may already have moved on from a stale event)
-                if (state == Player.STATE_ENDED && player.playbackState == Player.STATE_ENDED && Net.offline) q.current?.let { if (!playable(it.song)) stopOn(q.index) }
+                if (state == Player.STATE_ENDED && player.playbackState == Player.STATE_ENDED && Net.offline) q.current?.let {
+                    // save its 0 while it is still the ended song: once swapped for the silence, savePos keeps the last tick's position
+                    if (!playable(it.song)) { savePos(); stopOn(q.index) }
+                }
             }
             override fun onPlayerError(e: PlaybackException) {
                 Net.ping()
@@ -282,7 +285,10 @@ object Audio {
             val to = (a until b).last { fresh[it] != null } + 1
             player.replaceMediaItems(from, to, (from until to).map { fresh[it] ?: player.getMediaItemAt(it) })
         }
-        side(c + 1, n); fresh[c]?.let { player.replaceMediaItem(c, it) }; side(0, c)
+        side(c + 1, n)
+        // the silence turning back into its song goes on where the song was paused (read first: the swap's own transition saves ~0)
+        fresh[c]?.let { val at = savedPos(it.mediaId.toLongOrNull()); player.replaceMediaItem(c, it); player.seekTo(c, at); savePos() }
+        side(0, c)
     }
 
     // ---- starting playback ----
@@ -486,9 +492,18 @@ object Audio {
                 .setDisplayName(str(R.string.action_repeat)).setSessionCommand(cmdRepeat).setSlots(CommandButton.SLOT_FORWARD).build(),
         ))
     }
+    /** the position saved for the queue item [key]; 0 when the saved one belongs to another item */
+    private fun savedPos(key: Long?) = posFor(key, Store.p.getLong("posKey", -1), Store.p.getLong("pos", 0))
     fun savePos() {
         if (!ready || q.items.isEmpty()) return
-        Store.p.edit().putLong("pos", player.currentPosition).putBoolean("wasPlaying", player.playWhenReady).apply()
+        val key = q.current?.key
+        // the silence standing in for a song offline keeps the song's own saved position, not its 10 ms; a song played to its end starts over
+        val pos = when {
+            onSilence() -> savedPos(key)
+            player.playbackState == Player.STATE_ENDED -> 0L
+            else -> player.currentPosition
+        }
+        Store.p.edit().putLong("pos", pos).putLong("posKey", key ?: -1).putBoolean("wasPlaying", player.playWhenReady && player.playbackState != Player.STATE_ENDED).apply()
     }
 
     /** Puts the saved queue into the player, paused at the saved position, before any network call. */
@@ -586,6 +601,9 @@ class PlayerService : MediaSessionService() {
         super.onDestroy()
     }
 }
+
+/** [savedPos] when it was saved for the queue item [key] ([savedKey]), else 0 */
+internal fun posFor(key: Long?, savedKey: Long, savedPos: Long) = if (key != null && key == savedKey) savedPos else 0L
 
 /**
  * Offline Previous from [index] of [n]: the song to start, null to stay put. Restarting this one ([restart], more than 3 s in)
