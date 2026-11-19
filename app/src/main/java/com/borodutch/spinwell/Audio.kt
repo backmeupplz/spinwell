@@ -37,6 +37,7 @@ object Audio {
     var q by mutableStateOf(QueueState())
     var playing by mutableStateOf(false)
     var durationMs by mutableStateOf(0L)
+    var silent by mutableStateOf(false) // the current item is the stand-in for a song offline
     var restoredWasPlaying = false // the UI opens the full player once for this
     var sleepOutputError by mutableStateOf<String?>(null)
     /** why the current song stopped (it failed to play); cleared when something plays or the song changes */
@@ -89,7 +90,7 @@ object Audio {
                     if (reason != Player.MEDIA_ITEM_TRANSITION_REASON_PLAYLIST_CHANGED) { if (!skipToPlayable()) stopOn(from) }
                     else if (!quieting) h.post { q.current?.let { if (!playable(it.song) && !skipToPlayable()) stopOn(q.index) } }
                 }
-                durationMs = player.duration.coerceAtLeast(0)
+                silent = onSilence(); durationMs = duration()
                 persist(); savePos()
                 if (playing) scrobbleCheck()
             }
@@ -101,7 +102,7 @@ object Audio {
                     (new.mediaItemIndex != old.mediaItemIndex || new.positionMs == 0L)) player.prepare()
             }
             override fun onPlaybackStateChanged(state: Int) {
-                if (state == Player.STATE_READY) durationMs = player.duration.coerceAtLeast(0)
+                if (state == Player.STATE_READY) { silent = onSilence(); durationMs = duration() }
                 // a song still streaming from before the flip ended with nothing downloaded after it: Play mustn't fetch it again
                 // (and only while it still is ended: stopOn's seek back may already have moved on from a stale event)
                 if (state == Player.STATE_ENDED && player.playbackState == Player.STATE_ENDED && Net.offline) q.current?.let { if (!playable(it.song)) stopOn(q.index) }
@@ -159,6 +160,10 @@ object Audio {
         repeat(n) { b.put(0x80.toByte()) }
         Uri.parse("data:audio/wav;base64," + android.util.Base64.encodeToString(b.array(), android.util.Base64.NO_WRAP))
     }
+
+    private fun onSilence() = player.currentMediaItem?.localConfiguration?.uri == silence
+    /** the player's length of the current song; 0 for the silence, so the UI shows the song's own length instead */
+    private fun duration() = if (onSilence()) 0L else player.duration.coerceAtLeast(0)
 
     /** the downloaded file to play: a download that failed to play streams instead while online */
     private fun localFile(id: String) = Downloads.path(id)?.takeIf { id !in badFiles || Net.offline }
@@ -425,6 +430,7 @@ object Audio {
      * play position too, nothing is kept there) fetches it again. Null: stay put
      */
     fun seekable(ms: Long): Long? = when {
+        onSilence() -> null // nothing to seek in: the bar shows the song's own length
         !offlineStream() -> ms
         !player.isCurrentMediaItemSeekable -> null // ExoPlayer seeks a stream it can't seek (no Content-Length) by loading it again from the start
         else -> ms.coerceAtMost(player.bufferedPosition).takeIf { it > player.currentPosition }
@@ -447,7 +453,7 @@ object Audio {
     }
     // a failed song stays stopped when scrubbed: 0 would read as Previous and retry it
     fun seekTo(ms: Long) { seekable(if (player.playerError != null) ms.coerceAtLeast(1) else ms)?.let { player.seekTo(it) }; savePos() }
-    val position get() = if (ready) player.currentPosition else 0L
+    val position get() = if (ready && !onSilence()) player.currentPosition else 0L // the silence: a song not started
 
     // ---- persistence ----
     fun persist() {
@@ -501,7 +507,7 @@ object Audio {
     // ---- scrobble: now-playing when a song starts, a play once half of it (or 4 min) has been heard ----
     private fun scrobbleCheck() {
         if (!Settings.scrobble) return
-        if (player.currentMediaItem?.localConfiguration?.uri == silence) return // the stand-in for a song offline was never heard
+        if (onSilence()) return // the stand-in for a song offline was never heard
         val cur = q.current ?: return
         if (startedKey != cur.key && !Net.offline) {
             startedKey = cur.key

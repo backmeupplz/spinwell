@@ -72,7 +72,7 @@ fun BoxScope.PlayerSheet(exp: Animatable<Float, AnimationVector1D>, barH: Dp, mi
     val twoLines by remember { derivedStateOf { exp.value > 0.5f } }
 
     var pos by remember { mutableLongStateOf(Audio.position) }
-    LaunchedEffect(Audio.playing, cur.key) {
+    LaunchedEffect(Audio.playing, cur.key, Audio.silent) { // swapped for the silence: the bar goes back to 0
         while (true) { pos = Audio.position; if (!Audio.playing) break; delay(200) }
     }
     val durMs = (Audio.durationMs.takeIf { it > 0 } ?: (song.duration * 1000L)).coerceAtLeast(1)
@@ -191,8 +191,8 @@ fun BoxScope.PlayerSheet(exp: Animatable<Float, AnimationVector1D>, barH: Dp, mi
                 )
                 val err = Audio.error
                 Text(
-                    // a song that failed: the mini row says so, the full player says why
-                    if (err == null) song.artist else if (twoLines) err else stringResource(R.string.err_play_short),
+                    // a song that failed: the mini row says so, the full player says why; stopped offline: both say the same
+                    if (err == null) song.artist else if (twoLines || err == stringResource(R.string.err_no_downloaded_next)) err else stringResource(R.string.err_play_short),
                     style = if (err != null && twoLines) MaterialTheme.typography.bodySmall else MaterialTheme.typography.titleMedium.copy(fontSize = 16.sp),
                     color = if (err == null) Muted else MaterialTheme.colorScheme.error,
                     maxLines = if (err != null && twoLines) 2 else 1, overflow = TextOverflow.Ellipsis,
@@ -244,7 +244,7 @@ fun BoxScope.PlayerSheet(exp: Animatable<Float, AnimationVector1D>, barH: Dp, mi
 
                 // seek bar + times
                 Column(Modifier.offset { IntOffset(sidePad.roundToInt(), seekY1.roundToInt()) }.width(with(d) { padW.toDp() })) {
-                    SeekBar({ pos }, { durMs }, { ms -> pos = ms; Audio.seekTo(ms) })
+                    SeekBar({ pos }, { durMs }, { ms -> Audio.seekTo(ms); pos = Audio.position })
                     Row(Modifier.fillMaxWidth()) {
                         Text(fmtTime((pos / 1000).toInt()), style = MaterialTheme.typography.labelSmall, color = Muted)
                         Spacer(Modifier.weight(1f))
