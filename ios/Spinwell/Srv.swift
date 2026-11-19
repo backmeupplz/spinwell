@@ -115,7 +115,10 @@ struct Pending: Codable { var kind: String; var id: String; var at: Double }
     }
     func markUnreachable() { unreachable = true }
 
-    func settingsChanged() { if !settings.offlineMode { Task { await ping() } } }
+    func settingsChanged() {
+        player.refreshPreload() // Offline mode on: a preloaded stream must not play over the network
+        if !settings.offlineMode { Task { await ping() } }
+    }
 
     // MARK: sign in / out
 

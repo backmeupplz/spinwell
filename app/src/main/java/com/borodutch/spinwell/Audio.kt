@@ -75,10 +75,20 @@ object Audio {
                 if (isPlaying) scrobbleCheck()
             }
             override fun onMediaItemTransition(item: MediaItem?, reason: Int) {
+                // a transition reported after a seek we made from inside the listener (stopOn, skipToPlayable): the newer one follows
+                if (item?.mediaId != player.currentMediaItem?.mediaId) return
                 val k = item?.mediaId?.toLongOrNull()
                 val i = q.items.indexOfFirst { it.key == k }
+                val from = q.index
                 if (i >= 0 && i != q.index) q = q.copy(index = i)
                 error = null
+                repoint() // the song we just left may still be a stream (it was playing when offline flipped), this one may be stale silence
+                // offline, a song that isn't downloaded is a short silence in the player: go on to the next one we can play, or stop.
+                // Became current through a queue edit (restore, removal): checked once the edit is done and the player holds the queue
+                if (i >= 0 && !playable(q.items[i].song)) {
+                    if (reason != Player.MEDIA_ITEM_TRANSITION_REASON_PLAYLIST_CHANGED) { if (!skipToPlayable()) stopOn(from) }
+                    else if (!quieting) h.post { q.current?.let { if (!playable(it.song) && !skipToPlayable()) stopOn(q.index) } }
+                }
                 durationMs = player.duration.coerceAtLeast(0)
                 persist(); savePos()
                 if (playing) scrobbleCheck()
@@ -92,6 +102,9 @@ object Audio {
             }
             override fun onPlaybackStateChanged(state: Int) {
                 if (state == Player.STATE_READY) durationMs = player.duration.coerceAtLeast(0)
+                // a song still streaming from before the flip ended with nothing downloaded after it: Play mustn't fetch it again
+                // (and only while it still is ended: stopOn's seek back may already have moved on from a stale event)
+                if (state == Player.STATE_ENDED && player.playbackState == Player.STATE_ENDED && Net.offline) q.current?.let { if (!playable(it.song)) stopOn(q.index) }
             }
             override fun onPlayerError(e: PlaybackException) {
                 Net.ping()
@@ -107,8 +120,8 @@ object Audio {
                     goOn()
                     return
                 }
-                // offline, a removed download can't stream: go on with what's downloaded
-                if (local && file == null && Net.offline) { goOn(); return }
+                // offline, a removed download or a song still streaming from before the flip: go on with what's downloaded
+                if (file == null && Net.offline) { goOn(); return }
                 // the server sent something that won't decode, or the downloaded file won't open: ask the server for MP3 once,
                 // from where it stopped (a removed download streams anyway; compared by URI: a second copy of the song in the
                 // queue was built before the first one failed)
@@ -118,11 +131,6 @@ object Audio {
                 if (first || mp3.localConfiguration?.uri != player.currentMediaItem?.localConfiguration?.uri) { swapCurrent(mp3); return }
                 // stay on the song with a message (Play retries, Next moves on) instead of running through the queue
                 error = Store.app.getString(if (local) R.string.err_play_local else R.string.err_play_stream)
-            }
-            // a lock screen / headset / Auto controller changing repeat goes straight to ExoPlayer: mirror it into the queue
-            override fun onRepeatModeChanged(mode: Int) {
-                val r = when (mode) { Player.REPEAT_MODE_OFF -> 0; Player.REPEAT_MODE_ALL -> 1; else -> 2 }
-                if (r != q.repeat) { q = q.copy(repeat = r); persist() }
             }
         })
         h.postDelayed(tick, 5_000)
@@ -134,37 +142,78 @@ object Audio {
     /** one lookup per cover id per batch: a 60-song album has one cover, not 60 x 4 file checks */
     private fun artUri(s: Song, memo: MutableMap<String, Uri?>): Uri? {
         if (s.coverArt.isEmpty()) return null
-        return memo.getOrPut(s.coverArt) {
-            val dir = File(Store.app.cacheDir, "covers/${Store.owner}")
-            listOf(600, 1200, 300, 150).firstNotNullOfOrNull { px -> File(dir, "${s.coverArt}_$px").takeIf { it.length() > 0 } }?.let { Uri.fromFile(it) }
-                ?: Uri.parse(Store.session!!.cover(s.coverArt, 600))
-        }
+        if (s.coverArt in memo) return memo[s.coverArt] // a miss too: getOrPut would look again
+        val dir = File(Store.app.cacheDir, "covers/${Store.owner}")
+        val u = listOf(600, 1200, 300, 150).firstNotNullOfOrNull { px -> File(dir, "${s.coverArt}_$px").takeIf { it.length() > 0 } }?.let { Uri.fromFile(it) }
+            ?: if (Net.offline) null else Uri.parse(Store.session!!.cover(s.coverArt, 600))
+        memo[s.coverArt] = u
+        return u
     }
+
+    /** 10 ms of silence: what a song that isn't downloaded is in the player while offline, so preloading it never touches the network */
+    private val silence: Uri = run {
+        val n = 80 // 8 kHz, 8-bit mono
+        val b = java.nio.ByteBuffer.allocate(44 + n).order(java.nio.ByteOrder.LITTLE_ENDIAN)
+        b.put("RIFF".toByteArray()).putInt(36 + n).put("WAVEfmt ".toByteArray()).putInt(16).putShort(1).putShort(1).putInt(8000).putInt(8000)
+            .putShort(1).putShort(8).put("data".toByteArray()).putInt(n)
+        repeat(n) { b.put(0x80.toByte()) }
+        Uri.parse("data:audio/wav;base64," + android.util.Base64.encodeToString(b.array(), android.util.Base64.NO_WRAP))
+    }
+
+    /** the downloaded file to play: a download that failed to play streams instead while online */
+    private fun localFile(id: String) = Downloads.path(id)?.takeIf { id !in badFiles || Net.offline }
 
     private fun mediaItem(i: QItem, memo: MutableMap<String, Uri?> = HashMap()): MediaItem {
         val s = i.song
-        val local = Downloads.path(s.id)?.takeIf { s.id !in badFiles || Net.offline } // a download that failed to play streams while online
+        val local = localFile(s.id)
         val kbps = Settings.streamKbps().let { if (it <= 0 && s.id in transcode) 320 else it }
-        val uri = if (local != null) Uri.fromFile(local) else Uri.parse(Store.session!!.stream(s.id, kbps))
+        val uri = if (local != null) Uri.fromFile(local) else if (Net.offline) silence else Uri.parse(Store.session!!.stream(s.id, kbps))
         return MediaItem.Builder().setMediaId(i.key.toString()).setUri(uri).setMediaMetadata(
             MediaMetadata.Builder().setTitle(s.title).setArtist(s.artist).setAlbumTitle(s.album).setArtworkUri(artUri(s, memo))
                 .setTrackNumber(s.track.takeIf { it > 0 }).setIsPlayable(true).setIsBrowsable(false).build()
         ).build()
     }
 
-    /** replaces the playing item and picks up from where it stopped */
+    /** replaces the playing item and picks up from where it stopped (from the start once it has ended) */
     private fun swapCurrent(m: MediaItem) {
-        val i = player.currentMediaItemIndex; val at = player.currentPosition
-        player.replaceMediaItem(i, m); player.seekTo(i, at); player.prepare()
+        val i = player.currentMediaItemIndex; val at = if (player.playbackState == Player.STATE_ENDED) 0 else player.currentPosition
+        player.replaceMediaItem(i, m); player.seekTo(i, at); player.prepare(); player.repeatMode = repeatMode()
     }
 
     /** a song that can't play now: the next playable one, or a message (failures are capped at the queue length) */
     private fun goOn() {
-        if (failures++ >= q.items.size || !skipToPlayable()) error = Store.app.getString(R.string.err_no_downloaded_next)
+        if (failures++ >= q.items.size || !skipToPlayable()) { if (Net.offline) stopOn(q.index) else error = Store.app.getString(R.string.err_no_downloaded_next) }
     }
 
-    private fun repeatMode() = when (q.repeat) { 0 -> Player.REPEAT_MODE_OFF; 1 -> Player.REPEAT_MODE_ALL; else -> Player.REPEAT_MODE_ONE }
+    /**
+     * Offline, repeat all on a song still streaming from before the flip with nothing else downloaded would wrap the look-ahead
+     * round to that song and fetch it again: the player doesn't repeat then (the queue would only stop on it anyway)
+     */
+    // ponytail: other downloaded songs shorter than the look-ahead buffer (~50 s in all) can still let it wrap; mask always and wrap by hand if that matters
+    private fun repeatMode() = when (q.repeat) {
+        0 -> Player.REPEAT_MODE_OFF
+        1 -> if (offlineStream() && q.items.indices.none { it != q.index && playable(q.items[it].song) }) Player.REPEAT_MODE_OFF else Player.REPEAT_MODE_ALL
+        else -> Player.REPEAT_MODE_ONE
+    }
     fun playable(s: Song) = !Net.offline || Downloads.has(s.id)
+
+    /**
+     * offline with nothing downloaded ahead: paused back on the song we left, when it can play, with a message. Staying on a song
+     * that isn't downloaded turns it into the silence, so Play never fetches a song still streaming from before the flip again
+     */
+    private fun stopOn(from: Int) {
+        player.pause()
+        val cur = q.current
+        if (from != q.index && from in q.items.indices && playable(q.items[from].song)) player.seekTo(from, 0)
+        else if (cur != null && !playable(cur.song)) silenceCurrent(cur)
+        h.post { error = Store.app.getString(R.string.err_no_downloaded_next) } // after the seek's own transition, which clears it
+    }
+
+    /** the player's current item becomes [cur]'s silence, unless it already is or the player is on another song */
+    private fun silenceCurrent(cur: QItem) {
+        val m = player.currentMediaItem ?: return
+        if (m.mediaId == cur.key.toString() && m.localConfiguration?.uri != silence) player.replaceMediaItem(player.currentMediaItemIndex, mediaItem(cur))
+    }
 
     /** after a failed song: the next one we can play (a downloaded one while the server is gone), wrapping when repeating all */
     private fun skipToPlayable(): Boolean {
@@ -177,6 +226,47 @@ object Audio {
         player.replaceMediaItem(to, mediaItem(q.items[to])) // it may have been downloaded since it was queued
         player.seekTo(to, 0); player.prepare(); persist() // keeps playWhenReady: a paused song moves on paused
         return true
+    }
+
+    /**
+     * Offline flipped or downloads changed (any thread): point the queued songs at their file, their stream, or (offline, not
+     * downloaded) silence. The playing song is left alone, since changing it would restart it; it plays to its end.
+     * Only a silence that can now play for real is replaced in place.
+     */
+    fun refresh() { if (!refreshPosted) { refreshPosted = true; h.post { refreshPosted = false; repoint() } } }
+    @Volatile private var refreshPosted = false
+    private fun repoint() {
+        if (!ready || Store.session == null) return
+        player.repeatMode = repeatMode() // the playing song or what is downloaded changed
+        val byKey = q.items.associateBy { it.key }
+        val memo = HashMap<String, Uri?>()
+        val offline = Net.offline
+        val n = player.mediaItemCount; val c = player.currentMediaItemIndex
+        if (n == 0) return
+        val fresh = arrayOfNulls<MediaItem>(n) // the rebuilt stale items
+        for (i in 0 until n) {
+            val m = player.getMediaItemAt(i)
+            val qi = byKey[m.mediaId.toLongOrNull()] ?: continue
+            val now = m.localConfiguration?.uri
+            val local = localFile(qi.song.id)
+            if (i == c && (now != silence || local == null && offline)) continue
+            val art = m.mediaMetadata.artworkUri
+            val stale = when {
+                local != null -> now != Uri.fromFile(local)
+                offline -> now != silence
+                else -> now == silence || now?.scheme == "file"
+            } || if (offline) art?.scheme?.startsWith("http") == true else art == null && qi.song.coverArt.isNotEmpty()
+            if (stale) fresh[i] = mediaItem(qi, memo)
+        }
+        // one replaceMediaItems per side of the playing song (one per item is a timeline rebuild each, O(n²) on a long queue),
+        // spanning only the first to last changed song: a range is rebuilt whole, which would drop the buffered next song.
+        // The playing song goes on its own: inside a range, ExoPlayer would move on to the range's first song
+        fun side(a: Int, b: Int) {
+            val from = (a until b).firstOrNull { fresh[it] != null } ?: return
+            val to = (a until b).last { fresh[it] != null } + 1
+            player.replaceMediaItems(from, to, (from until to).map { fresh[it] ?: player.getMediaItemAt(it) })
+        }
+        side(c + 1, n); fresh[c]?.let { player.replaceMediaItem(c, it) }; side(0, c)
     }
 
     // ---- starting playback ----
@@ -275,7 +365,7 @@ object Audio {
     }
 
     fun cycleRepeat() = setRepeat((q.repeat + 1) % 3)
-    fun setRepeat(r: Int) { q = q.copy(repeat = r); player.repeatMode = repeatMode(); persist() }
+    fun setRepeat(r: Int) { q = q.copy(repeat = r); persist() }
     /** start [songs] in order with repeat-all on ("Repeat album") */
     fun playRepeating(songs: List<Song>, ctx: Ctx) { play(songs, 0, ctx); setRepeat(1) }
 
@@ -289,19 +379,68 @@ object Audio {
     fun toggle() {
         if (q.items.isEmpty()) return
         if (player.isPlaying) { player.pause(); return }
+        if (!canPlay()) return
         if (player.playbackState == Player.STATE_IDLE) player.prepare()
         if (player.playbackState == Player.STATE_ENDED) player.seekToDefaultPosition(0)
         player.play(); ensureService()
     }
+    /**
+     * Before Play here or from any controller (the session player asks too). Offline on a song that isn't downloaded (restored,
+     * or left from before the flip): the next one we can play, or the message and false. One downloaded while it streamed goes on from the file
+     */
+    fun canPlay(): Boolean {
+        if (going()) return true // a song still streaming from before the flip plays to its end
+        val c = q.current ?: return true
+        if (!playable(c.song)) return skipToPlayable() || run { stopOn(q.index); false }
+        prepareOffline()
+        return true
+    }
+    /**
+     * A controller's bare prepare (Auto, a car on connect) and Play: offline, a paused song that isn't downloaded becomes the
+     * silence (moving on is left to Play), one downloaded while it streamed goes on from the file
+     */
+    fun prepareOffline() {
+        if (!Net.offline || going()) return
+        val c = q.current ?: return
+        if (!playable(c.song)) { quieting = true; silenceCurrent(c); quieting = false } // its transition mustn't skip
+        else if (offlineStream()) swapCurrent(mediaItem(c))
+    }
+    private var quieting = false
+    /** playing, or rebuffering on its way to it */
+    private fun going() = player.playWhenReady && player.playbackState.let { it == Player.STATE_READY || it == Player.STATE_BUFFERING }
+    fun offlineStream() = Net.offline && player.currentMediaItem?.localConfiguration?.uri?.scheme?.startsWith("http") == true
+    /**
+     * Offline, a song still streaming from before the flip seeks only forward within what is buffered: anywhere else (behind the
+     * play position too, nothing is kept there) fetches it again. Null: stay put
+     */
+    fun seekable(ms: Long): Long? = when {
+        !offlineStream() -> ms
+        !player.isCurrentMediaItemSeekable -> null // ExoPlayer seeks a stream it can't seek (no Content-Length) by loading it again from the start
+        else -> ms.coerceAtMost(player.bufferedPosition).takeIf { it > player.currentPosition }
+    }
     fun next() { if (player.hasNextMediaItem()) player.seekToNext() }
-    fun prev() = player.seekToPrevious()
+    /** Previous here and from every controller (the session player forwards it) */
+    fun prev() {
+        val cur = q.current ?: return
+        if (!Net.offline) { player.seekToPrevious(); return }
+        // offline: back to the previous song we can play, not onto one that isn't downloaded (that would skip forward again),
+        // and never restarting a song that is still streaming from before the flip
+        finishFill()
+        val n = q.items.size
+        val restart = playable(cur.song) && player.currentPosition > player.maxSeekToPreviousPosition
+        val back = if (restart) null else (1 until n).map { (q.index - it + n) % n }.filter { q.repeat == 1 || it < q.index }.firstOrNull { playable(q.items[it].song) }
+        val to = back ?: if (playable(cur.song)) q.index else return
+        if (to == q.index && offlineStream()) player.replaceMediaItem(to, mediaItem(cur)) // downloaded while it streamed: restart from the file
+        player.seekTo(to, 0)
+    }
     // a failed song stays stopped when scrubbed: 0 would read as Previous and retry it
-    fun seekTo(ms: Long) { player.seekTo(if (player.playerError != null) ms.coerceAtLeast(1) else ms); savePos() }
+    fun seekTo(ms: Long) { seekable(if (player.playerError != null) ms.coerceAtLeast(1) else ms)?.let { player.seekTo(it) }; savePos() }
     val position get() = if (ready) player.currentPosition else 0L
 
     // ---- persistence ----
     fun persist() {
         val snap = q // immutable: serialised off the main thread (hundreds of songs of JSON), written in order
+        if (ready) player.repeatMode = repeatMode() // a queue edit can change what else is downloaded
         Store.p.edit().putInt("repeat", snap.repeat).putBoolean("shuffle", snap.shuffle).apply()
         updateButtons()
         writer.execute {
@@ -350,6 +489,7 @@ object Audio {
     // ---- scrobble: now-playing when a song starts, a play once half of it (or 4 min) has been heard ----
     private fun scrobbleCheck() {
         if (!Settings.scrobble) return
+        if (player.currentMediaItem?.localConfiguration?.uri == silence) return // the stand-in for a song offline was never heard
         val cur = q.current ?: return
         if (startedKey != cur.key && !Net.offline) {
             startedKey = cur.key
@@ -373,7 +513,28 @@ class PlayerService : MediaSessionService() {
         super.onCreate()
         Audio.init(this)
         setMediaNotificationProvider(DefaultMediaNotificationProvider.Builder(this).build().apply { setSmallIcon(R.drawable.ic_notif) })
-        session = MediaSession.Builder(this, Audio.player)
+        // Previous from the lock screen, a headset or Auto goes through Audio.prev(): offline it steps back over songs that aren't downloaded.
+        // Play (rewind when ended, play) asks Audio.canPlay() first and a bare prepare only quiets a song that isn't downloaded, so offline it never streams a song that isn't downloaded
+        val p = object : ForwardingPlayer(Audio.player) {
+            override fun seekToPrevious() = Audio.prev()
+            override fun seekToPreviousMediaItem() { if (Net.offline) Audio.prev() else super.seekToPreviousMediaItem() }
+            // a lock screen / headset / Auto controller changing repeat: into the queue (the player's own mode can be masked, see repeatMode)
+            override fun setRepeatMode(mode: Int) = Audio.setRepeat(when (mode) { Player.REPEAT_MODE_OFF -> 0; Player.REPEAT_MODE_ALL -> 1; else -> 2 })
+            override fun prepare() { Audio.prepareOffline(); super.prepare() }
+            override fun seekTo(positionMs: Long) { Audio.seekable(positionMs)?.let { super.seekTo(it) } }
+            override fun seekTo(mediaItemIndex: Int, positionMs: Long) {
+                if (mediaItemIndex != currentMediaItemIndex) super.seekTo(mediaItemIndex, positionMs) else Audio.seekable(positionMs)?.let { super.seekTo(mediaItemIndex, it) }
+            }
+            override fun seekBack() { if (!Audio.offlineStream()) super.seekBack() } // back from the buffer would fetch it again
+            override fun seekForward() { if (Audio.offlineStream()) Audio.seekable(currentPosition + seekForwardIncrement)?.let { super.seekTo(it) } else super.seekForward() }
+            override fun seekToDefaultPosition(mediaItemIndex: Int) { // a queue-item tap in Auto or another controller
+                if (mediaItemIndex != currentMediaItemIndex) super.seekToDefaultPosition(mediaItemIndex) else Audio.seekable(0)?.let { super.seekToDefaultPosition(mediaItemIndex) }
+            }
+            override fun seekToDefaultPosition() { if (Audio.canPlay() && Audio.seekable(0) != null) super.seekToDefaultPosition() }
+            override fun play() { if (Audio.canPlay()) super.play() }
+            override fun setPlayWhenReady(playWhenReady: Boolean) { if (!playWhenReady || Audio.canPlay()) super.setPlayWhenReady(playWhenReady) }
+        }
+        session = MediaSession.Builder(this, p)
             .setSessionActivity(PendingIntent.getActivity(this, 0, Intent(this, Main::class.java), PendingIntent.FLAG_IMMUTABLE))
             .setCallback(object : MediaSession.Callback {
                 override fun onConnect(session: MediaSession, controller: MediaSession.ControllerInfo): MediaSession.ConnectionResult =

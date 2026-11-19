@@ -204,7 +204,7 @@ private fun animateColorAsStateCompat(c: Color) = androidx.compose.animation.ani
 fun BoxScope.OfflineBanner(statusTop: androidx.compose.ui.unit.Dp) {
     AnimatedVisibility(Net.offline, Modifier.align(Alignment.TopCenter), enter = slideInVertically { -it } + fadeIn(), exit = slideOutVertically { -it } + fadeOut()) {
         Box(
-            Modifier.fillMaxWidth().background(Surface2).clickable { Settings.offlineMode = false; Net.ping() }.height(30.dp + statusTop).padding(top = statusTop),
+            Modifier.fillMaxWidth().background(Surface2).clickable { Settings.offlineMode = false; Audio.refresh(); Net.ping() }.height(30.dp + statusTop).padding(top = statusTop),
             contentAlignment = Alignment.Center,
         ) {
             Text(stringResource(if (Settings.offlineMode) R.string.banner_offline_mode else R.string.banner_offline), maxLines = 1, overflow = TextOverflow.Ellipsis, fontSize = 12.sp, color = Color(0xFFFFC78A))

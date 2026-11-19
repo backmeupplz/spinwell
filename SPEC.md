@@ -99,11 +99,18 @@ whose project layout, cover cache and download design we reuse.
   - Home gets a "Downloaded albums" shelf; search runs locally over downloaded songs, albums and artists.
   - Songs that aren't downloaded are dimmed and can't be played; the play queue skips them. The Downloads tab works fully.
 - Manual "Offline mode" setting forces offline (no network calls at all, not even covers not on disk).
-  Offline, Next, Previous and the end of a song only ever land on downloaded songs. With nothing downloaded ahead, playback
-  stops on the song it left with "Can't reach the server, and no downloaded song is next." (the natural end of the queue, on
-  a downloaded song, stops quietly as usual). Previous with nothing downloaded behind restarts the current song when it is
-  downloaded and otherwise stays put. Play on a song that isn't downloaded, even one paused mid-stream before the flip, goes
-  on to the next downloaded one.
+  Going offline either way re-points what is already queued: downloaded songs play from the file, the rest are skipped and
+  nothing upcoming is preloaded from the server. On Android, a queued song whose download finishes plays from the file
+  too, even online. Offline, Next, Previous (from the app or any controller) and the end of a song only ever land on downloaded songs.
+  With nothing downloaded ahead, playback stops on the song it left with "Can't reach the server, and no downloaded song is
+  next." (on Android, when the song it left isn't downloaded either, on the one it moved to; the natural end of the queue, on
+  a downloaded song, stops quietly as usual). Previous with nothing downloaded
+  behind restarts the current song when it is downloaded and otherwise stays put. A song already streaming when it flips
+  plays to its end (with repeat one, or repeat all when the other downloaded songs add up to under a minute, it may be
+  fetched once more before the queue moves on), and seeking it stays within what is already buffered (a stream that can't
+  seek stays put). After that it counts as not downloaded: Play (from the app or any controller) on a song that
+  isn't downloaded, even one paused mid-stream before the flip, goes on to the next downloaded one, and one downloaded
+  meanwhile goes on from the file.
 
 ## Screens
 

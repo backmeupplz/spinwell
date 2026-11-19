@@ -235,7 +235,7 @@ fun SettingsScreen() {
                 }
                 Section(stringResource(R.string.settings_group_offline)) {
                     SwitchRow(stringResource(R.string.settings_offline_mode), stringResource(R.string.info_offline_mode),
-                        Ic.CloudOff, Orange, Settings.offlineMode, divider = false) { Settings.offlineMode = it; if (!it) Net.ping() }
+                        Ic.CloudOff, Orange, Settings.offlineMode, divider = false) { Settings.offlineMode = it; Audio.refresh(); if (!it) Net.ping() }
                 }
                 Section(stringResource(R.string.settings_group_storage)) {
                     SettingRow(stringResource(R.string.tab_downloads), stringResource(R.string.info_downloads),

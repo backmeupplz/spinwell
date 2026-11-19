@@ -196,10 +196,11 @@ object Net {
     private fun up() {
         val was = reachable
         reachable = true
+        if (!was) Audio.refresh()
         if (was && Store.extKnown.value) return
         Store.scope.launch(Dispatchers.IO) { Outbox.flush(); Downloads.kick(); if (!Store.extKnown.value) Store.loadExtensions() }
     }
-    private fun down() { if (reachable) reachable = false }
+    private fun down() { if (reachable) { reachable = false; Audio.refresh() } }
 
     /** [e] says the server can't be reached (as opposed to it answering with an error) */
     fun unreachable(e: Throwable) = e is IOException && e !is ApiError && (e !is HttpErr || e.code in 502..504)

@@ -85,6 +85,7 @@ object Downloads {
             val tmp = File(index().path + ".tmp")
             tmp.writeText(j.toString()); tmp.renameTo(index())
         }
+        Audio.refresh() // a queued song that was just downloaded (or removed) plays from the right place
     }
 
     /** enqueue [songs]; [pin] remembers the album/playlist they came from */

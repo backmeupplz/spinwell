@@ -151,7 +151,9 @@ struct Saved: Codable { var queue: QueueState; var position: Double; var wasPlay
         // drop anything queued after the current item that is no longer the right next one
         let wanted = q.upcoming
         let after = ap.items().drop { $0 !== cur }.dropFirst()
-        if let a = after.first, keys[a] == wanted?.id, after.count == 1, playable(wanted) { return }
+        // offline, only a downloaded file stays: a stream queued while online would still go to the server
+        if let a = after.first, keys[a] == wanted?.id, after.count == 1, playable(wanted),
+           !app.offline || (a.asset as? AVURLAsset)?.url.isFileURL == true { return }
         after.forEach { ap.remove($0); keys[$0] = nil }
         if let w = wanted, playable(w), let n = item(for: w) { ap.insert(n, after: cur) }
     }
@@ -177,7 +179,13 @@ struct Saved: Codable { var queue: QueueState; var position: Double; var wasPlay
     func toggle() { playing || ap.timeControlStatus == .waitingToPlayAtSpecifiedRate ? pause() : play() }
 
     func seek(_ t: Double) {
-        let t = max(0, min(t, duration > 0 ? duration : t))
+        var t = max(0, min(t, duration > 0 ? duration : t))
+        // offline, a song still streaming from before the flip seeks only within what is loaded: anywhere else fetches it again
+        if app.offline, let it = ap.currentItem, !isFile(it) {
+            let now = it.currentTime()
+            let r = it.loadedTimeRanges.map(\.timeRangeValue).first { $0.containsTime(now) }
+            t = r.map { min(max(t, $0.start.seconds), $0.end.seconds) } ?? now.seconds
+        }
         pos = t
         ap.seek(to: CMTime(seconds: t, preferredTimescale: 600), toleranceBefore: .zero, toleranceAfter: .zero) { [weak self] _ in
             DispatchQueue.main.async { self?.updateInfo() }
