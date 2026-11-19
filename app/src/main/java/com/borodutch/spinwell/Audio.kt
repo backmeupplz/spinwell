@@ -190,6 +190,7 @@ object Audio {
 
     /** a song that can't play now: the next playable one, or a message (failures are capped at the queue length) */
     private fun goOn() {
+        savePos() // where it stopped: the silence it may become keeps the last 5 s tick's position otherwise
         if (failures++ >= q.items.size || !skipToPlayable()) { if (Net.offline) stopOn(q.index) else error = Store.app.getString(R.string.err_no_downloaded_next) }
     }
 
@@ -512,7 +513,10 @@ object Audio {
         val saved = runCatching { QueueState.of(JSONObject(j)) }.getOrNull() ?: return
         if (saved.items.isEmpty()) return
         q = saved.copy(index = saved.index.coerceIn(saved.items.indices))
-        load(Store.p.getLong("pos", 0))
+        val key = q.current?.key
+        // a build from before posKey saved the position for the song it saved with the queue: keep it for that song
+        if (!Store.p.contains("posKey")) Store.p.edit().putLong("posKey", key ?: -1).apply()
+        load(savedPos(key)) // 0 when the queue on disk is older than the position (written on an executor, killed in between)
         applyRepeat()
         player.prepare()
         restoredWasPlaying = Store.p.getBoolean("wasPlaying", false)
