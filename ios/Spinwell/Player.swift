@@ -132,9 +132,9 @@ struct Saved: Codable { var queue: QueueState; var position: Double; var wasPlay
 
     /// Put [current, next] in the player; `at` seeks the current one.
     private func rebuild(at: Double = 0, play: Bool) {
-        revision += 1; loads += 1; wantPlay = play
+        revision += 1; loads += 1; wantPlay = play && q.current != nil
         ap.removeAllItems(); keys = [:]; itemObs = []; failedItems = []
-        guard let cur = q.current, let first = item(for: cur) else { return }
+        guard let cur = q.current, let first = item(for: cur) else { ap.pause(); return } // an emptied player keeps rate 1 otherwise
         if let c = cur.song.coverArt { Covers.prepare(c) }
         ap.insert(first, after: nil)
         if at > 0 { ap.seek(to: CMTime(seconds: at, preferredTimescale: 600), toleranceBefore: .zero, toleranceAfter: .zero) }
@@ -142,7 +142,7 @@ struct Saved: Codable { var queue: QueueState; var position: Double; var wasPlay
         pos = at
         duration = cur.song.seconds
         scrobbled = nil
-        if play { self.play() }
+        if play { self.play() } else { ap.pause() } // a paused rebuild must not inherit the old rate
         updateInfo()
     }
 
