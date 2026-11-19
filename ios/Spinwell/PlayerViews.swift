@@ -16,7 +16,8 @@ struct MiniPlayer: View {
             if placement != .inline || true {
                 VStack(alignment: .leading, spacing: 0) {
                     Text(s?.name ?? "").font(.subheadline.weight(.semibold)).lineLimit(1)
-                    if player.error != nil { Text("Couldn't play this song").font(.caption).foregroundStyle(.orange).lineLimit(1) }
+                    // a song that failed says so (the full player says why); stopped offline, the reason itself
+                    if let e = player.error { Text(e == player.noDownloadNext ? e : String(localized: "Couldn't play this song")).font(.caption).foregroundStyle(.orange).lineLimit(1) }
                     else { Text(s?.artist ?? "").font(.caption).foregroundStyle(.secondary).lineLimit(1) }
                 }
                 .id(player.q.current?.id)

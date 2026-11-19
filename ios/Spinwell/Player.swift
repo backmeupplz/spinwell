@@ -231,7 +231,7 @@ struct Saved: Codable { var queue: QueueState; var position: Double; var wasPlay
     }
 
     private func isFile(_ it: AVPlayerItem?) -> Bool { (it?.asset as? AVURLAsset)?.url.isFileURL == true }
-    private var noDownloadNext: String { String(localized: "Can't reach the server, and no downloaded song is next.") }
+    var noDownloadNext: String { String(localized: "Can't reach the server, and no downloaded song is next.") }
 
     /// End of queue: stop on the last song, back at 0. Offline with nothing downloaded ahead: stop on the song we left, with a message.
     private func stopAtEnd(from: Int) {

@@ -104,7 +104,7 @@ whose project layout, cover cache and download design we reuse.
   too, even online. Offline, Next, Previous (from the app or any controller) and the end of a song only ever land on downloaded songs.
   With nothing downloaded ahead, playback stops on the song it left with "Can't reach the server, and no downloaded song is
   next." (on Android, when the song it left isn't downloaded either, on the one it moved to; the natural end of the queue, on
-  a downloaded song, stops quietly as usual). Previous with nothing downloaded
+  a downloaded song, stops quietly as usual); the mini player shows that same message. Previous with nothing downloaded
   behind restarts the current song when it is downloaded and otherwise stays put. On Android, a controller's
   "previous item" (rather than Previous) only ever goes back to a downloaded song: it never restarts the current one, and with
   nothing downloaded behind it stays put. A song already streaming when it flips
