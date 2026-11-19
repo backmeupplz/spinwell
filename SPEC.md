@@ -81,10 +81,13 @@ whose project layout, cover cache and download design we reuse.
 - Playback, server reachable: a streamed song that fails to play (a format the phone can't decode, an error body instead of
   audio) is retried once from where it stopped as a conversion (`format=mp3&maxBitRate=320` at Original quality, else the same
   settings), and that song streams converted for the rest of the session. A downloaded file that fails gets the same one retry
-  as a converted stream (Android; iOS downloads the original only in formats it plays), and a song whose download was removed
-  while queued streams (offline it is skipped like any song that isn't downloaded). If it fails again, or a downloaded file fails while offline, playback stops on that song: the full player shows why ("The server didn't send audio this phone can play." / "The downloaded
-  file can't be opened.") and the mini player shows "Couldn't play this song" in place of the artist. Play tries it again,
-  Next moves on; the app never runs through the queue by itself.
+  as a converted stream (Android; iOS downloads the original only in formats it plays). If the retry fails too, or a downloaded
+  file fails while offline, playback stops on that song: the full player shows why ("The server didn't send audio this phone
+  can play." / "The downloaded file can't be opened.") and the mini player shows "Couldn't play this song" in place of the
+  artist. Play tries it again, as does Previous more than 3 s in (in the app, on the lock screen, a headset or a car), Next
+  moves on; the app never runs through the queue by itself. On Android a song whose download was removed while queued streams
+  (offline it is skipped like any song that isn't downloaded); iOS stops on that song with "The downloaded file can't be
+  opened." and Play then streams it (offline, skips it).
 - Offline: a slim banner under the top bar ("Offline · showing downloads", tap to retry). Browsing uses the JSON cache plus
   `downloads.json`, which holds every downloaded song's full metadata, so:
   - Library › **Artists**: every artist with at least one downloaded song, A to Z (photo/album count from the cached artist list

@@ -79,11 +79,16 @@ object Audio {
                 val i = q.items.indexOfFirst { it.key == k }
                 if (i >= 0 && i != q.index) q = q.copy(index = i)
                 error = null
-                // moving on from a failed song (Next here, on the lock screen or a headset) has to wake the idle player
-                if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_SEEK && player.playerError != null && player.playbackState == Player.STATE_IDLE) player.prepare()
                 durationMs = player.duration.coerceAtLeast(0)
                 persist(); savePos()
                 if (playing) scrobbleCheck()
+            }
+            // Next/Previous after a failed song (here, on the lock screen, a headset or Auto) wakes the idle player: another
+            // song plays, or Previous retries this one from the start. In-app scrubbing doesn't (seekTo clamps to 1 ms); a
+            // session seek to 0 (lock-screen/Auto scrubber, headset rewind) reads as Previous and retries it
+            override fun onPositionDiscontinuity(old: Player.PositionInfo, new: Player.PositionInfo, reason: Int) {
+                if (reason == Player.DISCONTINUITY_REASON_SEEK && player.playerError != null && player.playbackState == Player.STATE_IDLE &&
+                    (new.mediaItemIndex != old.mediaItemIndex || new.positionMs == 0L)) player.prepare()
             }
             override fun onPlaybackStateChanged(state: Int) {
                 if (state == Player.STATE_READY) durationMs = player.duration.coerceAtLeast(0)
@@ -242,7 +247,7 @@ object Audio {
         finishFill()
         if (i !in q.items.indices) return
         q = q.copy(index = i)
-        player.seekTo(i, 0); wakeAfterError(); player.play(); persist()
+        player.seekTo(i, 0); player.play(); persist()
     }
 
     fun removeAt(i: Int) { finishFill(); if (i in q.items.indices) { q = q.remove(i); player.removeMediaItem(i); persist() } }
@@ -289,10 +294,9 @@ object Audio {
         player.play(); ensureService()
     }
     fun next() { if (player.hasNextMediaItem()) player.seekToNext() }
-    fun prev() { player.seekToPrevious(); wakeAfterError() }
-    /** back to the start of the song that failed (no song change, so the transition listener doesn't prepare it) */
-    private fun wakeAfterError() { if (player.playerError != null) player.prepare() }
-    fun seekTo(ms: Long) { player.seekTo(ms); savePos() }
+    fun prev() = player.seekToPrevious()
+    // a failed song stays stopped when scrubbed: 0 would read as Previous and retry it
+    fun seekTo(ms: Long) { player.seekTo(if (player.playerError != null) ms.coerceAtLeast(1) else ms); savePos() }
     val position get() = if (ready) player.currentPosition else 0L
 
     // ---- persistence ----
