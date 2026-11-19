@@ -27,8 +27,9 @@ jobs:
         run: |
           src="${PWD%%/work/*}/ci/spinwell-android-git"
           mkdir -p "$src" && cd "$src"
-          rm -f .git/index.lock .git/shallow.lock # left by a cancelled run
-          [ -d .git ] || { git init -q && git sparse-checkout set app gradle .github/scripts; }
+          rm -f .git/index.lock .git/shallow.lock .git/info/sparse-checkout.lock .git/config.worktree.lock # left by a cancelled run
+          [ -d .git ] || git init -q
+          git sparse-checkout set --cone app gradle .github/scripts # every run: a checkout made before a path joined the list must get it too
           # Blobs up to 128 KB (every source file, not the store images) come with the fetch, so checkout fetches nothing more
           git fetch -q --no-tags --depth=1 --filter=blob:limit=128k "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" "$GITHUB_SHA"
           git checkout -q -f FETCH_HEAD
