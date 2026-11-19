@@ -186,4 +186,8 @@
     <string name="info_downloads">Lagu yang disimpan untuk didengarkan secara offline. Menghapusnya membebaskan ruang; Anda dapat mengunduhnya lagi kapan saja.</string>
     <string name="info_about">Spinwell adalah pemutar gratis dan open source untuk server Navidrome atau OpenSubsonic milik Anda sendiri. Tanpa iklan, tanpa analitik.</string>
     <string name="action_repeat">Ulangi</string>
+    <string name="err_no_downloaded_next">Tidak dapat terhubung ke server, dan lagu berikutnya belum diunduh.</string>
+    <string name="err_play_short">Lagu ini tidak dapat diputar</string>
+    <string name="err_play_stream">Server tidak mengirim audio yang dapat diputar ponsel ini.</string>
+    <string name="err_play_local">File yang diunduh tidak dapat dibuka.</string>
 </resources>

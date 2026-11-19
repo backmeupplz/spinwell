@@ -1,0 +1,1 @@
+Songs your phone can't play straight from the server now play as MP3 that the server converts on the fly, and a song that still won't play stops with a clear message instead of the player silently running through the rest of the album.

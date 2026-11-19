@@ -186,4 +186,8 @@
     <string name="info_downloads">オフラインで聴くために保存した曲です。削除すると容量が空きます。曲はいつでもまたダウンロードできます。</string>
     <string name="info_about">Spinwellは、ご自身のNavidromeまたはOpenSubsonicサーバー向けの、無料のオープンソースプレーヤーです。広告も分析もありません。</string>
     <string name="action_repeat">リピート</string>
+    <string name="err_no_downloaded_next">サーバーに接続できず、次の曲もダウンロードされていません。</string>
+    <string name="err_play_short">この曲を再生できませんでした</string>
+    <string name="err_play_stream">サーバーから、この端末で再生できる音声が届きませんでした。</string>
+    <string name="err_play_local">ダウンロードしたファイルを開けません。</string>
 </resources>

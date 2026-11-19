@@ -1,0 +1,1 @@
+As músicas que o teu telemóvel não consegue reproduzir diretamente do servidor passam a tocar como MP3 convertido na hora pelo servidor, e uma música que mesmo assim não toca para com uma mensagem clara, em vez de o leitor percorrer em silêncio o resto do álbum.

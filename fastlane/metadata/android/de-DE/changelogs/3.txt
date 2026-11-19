@@ -1,0 +1,1 @@
+Songs, die dein Handy nicht direkt vom Server abspielen kann, laufen jetzt als MP3, das der Server spontan umwandelt, und ein Song, der trotzdem nicht startet, hält mit einer klaren Meldung an, statt dass der Player stillschweigend durch den Rest des Albums springt.

@@ -189,10 +189,15 @@ fun BoxScope.PlayerSheet(exp: Animatable<Float, AnimationVector1D>, barH: Dp, mi
                     maxLines = if (twoLines) 2 else 1, overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.scaledBox({ lerp(W - px(70.dp) - px(112.dp), padW - px(52.dp), exp.value) }, { lerp(0.625f, 1f, exp.value) }),
                 )
+                val err = Audio.error
                 Text(
-                    song.artist, style = MaterialTheme.typography.titleMedium.copy(fontSize = 16.sp), color = Muted, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    // a song that failed: the mini row says so, the full player says why
+                    if (err == null) song.artist else if (twoLines) err else stringResource(R.string.err_play_short),
+                    style = if (err != null && twoLines) MaterialTheme.typography.bodySmall else MaterialTheme.typography.titleMedium.copy(fontSize = 16.sp),
+                    color = if (err == null) Muted else MaterialTheme.colorScheme.error,
+                    maxLines = if (err != null && twoLines) 2 else 1, overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.scaledBox({ lerp(W - px(70.dp) - px(112.dp), padW - px(52.dp), exp.value) }, { lerp(0.8125f, 1f, exp.value) })
-                        .clickable(enabled = fullShown && song.artistId.isNotEmpty()) { collapse(); Nav.push(Route.Artist(song.artistId, "player")) },
+                        .clickable(enabled = fullShown && err == null && song.artistId.isNotEmpty()) { collapse(); Nav.push(Route.Artist(song.artistId, "player")) },
                 )
             }
 

@@ -196,4 +196,8 @@
     <string name="info_downloads">Les titres enregistrés pour l’écoute hors ligne. Les supprimer libère de l’espace ; vous pourrez les retélécharger à tout moment.</string>
     <string name="info_about">Spinwell est un lecteur gratuit et open source pour votre propre serveur Navidrome ou OpenSubsonic. Sans publicité, sans analyse d’audience.</string>
     <string name="action_repeat">Répéter</string>
+    <string name="err_no_downloaded_next">Serveur injoignable, et le titre suivant n’est pas téléchargé.</string>
+    <string name="err_play_short">Impossible de lire ce morceau</string>
+    <string name="err_play_stream">Le serveur n\'a pas envoyé d\'audio lisible par ce téléphone.</string>
+    <string name="err_play_local">Le fichier téléchargé ne peut pas être ouvert.</string>
 </resources>

@@ -191,4 +191,8 @@
     <string name="info_downloads">Nummers die zijn opgeslagen om offline te luisteren. Als je ze verwijdert, komt de ruimte vrij; je kunt ze altijd opnieuw downloaden.</string>
     <string name="info_about">Spinwell is een gratis, opensourcespeler voor je eigen Navidrome- of OpenSubsonic-server. Geen advertenties, geen analytics.</string>
     <string name="action_repeat">Herhalen</string>
+    <string name="err_no_downloaded_next">Kan de server niet bereiken en het volgende nummer is niet gedownload.</string>
+    <string name="err_play_short">Kan dit nummer niet afspelen</string>
+    <string name="err_play_stream">De server stuurde geen audio die deze telefoon kan afspelen.</string>
+    <string name="err_play_local">Het gedownloade bestand kan niet worden geopend.</string>
 </resources>

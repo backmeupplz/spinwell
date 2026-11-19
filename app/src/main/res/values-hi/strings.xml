@@ -191,4 +191,8 @@
     <string name="info_downloads">ऑफ़लाइन सुनने के लिए सेव किए गए गाने। इन्हें हटाने से जगह खाली होती है; आप इन्हें कभी भी दोबारा डाउनलोड कर सकते हैं।</string>
     <string name="info_about">Spinwell आपके अपने Navidrome या OpenSubsonic सर्वर के लिए एक मुफ़्त, ओपन सोर्स प्लेयर है। न विज्ञापन, न एनालिटिक्स।</string>
     <string name="action_repeat">दोहराएं</string>
+    <string name="err_no_downloaded_next">सर्वर तक नहीं पहुंच पा रहे, और अगला गाना डाउनलोड नहीं है।</string>
+    <string name="err_play_short">यह गाना नहीं चल सका</string>
+    <string name="err_play_stream">सर्वर ने ऐसा ऑडियो नहीं भेजा जिसे यह फ़ोन चला सके।</string>
+    <string name="err_play_local">डाउनलोड की गई फ़ाइल नहीं खुल सकती।</string>
 </resources>

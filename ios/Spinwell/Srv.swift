@@ -274,8 +274,10 @@ struct Pending: Codable { var kind: String; var id: String; var at: Double }
 
     func cover(_ id: String, size: Int) -> URL? { account?.coverURL(id, size: size) }
 
-    func stream(_ s: Song) -> URL? {
-        account?.streamURL(s.id, suffix: s.suffix, bitrate: cellular ? settings.cellQuality : settings.wifiQuality)
+    /// `transcode`: the original failed to play, so Original quality asks for MP3 320 (the one conversion every server has).
+    func stream(_ s: Song, transcode: Bool = false) -> URL? {
+        let q = cellular ? settings.cellQuality : settings.wifiQuality
+        return account?.streamURL(s.id, suffix: s.suffix, bitrate: transcode && q == 0 ? 320 : q)
     }
 
     func playable(_ s: Song) -> Bool { downloads.has(s.id) || !offline }

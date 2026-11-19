@@ -201,4 +201,8 @@
     <string name="info_downloads">Песни, сохранённые для прослушивания офлайн. Если их удалить, место освободится, а скачать их можно снова в любой момент.</string>
     <string name="info_about">Spinwell — бесплатный плеер с открытым исходным кодом для вашего собственного сервера Navidrome или OpenSubsonic. Без рекламы и аналитики.</string>
     <string name="action_repeat">Повтор</string>
+    <string name="err_no_downloaded_next">Не удаётся подключиться к серверу, а следующая песня не скачана.</string>
+    <string name="err_play_short">Не удалось воспроизвести песню</string>
+    <string name="err_play_stream">Сервер не прислал аудио, которое этот телефон может воспроизвести.</string>
+    <string name="err_play_local">Не удаётся открыть скачанный файл.</string>
 </resources>

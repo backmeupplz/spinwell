@@ -191,4 +191,8 @@
     <string name="info_downloads">Çevrimdışı dinlemek için kaydedilen şarkılar. Kaldırmak yer açar; istediğin zaman tekrar indirebilirsin.</string>
     <string name="info_about">Spinwell, kendi Navidrome veya OpenSubsonic sunucun için ücretsiz, açık kaynaklı bir oynatıcıdır. Reklam yok, analiz yok.</string>
     <string name="action_repeat">Tekrarla</string>
+    <string name="err_no_downloaded_next">Sunucuya ulaşılamıyor ve sıradaki şarkı indirilmemiş.</string>
+    <string name="err_play_short">Bu şarkı çalınamadı</string>
+    <string name="err_play_stream">Sunucu bu telefonun çalabileceği bir ses göndermedi.</string>
+    <string name="err_play_local">İndirilen dosya açılamıyor.</string>
 </resources>

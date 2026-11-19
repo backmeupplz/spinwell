@@ -1,0 +1,1 @@
+Músicas que seu celular não consegue tocar direto do servidor agora tocam como MP3 convertido na hora pelo servidor, e uma música que ainda assim não toca para com uma mensagem clara, em vez de o player passar em silêncio pelo resto do álbum.

@@ -186,4 +186,8 @@
     <string name="info_downloads">为离线收听而保存的歌曲。移除后会释放空间，你随时可以重新下载。</string>
     <string name="info_about">Spinwell 是一款免费的开源播放器，适用于你自己的 Navidrome 或 OpenSubsonic 服务器。没有广告，也没有统计分析。</string>
     <string name="action_repeat">循环</string>
+    <string name="err_no_downloaded_next">无法连接服务器，且接下来要播放的歌曲尚未下载。</string>
+    <string name="err_play_short">无法播放这首歌</string>
+    <string name="err_play_stream">服务器发送的音频无法在此手机上播放。</string>
+    <string name="err_play_local">无法打开已下载的文件。</string>
 </resources>

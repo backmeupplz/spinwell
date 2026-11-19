@@ -1,0 +1,1 @@
+Las canciones que tu móvil no puede reproducir directamente desde el servidor ahora suenan como MP3 que el servidor convierte al momento, y una canción que aun así no se reproduce se detiene con un mensaje claro en lugar de que el reproductor recorra en silencio el resto del álbum.

@@ -30,6 +30,14 @@ struct Saved: Codable { var queue: QueueState; var position: Double; var wasPlay
     @ObservationIgnored private var itemObs: [NSKeyValueObservation] = []
     @ObservationIgnored private var stall: Task<Void, Never>?
     @ObservationIgnored private var failedItems: Set<ObjectIdentifier> = []
+    /// songs whose original stream failed to play: they stream transcoded from then on (this session)
+    @ObservationIgnored private var transcode: Set<String> = []
+    /// the user wants sound: survives AVPlayer dropping a failed item (its rate is 0 by then), so a retry keeps playing
+    @ObservationIgnored private var wantPlay = false
+    @ObservationIgnored private var resumeAfterCall = false
+    /// the queue entry `error` is about, and a count of rebuilds (a server check that returns after one is stale)
+    @ObservationIgnored private var errorId: UUID?
+    @ObservationIgnored private var loads = 0
 
     var current: Song? { q.current?.song }
     var hasSong: Bool { q.current != nil }
@@ -52,7 +60,14 @@ struct Saved: Codable { var queue: QueueState; var position: Double; var wasPlay
         nc.addObserver(forName: AVAudioSession.interruptionNotification, object: nil, queue: .main) { [weak self] n in
             let ended = (n.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt) == AVAudioSession.InterruptionType.ended.rawValue
             let resume = ((n.userInfo?[AVAudioSessionInterruptionOptionKey] as? UInt).map(AVAudioSession.InterruptionOptions.init))?.contains(.shouldResume) == true
-            if ended && resume { MainActor.assumeIsolated { self?.play() } }
+            MainActor.assumeIsolated { // a call paused it: a retry stays paused; afterwards resume only what was playing
+                guard let self else { return }
+                if !ended { self.resumeAfterCall = self.wantPlay; self.wantPlay = false } else if resume, self.resumeAfterCall { self.play() }
+            }
+        }
+        nc.addObserver(forName: AVAudioSession.routeChangeNotification, object: nil, queue: .main) { [weak self] n in
+            let gone = (n.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt) == AVAudioSession.RouteChangeReason.oldDeviceUnavailable.rawValue
+            MainActor.assumeIsolated { if gone { self?.wantPlay = false; self?.resumeAfterCall = false } } // headphones out: the system paused, a retry must not play on the speaker
         }
         nc.addObserver(forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.save() }
@@ -90,7 +105,7 @@ struct Saved: Codable { var queue: QueueState; var position: Double; var wasPlay
     func stopAndClear() {
         ap.pause(); ap.removeAllItems(); keys = [:]
         let keep = q.repeatMode
-        q = QueueState(); q.repeatMode = keep; playing = false; pos = 0; duration = 0
+        q = QueueState(); q.repeatMode = keep; playing = false; pos = 0; duration = 0; wantPlay = false; error = nil
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
         try? FileManager.default.removeItem(at: stateFile)
     }
@@ -100,7 +115,7 @@ struct Saved: Codable { var queue: QueueState; var position: Double; var wasPlay
     private func item(for qi: QItem) -> AVPlayerItem? {
         let s = qi.song
         let url: URL?
-        if let local = app.downloads.localURL(s.id) { url = local } else { url = app.stream(s) }
+        if let local = app.downloads.localURL(s.id) { url = local } else { url = app.stream(s, transcode: transcode.contains(s.id)) }
         guard let url else { return nil }
         let it = AVPlayerItem(url: url)
         it.preferredForwardBufferDuration = 0
@@ -116,7 +131,7 @@ struct Saved: Codable { var queue: QueueState; var position: Double; var wasPlay
 
     /// Put [current, next] in the player; `at` seeks the current one.
     private func rebuild(at: Double = 0, play: Bool) {
-        revision += 1
+        revision += 1; loads += 1; wantPlay = play
         ap.removeAllItems(); keys = [:]; itemObs = []; failedItems = []
         guard let cur = q.current, let first = item(for: cur) else { return }
         if let c = cur.song.coverArt { Covers.prepare(c) }
@@ -148,12 +163,13 @@ struct Saved: Codable { var queue: QueueState; var position: Double; var wasPlay
     func play() {
         guard hasSong else { return }
         if ap.currentItem == nil { rebuild(at: pos, play: false) }
+        wantPlay = true
         // setActive can block for 100+ ms: never on the main thread, in the tap path (AVPlayer starts its own session use anyway)
         DispatchQueue.global(qos: .userInitiated).async { try? AVAudioSession.sharedInstance().setActive(true) }
         ap.play()
         error = nil
     }
-    func pause() { ap.pause(); save() }
+    func pause() { wantPlay = false; ap.pause(); save() }
     func toggle() { playing || ap.timeControlStatus == .waitingToPlayAtSpecifiedRate ? pause() : play() }
 
     func seek(_ t: Double) {
@@ -180,7 +196,7 @@ struct Saved: Codable { var queue: QueueState; var position: Double; var wasPlay
 
     func previous() {
         guard hasSong else { return }
-        if pos > 3 { seek(0); return }
+        if pos > 3, ap.currentItem != nil || playable(q.current) { if ap.currentItem == nil { rebuild(play: true) } else { seek(0) }; return } // after a stop: retry the song
         let before = q.index
         for _ in 0..<max(q.items.count, 1) { q.back(); if playable(q.current) || q.index == before { break } }
         rebuild(play: true); changed()
@@ -239,7 +255,10 @@ struct Saved: Codable { var queue: QueueState; var position: Double; var wasPlay
         preloadNext(); changed()
     }
 
-    private func changed() { updateInfo(); save() }
+    private func changed() {
+        if q.current?.id != errorId { error = nil } // the message belongs to the song that failed
+        updateInfo(); save()
+    }
 
     // MARK: observation
 
@@ -248,6 +267,7 @@ struct Saved: Codable { var queue: QueueState; var position: Double; var wasPlay
             return
         }
         if id != q.current?.id {
+            if let f = failedCurrent { itemFailed(f); return } // the player skipped past a song that failed: handle that, don't advance
             // gapless auto-advance: the player moved on by itself
             if q.repeatMode == .one, q.current?.id == id { } else {
                 _ = q.advance(auto: true)
@@ -255,7 +275,10 @@ struct Saved: Codable { var queue: QueueState; var position: Double; var wasPlay
             }
             pos = 0; scrobbled = nil; revision += 1
             preloadNext(); changed()
-        } else if q.repeatMode == .one { pos = 0; scrobbled = nil; preloadNext() }
+        } else if q.repeatMode == .one {
+            if let f = failedCurrent { itemFailed(f); return } // the repeat copy took over from a copy that failed
+            pos = 0; scrobbled = nil; preloadNext()
+        }
         duration = q.current?.song.seconds ?? 0
         if let s = current { app.scrobble(s.id, submission: false) }
         if it.status == .failed { itemFailed(it) }
@@ -268,7 +291,8 @@ struct Saved: Codable { var queue: QueueState; var position: Double; var wasPlay
         if st == .playing { failedRun = 0 }
         watchStall(st)
         updateInfo()
-        if st == .paused && ap.currentItem == nil && hasSong { endOfQueue() }
+        // the player emptied itself: a failed song is handled as such; after a stop on one, stay on it
+        if st == .paused && ap.currentItem == nil && hasSong && error == nil { if let f = failedCurrent { itemFailed(f) } else { endOfQueue() } }
         save()
     }
 
@@ -295,26 +319,60 @@ struct Saved: Codable { var queue: QueueState; var position: Double; var wasPlay
         if playing, Date().timeIntervalSince(lastSave) > 5 { save() }
     }
 
+    /// the current song's item when it has failed (the player may have dropped it before its failure was reported)
+    private var failedCurrent: AVPlayerItem? { keys.first { $0.value == q.current?.id && $0.key.status == .failed }?.key }
+
     private func itemFailed(_ it: AVPlayerItem) {
-        guard keys[it] == q.current?.id, failedItems.insert(ObjectIdentifier(it)).inserted else { return } // status and end-notification both report it
-        failed(it.error)
+        // repeat-one preloads a second item for the same song: only the one actually playing (or dropped) counts
+        guard keys[it] == q.current?.id, ap.currentItem === it || !ap.items().contains(it),
+              failedItems.insert(ObjectIdentifier(it)).inserted else { return } // status and end-notification both report it
+        failed(it.error, at: it.currentTime().seconds, local: (it.asset as? AVURLAsset)?.url.isFileURL == true)
     }
 
-    /// A song that can't be fetched or decoded: when the server is gone, flip to offline; either way go on with the next playable song.
-    private func failed(_ e: Error?) {
+    /// A song that can't be fetched or decoded. Server gone: flip to offline and go on with the next downloaded song.
+    /// Otherwise retry a streamed original once transcoded (a format the phone can't open), then stop on it with a message.
+    private func failed(_ e: Error?, at: Double, local: Bool) {
+        guard let s = current else { return }
         if let e, Srv.isNetwork(e) { app.markUnreachable() }
-        failedRun += 1
-        if failedRun < 8, skipToPlayable() { error = nil; return }
-        error = app.offline ? String(localized: "Can't reach the server, and no downloaded song is next.") : e?.localizedDescription
-        ap.pause()
+        if app.offline && !local {
+            skipOffline(play: wantPlay)
+        } else if !local, transcode.insert(s.id).inserted {
+            rebuild(at: at.isFinite ? at : 0, play: wantPlay) // a restored, paused song stays paused
+        } else if local {
+            stop(String(localized: "The downloaded file can't be opened."))
+        } else {
+            // a dead server behind a proxy answers 502, which AVPlayer reports like a bad file: ask the server, and if it is gone, go on offline
+            let n = loads, id = q.current?.id, resume = wantPlay
+            stop(String(localized: "The server didn't send audio this phone can play."))
+            Task {
+                await app.ping()
+                guard app.offline, loads == n, q.current?.id == id else { return }
+                if resume { skipOffline(play: true) } else { stop(String(localized: "Can't reach the server")) }
+            }
+        }
     }
 
-    /// Move to the next song the phone can play right now (offline: downloaded ones) and start it.
-    @discardableResult private func skipToPlayable() -> Bool {
+    private func skipOffline(play: Bool) {
+        failedRun += 1
+        if failedRun < 8, skipToPlayable(play: play) { error = nil; return }
+        stop(String(localized: "Can't reach the server, and no downloaded song is next."))
+    }
+
+    /// Stay on the failed song with the message; Play retries it (the empty player rebuilds), Next moves on.
+    private func stop(_ message: String) {
+        ap.pause(); ap.removeAllItems(); keys = [:]; itemObs = []; wantPlay = false
+        error = message; errorId = q.current?.id
+        save()
+    }
+
+    /// Move to the next song the phone can play right now (offline: downloaded ones), playing only if the failed one was.
+    private func skipToPlayable(play: Bool) -> Bool {
+        let from = q.index
         for _ in 0..<max(q.items.count, 1) {
-            guard q.advance(auto: false) else { return false }
-            if playable(q.current) { rebuild(play: true); changed(); return true }
+            guard q.advance(auto: false) else { break }
+            if playable(q.current) { rebuild(play: play); changed(); return true }
         }
+        q.index = from // nothing to go on with: stay on the song that failed
         return false
     }
 
@@ -326,7 +384,8 @@ struct Saved: Codable { var queue: QueueState; var position: Double; var wasPlay
             try? await Task.sleep(for: .seconds(6))
             guard !Task.isCancelled, ap.timeControlStatus == .waitingToPlayAtSpecifiedRate, q.current?.id == id else { return }
             if !app.offline { await app.ping() } // the periodic probe may already have flipped us offline: then go straight on
-            if app.unreachable, q.current?.id == id { skipToPlayable() }
+            guard !Task.isCancelled, app.unreachable, q.current?.id == id else { return } // paused during the check: stay put
+            skipOffline(play: true)
         }
     }
 

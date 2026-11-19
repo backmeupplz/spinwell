@@ -66,7 +66,7 @@ import UIKit
         }
     }
 
-    /// `-script "wait:3,next,seek:20,wait:6,shuffle,prev"` runs player actions and appends the queue state to
+    /// `-script "wait:3,next,seek:20,wait:6,shuffle,prev,remove:2"` runs player actions and appends the queue state to
     /// `$TMPDIR/spinwell-hook.log` after each (Simulator: the host's /tmp via `-log /tmp/x.log`).
     static func runScript() async {
         let d = UserDefaults.standard
@@ -92,6 +92,7 @@ import UIKit
             case "unblock": try? FileManager.default.removeItem(atPath: "/tmp/spinwell-block")
             case "playnext": if let r = try? await app.fetch("getSong", [("id", p[1])], SongR.self) { player.playNext([r.song]) }
             case "jump": if player.q.items.indices.contains(Int(p[1]) ?? 0) { player.jump(to: player.q.items[Int(p[1])!].id) }
+            case "remove": if player.q.items.indices.contains(Int(p[1]) ?? 0) { player.remove(player.q.items[Int(p[1])!].id) }
             default: break
             }
             try? await Task.sleep(for: .milliseconds(300))

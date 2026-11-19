@@ -201,4 +201,8 @@
     <string name="info_downloads">Utwory zapisane do słuchania offline. Usunięcie ich zwalnia miejsce, a pobrać je ponownie możesz w dowolnej chwili.</string>
     <string name="info_about">Spinwell to darmowy odtwarzacz o otwartym kodzie dla Twojego własnego serwera Navidrome lub OpenSubsonic. Bez reklam i analityki.</string>
     <string name="action_repeat">Powtarzaj</string>
+    <string name="err_no_downloaded_next">Nie można połączyć się z serwerem, a następny utwór nie jest pobrany.</string>
+    <string name="err_play_short">Nie udało się odtworzyć utworu</string>
+    <string name="err_play_stream">Serwer nie wysłał dźwięku, który ten telefon może odtworzyć.</string>
+    <string name="err_play_local">Nie można otworzyć pobranego pliku.</string>
 </resources>

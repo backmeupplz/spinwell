@@ -192,4 +192,8 @@
     <string name="info_downloads">Songs saved for offline listening. Removing them frees the space; you can download them again any time.</string>
     <string name="info_about">Spinwell is a free, open source player for your own Navidrome or OpenSubsonic server. No ads, no analytics.</string>
     <string name="action_repeat">Repeat</string>
+    <string name="err_no_downloaded_next">Can\'t reach the server, and no downloaded song is next.</string>
+    <string name="err_play_short">Couldn\'t play this song</string>
+    <string name="err_play_stream">The server didn\'t send audio this phone can play.</string>
+    <string name="err_play_local">The downloaded file can\'t be opened.</string>
 </resources>

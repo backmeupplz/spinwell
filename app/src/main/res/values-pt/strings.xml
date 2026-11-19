@@ -196,4 +196,8 @@
     <string name="info_downloads">Músicas salvas para ouvir offline. Removê-las libera o espaço; você pode baixá-las de novo quando quiser.</string>
     <string name="info_about">O Spinwell é um player gratuito e de código aberto para o seu próprio servidor Navidrome ou OpenSubsonic. Sem anúncios, sem análises de uso.</string>
     <string name="action_repeat">Repetir</string>
+    <string name="err_no_downloaded_next">Não foi possível acessar o servidor, e a próxima música não está baixada.</string>
+    <string name="err_play_short">Não foi possível tocar esta música</string>
+    <string name="err_play_stream">O servidor não enviou um áudio que este telefone consiga tocar.</string>
+    <string name="err_play_local">Não é possível abrir o arquivo baixado.</string>
 </resources>

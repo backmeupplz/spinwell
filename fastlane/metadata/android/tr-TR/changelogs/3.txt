@@ -1,0 +1,1 @@
+Telefonunun doğrudan sunucudan çalamadığı şarkılar artık sunucunun anında dönüştürdüğü MP3 olarak çalıyor; buna rağmen çalmayan bir şarkı ise oynatıcının albümün geri kalanını sessizce geçmesi yerine açık bir mesajla duruyor.

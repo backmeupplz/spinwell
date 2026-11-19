@@ -1,0 +1,1 @@
+Les morceaux que ton téléphone ne peut pas lire directement depuis le serveur sont désormais lus en MP3 converti à la volée par le serveur, et un morceau qui ne se lit toujours pas s'arrête avec un message clair au lieu que le lecteur parcoure en silence le reste de l'album.

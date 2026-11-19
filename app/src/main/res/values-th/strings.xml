@@ -186,4 +186,8 @@
     <string name="info_downloads">เพลงที่บันทึกไว้ฟังแบบออฟไลน์ การลบจะเคลียร์พื้นที่ และคุณดาวน์โหลดใหม่ได้ทุกเมื่อ</string>
     <string name="info_about">Spinwell เป็นเครื่องเล่นโอเพนซอร์สฟรีสำหรับเซิร์ฟเวอร์ Navidrome หรือ OpenSubsonic ของคุณเอง ไม่มีโฆษณา ไม่มีการวิเคราะห์ข้อมูล</string>
     <string name="action_repeat">เล่นซ้ำ</string>
+    <string name="err_no_downloaded_next">เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ และเพลงถัดไปยังไม่ได้ดาวน์โหลดไว้</string>
+    <string name="err_play_short">เล่นเพลงนี้ไม่ได้</string>
+    <string name="err_play_stream">เซิร์ฟเวอร์ไม่ได้ส่งเสียงที่โทรศัพท์นี้เล่นได้</string>
+    <string name="err_play_local">เปิดไฟล์ที่ดาวน์โหลดไว้ไม่ได้</string>
 </resources>

@@ -72,7 +72,19 @@ whose project layout, cover cache and download design we reuse.
   iOS also pings every 10 s while online and in front (flipping offline only after a second failed ping a second later), so a
   server that goes away while nothing is being requested is noticed; Android relies on requests and network callbacks.
 - Playback: if a streamed song fails because the server is gone, the app marks offline and skips to the next downloaded song of
-  the queue (wrapping when repeating all) instead of stopping with an error; consecutive failures are capped at the queue length.
+  the queue (wrapping when repeating all; a paused song moves on paused) instead of stopping with an error; consecutive failures are capped at the queue length.
+  A song downloaded after it was queued plays from its file when skipped to (and, on Android, the failed song itself).
+  With no downloaded song to go on with, it stays on the failed song with "Can't reach the server, and no downloaded song is
+  next." "Server gone" means no connection, a timeout or a 502/503/504; any other HTTP status is the server answering. iOS can't
+  read the HTTP status of a stream, so after stopping on a streamed song it pings the server and goes on offline when that fails (a song that was paused
+  stays put with "Can't reach the server").
+- Playback, server reachable: a streamed song that fails to play (a format the phone can't decode, an error body instead of
+  audio) is retried once from where it stopped as a conversion (`format=mp3&maxBitRate=320` at Original quality, else the same
+  settings), and that song streams converted for the rest of the session. A downloaded file that fails gets the same one retry
+  as a converted stream (Android; iOS downloads the original only in formats it plays), and a song whose download was removed
+  while queued streams (offline it is skipped like any song that isn't downloaded). If it fails again, or a downloaded file fails while offline, playback stops on that song: the full player shows why ("The server didn't send audio this phone can play." / "The downloaded
+  file can't be opened.") and the mini player shows "Couldn't play this song" in place of the artist. Play tries it again,
+  Next moves on; the app never runs through the queue by itself.
 - Offline: a slim banner under the top bar ("Offline · showing downloads", tap to retry). Browsing uses the JSON cache plus
   `downloads.json`, which holds every downloaded song's full metadata, so:
   - Library › **Artists**: every artist with at least one downloaded song, A to Z (photo/album count from the cached artist list

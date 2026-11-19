@@ -186,4 +186,8 @@
     <string name="info_downloads">Các bài hát được lưu để nghe ngoại tuyến. Xóa chúng sẽ giải phóng dung lượng; bạn có thể tải lại bất cứ lúc nào.</string>
     <string name="info_about">Spinwell là trình phát mã nguồn mở, miễn phí cho máy chủ Navidrome hoặc OpenSubsonic của riêng bạn. Không quảng cáo, không phân tích dữ liệu.</string>
     <string name="action_repeat">Lặp lại</string>
+    <string name="err_no_downloaded_next">Không kết nối được máy chủ, và bài hát tiếp theo chưa được tải xuống.</string>
+    <string name="err_play_short">Không phát được bài hát này</string>
+    <string name="err_play_stream">Máy chủ không gửi âm thanh mà điện thoại này có thể phát.</string>
+    <string name="err_play_local">Không thể mở tệp đã tải xuống.</string>
 </resources>

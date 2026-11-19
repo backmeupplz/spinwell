@@ -1,0 +1,1 @@
+I brani che il telefono non riesce a riprodurre direttamente dal server ora partono come MP3 convertiti al volo dal server, e un brano che continua a non partire si ferma con un messaggio chiaro invece di far scorrere in silenzio il resto dell'album.

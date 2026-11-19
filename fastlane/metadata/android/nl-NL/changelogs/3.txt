@@ -1,0 +1,1 @@
+Nummers die je telefoon niet rechtstreeks van de server kan afspelen, spelen nu als MP3 die de server direct omzet, en een nummer dat dan nog niet wil spelen stopt met een duidelijke melding in plaats van dat de speler stilletjes de rest van het album afloopt.

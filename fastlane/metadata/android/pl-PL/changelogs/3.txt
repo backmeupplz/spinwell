@@ -1,0 +1,1 @@
+Utwory, których telefon nie może odtworzyć prosto z serwera, grają teraz jako MP3 konwertowane przez serwer na bieżąco, a utwór, który mimo to nie chce zagrać, zatrzymuje się z czytelnym komunikatem, zamiast żeby odtwarzacz po cichu przeskakiwał resztę albumu.

@@ -744,8 +744,19 @@
  },
  "err_no_downloaded_next": {
   "en": "Can't reach the server, and no downloaded song is next.",
-  "comment": "Player error line when the server is gone and the next song is not downloaded",
-  "only": "ios"
+  "comment": "Player error line when the server is gone and the next song is not downloaded"
+ },
+ "err_play_short": {
+  "en": "Couldn't play this song",
+  "comment": "Mini player line in place of the artist when the current song failed to play"
+ },
+ "err_play_stream": {
+  "en": "The server didn't send audio this phone can play.",
+  "comment": "Player error when a streamed song failed even after asking the server to convert it to MP3"
+ },
+ "err_play_local": {
+  "en": "The downloaded file can't be opened.",
+  "comment": "Player error when a downloaded song's file can't be played"
  },
  "label_title": {
   "en": "Title",

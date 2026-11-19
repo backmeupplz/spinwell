@@ -1,0 +1,1 @@
+Lagu yang tidak bisa diputar ponselmu langsung dari server kini diputar sebagai MP3 yang dikonversi server saat itu juga, dan lagu yang tetap tidak bisa diputar berhenti dengan pesan yang jelas, bukan pemutar diam-diam melompati sisa album.

@@ -211,4 +211,8 @@
     <string name="info_downloads">الأغاني المحفوظة للاستماع دون اتصال. إزالتها تحرّر المساحة، ويمكنك تنزيلها مرة أخرى في أي وقت.</string>
     <string name="info_about">Spinwell مشغّل مجاني ومفتوح المصدر لخادم Navidrome أو OpenSubsonic الخاص بك. بلا إعلانات وبلا تحليلات.</string>
     <string name="action_repeat">تكرار</string>
+    <string name="err_no_downloaded_next">تعذّر الوصول إلى الخادم، ولا توجد أغنية منزَّلة تالية.</string>
+    <string name="err_play_short">تعذّر تشغيل هذه الأغنية</string>
+    <string name="err_play_stream">لم يرسل الخادم صوتًا يمكن لهذا الهاتف تشغيله.</string>
+    <string name="err_play_local">لا يمكن فتح الملف الذي تم تنزيله.</string>
 </resources>

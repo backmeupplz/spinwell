@@ -17,6 +17,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.media3.common.*
+import androidx.media3.datasource.HttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.MediaSession
@@ -38,9 +39,16 @@ object Audio {
     var durationMs by mutableStateOf(0L)
     var restoredWasPlaying = false // the UI opens the full player once for this
     var sleepOutputError by mutableStateOf<String?>(null)
+    /** why the current song stopped (it failed to play); cleared when something plays or the song changes */
+    var error by mutableStateOf<String?>(null)
+    private val transcode = HashSet<String>() // songs whose original failed to play: streamed as MP3 from then on (this session)
+    private val badFiles = HashSet<String>() // downloads that failed to play while online: streamed instead while online (this session)
     private val h = Handler(Looper.getMainLooper())
     private var failures = 0
-    private val netErrors = setOf(PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED, PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT, PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS)
+    private val netErrors = setOf(PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED, PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT)
+    /** the server is gone (as opposed to answering with an error): no connection, a timeout, or a 502/503/504 from the proxy in front of it */
+    private fun serverGone(e: PlaybackException) = e.errorCode in netErrors ||
+        (e.cause as? HttpDataSource.InvalidResponseCodeException)?.responseCode in 502..504
     private var startedKey = -1L
     private var scrobbledKey = -1L
     private val tick = object : Runnable {
@@ -62,7 +70,7 @@ object Audio {
         player.addListener(object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 playing = isPlaying
-                if (isPlaying) failures = 0
+                if (isPlaying) { failures = 0; error = null }
                 savePos()
                 if (isPlaying) scrobbleCheck()
             }
@@ -70,6 +78,9 @@ object Audio {
                 val k = item?.mediaId?.toLongOrNull()
                 val i = q.items.indexOfFirst { it.key == k }
                 if (i >= 0 && i != q.index) q = q.copy(index = i)
+                error = null
+                // moving on from a failed song (Next here, on the lock screen or a headset) has to wake the idle player
+                if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_SEEK && player.playerError != null && player.playbackState == Player.STATE_IDLE) player.prepare()
                 durationMs = player.duration.coerceAtLeast(0)
                 persist(); savePos()
                 if (playing) scrobbleCheck()
@@ -77,11 +88,31 @@ object Audio {
             override fun onPlaybackStateChanged(state: Int) {
                 if (state == Player.STATE_READY) durationMs = player.duration.coerceAtLeast(0)
             }
-            override fun onPlayerError(error: PlaybackException) {
-                // the server went away under a streamed song: say so, then carry on with what's downloaded
-                if (error.errorCode in netErrors) Net.failed(java.io.IOException("playback"))
+            override fun onPlayerError(e: PlaybackException) {
                 Net.ping()
-                if (failures++ < q.items.size) skipToPlayable()
+                // the server went away under a streamed song: say so, then carry on with what's downloaded
+                val local = player.currentMediaItem?.localConfiguration?.uri?.scheme == "file"
+                val cur = q.current ?: return
+                val id = cur.song.id
+                val file = Downloads.path(id) // null: the download was removed while queued
+                if (!local && serverGone(e)) {
+                    Net.failed(java.io.IOException("playback"))
+                    // downloaded after it was queued: play the file instead of skipping it
+                    if (file != null && id !in badFiles) { swapCurrent(mediaItem(cur)); return }
+                    goOn()
+                    return
+                }
+                // offline, a removed download can't stream: go on with what's downloaded
+                if (local && file == null && Net.offline) { goOn(); return }
+                // the server sent something that won't decode, or the downloaded file won't open: ask the server for MP3 once,
+                // from where it stopped (a removed download streams anyway; compared by URI: a second copy of the song in the
+                // queue was built before the first one failed)
+                val first = if (local) file != null && !Net.offline && badFiles.add(id) else transcode.add(id)
+                if (local && first) transcode.add(id)
+                val mp3 = mediaItem(cur)
+                if (first || mp3.localConfiguration?.uri != player.currentMediaItem?.localConfiguration?.uri) { swapCurrent(mp3); return }
+                // stay on the song with a message (Play retries, Next moves on) instead of running through the queue
+                error = Store.app.getString(if (local) R.string.err_play_local else R.string.err_play_stream)
             }
             // a lock screen / headset / Auto controller changing repeat goes straight to ExoPlayer: mirror it into the queue
             override fun onRepeatModeChanged(mode: Int) {
@@ -107,25 +138,40 @@ object Audio {
 
     private fun mediaItem(i: QItem, memo: MutableMap<String, Uri?> = HashMap()): MediaItem {
         val s = i.song
-        val local = Downloads.path(s.id)
-        val uri = if (local != null) Uri.fromFile(local) else Uri.parse(Store.session!!.stream(s.id, Settings.streamKbps()))
+        val local = Downloads.path(s.id)?.takeIf { s.id !in badFiles || Net.offline } // a download that failed to play streams while online
+        val kbps = Settings.streamKbps().let { if (it <= 0 && s.id in transcode) 320 else it }
+        val uri = if (local != null) Uri.fromFile(local) else Uri.parse(Store.session!!.stream(s.id, kbps))
         return MediaItem.Builder().setMediaId(i.key.toString()).setUri(uri).setMediaMetadata(
             MediaMetadata.Builder().setTitle(s.title).setArtist(s.artist).setAlbumTitle(s.album).setArtworkUri(artUri(s, memo))
                 .setTrackNumber(s.track.takeIf { it > 0 }).setIsPlayable(true).setIsBrowsable(false).build()
         ).build()
     }
 
+    /** replaces the playing item and picks up from where it stopped */
+    private fun swapCurrent(m: MediaItem) {
+        val i = player.currentMediaItemIndex; val at = player.currentPosition
+        player.replaceMediaItem(i, m); player.seekTo(i, at); player.prepare()
+    }
+
+    /** a song that can't play now: the next playable one, or a message (failures are capped at the queue length) */
+    private fun goOn() {
+        if (failures++ >= q.items.size || !skipToPlayable()) error = Store.app.getString(R.string.err_no_downloaded_next)
+    }
+
     private fun repeatMode() = when (q.repeat) { 0 -> Player.REPEAT_MODE_OFF; 1 -> Player.REPEAT_MODE_ALL; else -> Player.REPEAT_MODE_ONE }
     fun playable(s: Song) = !Net.offline || Downloads.has(s.id)
 
     /** after a failed song: the next one we can play (a downloaded one while the server is gone), wrapping when repeating all */
-    private fun skipToPlayable() {
+    private fun skipToPlayable(): Boolean {
         val n = q.items.size
-        if (n < 2) return
+        if (n < 2) return false
+        finishFill() // the player's indexes must match the queue's
         val order = (1 until n).map { (q.index + it) % n }.filter { q.repeat == 1 || it > q.index }
-        val to = order.firstOrNull { playable(q.items[it].song) } ?: return
+        val to = order.firstOrNull { playable(q.items[it].song) } ?: return false
         q = q.copy(index = to)
-        player.seekTo(to, 0); player.prepare(); player.play(); persist()
+        player.replaceMediaItem(to, mediaItem(q.items[to])) // it may have been downloaded since it was queued
+        player.seekTo(to, 0); player.prepare(); persist() // keeps playWhenReady: a paused song moves on paused
+        return true
     }
 
     // ---- starting playback ----
@@ -196,7 +242,7 @@ object Audio {
         finishFill()
         if (i !in q.items.indices) return
         q = q.copy(index = i)
-        player.seekTo(i, 0); player.play(); persist()
+        player.seekTo(i, 0); wakeAfterError(); player.play(); persist()
     }
 
     fun removeAt(i: Int) { finishFill(); if (i in q.items.indices) { q = q.remove(i); player.removeMediaItem(i); persist() } }
@@ -243,7 +289,9 @@ object Audio {
         player.play(); ensureService()
     }
     fun next() { if (player.hasNextMediaItem()) player.seekToNext() }
-    fun prev() = player.seekToPrevious()
+    fun prev() { player.seekToPrevious(); wakeAfterError() }
+    /** back to the start of the song that failed (no song change, so the transition listener doesn't prepare it) */
+    private fun wakeAfterError() { if (player.playerError != null) player.prepare() }
     fun seekTo(ms: Long) { player.seekTo(ms); savePos() }
     val position get() = if (ready) player.currentPosition else 0L
 

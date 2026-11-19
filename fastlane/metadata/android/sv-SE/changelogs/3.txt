@@ -1,0 +1,1 @@
+Låtar som telefonen inte kan spela direkt från servern spelas nu som MP3 som servern konverterar i farten, och en låt som ändå inte går att spela stannar med ett tydligt meddelande i stället för att spelaren tyst går igenom resten av albumet.
