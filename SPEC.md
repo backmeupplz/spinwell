@@ -99,6 +99,11 @@ whose project layout, cover cache and download design we reuse.
   - Home gets a "Downloaded albums" shelf; search runs locally over downloaded songs, albums and artists.
   - Songs that aren't downloaded are dimmed and can't be played; the play queue skips them. The Downloads tab works fully.
 - Manual "Offline mode" setting forces offline (no network calls at all, not even covers not on disk).
+  Offline, Next, Previous and the end of a song only ever land on downloaded songs. With nothing downloaded ahead, playback
+  stops on the song it left with "Can't reach the server, and no downloaded song is next." (the natural end of the queue, on
+  a downloaded song, stops quietly as usual). Previous with nothing downloaded behind restarts the current song when it is
+  downloaded and otherwise stays put. Play on a song that isn't downloaded, even one paused mid-stream before the flip, goes
+  on to the next downloaded one.
 
 ## Screens
 

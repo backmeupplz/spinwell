@@ -115,7 +115,8 @@ struct Saved: Codable { var queue: QueueState; var position: Double; var wasPlay
     private func item(for qi: QItem) -> AVPlayerItem? {
         let s = qi.song
         let url: URL?
-        if let local = app.downloads.localURL(s.id) { url = local } else { url = app.stream(s, transcode: transcode.contains(s.id)) }
+        if let local = app.downloads.localURL(s.id) { url = local } else if app.offline { url = nil } // offline: no network calls at all
+        else { url = app.stream(s, transcode: transcode.contains(s.id)) }
         guard let url else { return nil }
         let it = AVPlayerItem(url: url)
         it.preferredForwardBufferDuration = 0
@@ -162,7 +163,10 @@ struct Saved: Codable { var queue: QueueState; var position: Double; var wasPlay
 
     func play() {
         guard hasSong else { return }
-        if ap.currentItem == nil { rebuild(at: pos, play: false) }
+        if ap.currentItem == nil || app.offline && !playing && !isFile(ap.currentItem) { // offline, a stream paused before the flip isn't resumed
+            rebuild(at: pos, play: false)
+            if skipIfEmpty() { return }
+        }
         wantPlay = true
         // setActive can block for 100+ ms: never on the main thread, in the tap path (AVPlayer starts its own session use anyway)
         DispatchQueue.global(qos: .userInitiated).async { try? AVAudioSession.sharedInstance().setActive(true) }
@@ -182,10 +186,12 @@ struct Saved: Codable { var queue: QueueState; var position: Double; var wasPlay
 
     func next() {
         guard hasSong else { return }
+        let from = q.index
         for _ in 0..<max(q.items.count, 1) {
-            guard q.advance(auto: false) else { rebuildKeepingState(atEnd: true); return }
+            guard q.advance(auto: false) else { stopAtEnd(from: from); return }
             if playable(q.current) { break }
         }
+        guard playable(q.current) else { stopAtEnd(from: from); return } // offline, repeat all: nothing downloaded all the way round
         // the preloaded next item makes this instant when it is the right one
         if let nxt = ap.items().dropFirst().first, keys[nxt] == q.current?.id {
             ap.advanceToNextItem()
@@ -196,15 +202,33 @@ struct Saved: Codable { var queue: QueueState; var position: Double; var wasPlay
 
     func previous() {
         guard hasSong else { return }
-        if pos > 3, ap.currentItem != nil || playable(q.current) { if ap.currentItem == nil { rebuild(play: true) } else { seek(0) }; return } // after a stop: retry the song
+        // after a stop: retry the song. Offline only a downloaded one restarts, from its file (seeking a stream fetches it again)
+        if pos > 3, playable(q.current) {
+            if ap.currentItem == nil || app.offline && !isFile(ap.currentItem) { rebuild(play: ap.currentItem == nil || playing) } else { seek(0) }
+            return
+        }
         let before = q.index
         for _ in 0..<max(q.items.count, 1) { q.back(); if playable(q.current) || q.index == before { break } }
+        if !playable(q.current) { q.index = before } // offline, nothing downloaded behind: restart this song, or stay put when it isn't downloaded either
+        guard playable(q.current) else { return }
         rebuild(play: true); changed()
     }
 
-    private func rebuildKeepingState(atEnd: Bool) {
-        // end of queue: stop on the last song, back at 0
+    /// Offline, a song that isn't downloaded leaves the player empty: go on to the next downloaded one, or say there is none.
+    /// `back`: the song to stop on when there is none (a jump goes back to where it came from).
+    private func skipIfEmpty(back: Int? = nil) -> Bool {
+        guard app.offline, ap.currentItem == nil else { return false }
+        if !skipToPlayable(play: true) { if let back { q.index = back }; stop(noDownloadNext); changed() }
+        return true
+    }
+
+    private func isFile(_ it: AVPlayerItem?) -> Bool { (it?.asset as? AVURLAsset)?.url.isFileURL == true }
+    private var noDownloadNext: String { String(localized: "Can't reach the server, and no downloaded song is next.") }
+
+    /// End of queue: stop on the last song, back at 0. Offline with nothing downloaded ahead: stop on the song we left, with a message.
+    private func stopAtEnd(from: Int) {
         q.index = max(0, q.items.count - 1)
+        if app.offline, q.index != from || !playable(q.current) { q.index = from; stop(noDownloadNext); changed(); return }
         rebuild(play: false); pause(); changed()
     }
 
@@ -233,8 +257,10 @@ struct Saved: Codable { var queue: QueueState; var position: Double; var wasPlay
     }
 
     func jump(to id: UUID) {
+        let from = q.index
         q.jump(to: id)
-        rebuild(play: true); changed()
+        rebuild(play: true)
+        if !skipIfEmpty(back: from) { changed() }
     }
     func remove(_ id: UUID) { q.remove(id); if ap.currentItem == nil || keys[ap.currentItem!] != q.current?.id { rebuild(play: playing) } else { preloadNext(); revision += 1 }; changed() }
     func move(from: IndexSet, to: Int) { q.move(from: from, to: to); preloadNext(); revision += 1; changed() }
@@ -298,14 +324,13 @@ struct Saved: Codable { var queue: QueueState; var position: Double; var wasPlay
 
     private func endOfQueue() {
         // The player ran out of items: carry on with the next playable song (offline skips what isn't downloaded), or stop.
+        let from = q.index
         for _ in 0..<max(q.items.count, 1) {
             guard q.advance(auto: true) else { break }
             if playable(q.current) { rebuild(play: true); changed(); return }
         }
-        q.index = max(0, q.items.count - 1)
-        pos = 0
-        rebuild(play: false)
-        changed()
+        pos = 0 // a message stop here replays the song from its start
+        stopAtEnd(from: from)
     }
 
     private func tick() {
@@ -326,7 +351,7 @@ struct Saved: Codable { var queue: QueueState; var position: Double; var wasPlay
         // repeat-one preloads a second item for the same song: only the one actually playing (or dropped) counts
         guard keys[it] == q.current?.id, ap.currentItem === it || !ap.items().contains(it),
               failedItems.insert(ObjectIdentifier(it)).inserted else { return } // status and end-notification both report it
-        failed(it.error, at: it.currentTime().seconds, local: (it.asset as? AVURLAsset)?.url.isFileURL == true)
+        failed(it.error, at: it.currentTime().seconds, local: isFile(it))
     }
 
     /// A song that can't be fetched or decoded. Server gone: flip to offline and go on with the next downloaded song.
@@ -355,10 +380,10 @@ struct Saved: Codable { var queue: QueueState; var position: Double; var wasPlay
     private func skipOffline(play: Bool) {
         failedRun += 1
         if failedRun < 8, skipToPlayable(play: play) { error = nil; return }
-        stop(String(localized: "Can't reach the server, and no downloaded song is next."))
+        stop(noDownloadNext)
     }
 
-    /// Stay on the failed song with the message; Play retries it (the empty player rebuilds), Next moves on.
+    /// Stay on the failed song with the message; Play retries it (the empty player rebuilds; offline, one not downloaded is skipped), Next moves on.
     private func stop(_ message: String) {
         ap.pause(); ap.removeAllItems(); keys = [:]; itemObs = []; wantPlay = false
         error = message; errorId = q.current?.id
