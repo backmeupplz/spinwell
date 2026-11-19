@@ -158,3 +158,30 @@ class CoreTest {
         assertEquals(2, back.repeat); assertTrue(back.shuffle)
     }
 }
+
+class OfflinePrevTest {
+    private val dl = setOf(0, 2, 4) // downloaded songs of 5
+    private fun prev(i: Int, all: Boolean = false, restart: Boolean = false, item: Boolean = false) = offlinePrev(i, 5, all, restart, item) { it in dl }
+
+    @Test fun previous() {
+        assertEquals(2, prev(4)) // over the song that isn't downloaded
+        assertEquals(4, prev(4, restart = true)) // more than 3 s in: restarts
+        assertEquals(0, prev(0)) // nothing behind: this one again
+        assertEquals(4, prev(0, all = true)) // repeat all wraps
+        assertEquals(0, prev(1))
+        assertNull(offlinePrev(1, 5, false, false, false) { it == 3 }) // nothing behind and this one isn't downloaded: stays put
+    }
+
+    @Test fun previousItem() {
+        assertEquals(2, prev(4, restart = true, item = true)) // never restarts, even 3 s in
+        assertNull(prev(0, item = true)) // nothing behind: stays put
+        assertEquals(4, prev(0, all = true, item = true))
+    }
+
+    @Test fun noRepeatEventsForwardsEveryOtherListenerMethod() {
+        val missing = androidx.media3.common.Player.Listener::class.java.methods.filter { m ->
+            runCatching { NoRepeatEvents::class.java.getDeclaredMethod(m.name, *m.parameterTypes) }.isFailure
+        }
+        assertEquals(emptyList<String>(), missing.map { it.name })
+    }
+}

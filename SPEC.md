@@ -105,7 +105,9 @@ whose project layout, cover cache and download design we reuse.
   With nothing downloaded ahead, playback stops on the song it left with "Can't reach the server, and no downloaded song is
   next." (on Android, when the song it left isn't downloaded either, on the one it moved to; the natural end of the queue, on
   a downloaded song, stops quietly as usual). Previous with nothing downloaded
-  behind restarts the current song when it is downloaded and otherwise stays put. A song already streaming when it flips
+  behind restarts the current song when it is downloaded and otherwise stays put. On Android, a controller's
+  "previous item" (rather than Previous) only ever goes back to a downloaded song: it never restarts the current one, and with
+  nothing downloaded behind it stays put. A song already streaming when it flips
   plays to its end (with repeat one, or repeat all when the other downloaded songs add up to under a minute, it may be
   fetched once more before the queue moves on), and seeking it stays within what is already buffered (a stream that can't
   seek stays put). After that it counts as not downloaded: Play (from the app or any controller) on a song that
@@ -220,7 +222,8 @@ on every screen. Settings open from a gear on Home.
   menu. Repeat all loops the whole queue (the context, plus anything queued); repeat one loops the song. Shuffle and repeat are
   saved on every change, independently of the queue, so they survive relaunches and an emptied queue. Android: the lock screen /
   notification / Auto session carries shuffle and repeat buttons in the app's state (media3 custom commands), and a controller
-  changing repeat is mirrored into the app. iOS: `MPRemoteCommandCenter` shuffle/repeat commands mirror the same state.
+  changing repeat is mirrored into the app. Every controller sees the app's repeat mode, even while offline the player holds
+  repeat all back for a song still streaming from before the flip. iOS: `MPRemoteCommandCenter` shuffle/repeat commands mirror the same state.
 - **Starting playback is cheap:** the player gets just the song to play at once and the rest of the queue in
   chunks of 6 on the following frames (building a 60-song queue in the tap handler held the first frame for ~70 ms on the OnePlus 8, ~250 ms in a debug build; it is now ~12 ms there); queue JSON is written off the
   main thread; the cover (600 and 1200 px) and its color are prefetched when a song is pressed.

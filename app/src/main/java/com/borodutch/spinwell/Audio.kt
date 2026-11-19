@@ -177,7 +177,7 @@ object Audio {
     /** replaces the playing item and picks up from where it stopped (from the start once it has ended) */
     private fun swapCurrent(m: MediaItem) {
         val i = player.currentMediaItemIndex; val at = if (player.playbackState == Player.STATE_ENDED) 0 else player.currentPosition
-        player.replaceMediaItem(i, m); player.seekTo(i, at); player.prepare(); player.repeatMode = repeatMode()
+        player.replaceMediaItem(i, m); player.seekTo(i, at); player.prepare(); applyRepeat()
     }
 
     /** a song that can't play now: the next playable one, or a message (failures are capped at the queue length) */
@@ -190,10 +190,18 @@ object Audio {
      * round to that song and fetch it again: the player doesn't repeat then (the queue would only stop on it anyway)
      */
     // ponytail: other downloaded songs shorter than the look-ahead buffer (~50 s in all) can still let it wrap; mask always and wrap by hand if that matters
-    private fun repeatMode() = when (q.repeat) {
-        0 -> Player.REPEAT_MODE_OFF
-        1 -> if (offlineStream() && q.items.indices.none { it != q.index && playable(q.items[it].song) }) Player.REPEAT_MODE_OFF else Player.REPEAT_MODE_ALL
-        else -> Player.REPEAT_MODE_ONE
+    private fun repeatMode() =
+        if (q.repeat == 1 && offlineStream() && q.items.indices.none { it != q.index && playable(q.items[it].song) }) Player.REPEAT_MODE_OFF else shownRepeat()
+    /** the queue's repeat mode: what the app and every controller show, whatever the player's own is masked to */
+    fun shownRepeat() = when (q.repeat) { 0 -> Player.REPEAT_MODE_OFF; 1 -> Player.REPEAT_MODE_ALL; else -> Player.REPEAT_MODE_ONE }
+    /** the session's listeners, keyed to the wrappers the player got: they hear [shownRepeat] instead of the player's mode */
+    val controllers = HashMap<Player.Listener, Player.Listener>()
+    private var shown = -1
+    /** every change of the queue's repeat mode or of what masks it goes through here */
+    private fun applyRepeat() {
+        player.repeatMode = repeatMode()
+        val r = shownRepeat()
+        if (r != shown) { shown = r; controllers.keys.toList().forEach { it.onRepeatModeChanged(r) } }
     }
     fun playable(s: Song) = !Net.offline || Downloads.has(s.id)
 
@@ -212,7 +220,10 @@ object Audio {
     /** the player's current item becomes [cur]'s silence, unless it already is or the player is on another song */
     private fun silenceCurrent(cur: QItem) {
         val m = player.currentMediaItem ?: return
-        if (m.mediaId == cur.key.toString() && m.localConfiguration?.uri != silence) player.replaceMediaItem(player.currentMediaItemIndex, mediaItem(cur))
+        if (m.mediaId == cur.key.toString() && m.localConfiguration?.uri != silence) {
+            player.replaceMediaItem(player.currentMediaItemIndex, mediaItem(cur))
+            applyRepeat() // no longer streaming: the mask is off
+        }
     }
 
     /** after a failed song: the next one we can play (a downloaded one while the server is gone), wrapping when repeating all */
@@ -237,7 +248,7 @@ object Audio {
     @Volatile private var refreshPosted = false
     private fun repoint() {
         if (!ready || Store.session == null) return
-        player.repeatMode = repeatMode() // the playing song or what is downloaded changed
+        applyRepeat() // the playing song or what is downloaded changed
         val byKey = q.items.associateBy { it.key }
         val memo = HashMap<String, Uri?>()
         val offline = Net.offline
@@ -278,7 +289,7 @@ object Audio {
         val repeat = q.repeat
         q = QueueState.start(list, idx, ctx, shuffle, System.nanoTime()).copy(repeat = repeat)
         load(0L)
-        player.repeatMode = repeatMode()
+        applyRepeat()
         player.prepare(); player.play()
         ensureService()
         persist()
@@ -419,17 +430,18 @@ object Audio {
         else -> ms.coerceAtMost(player.bufferedPosition).takeIf { it > player.currentPosition }
     }
     fun next() { if (player.hasNextMediaItem()) player.seekToNext() }
-    /** Previous here and from every controller (the session player forwards it) */
-    fun prev() {
+    /**
+     * Previous here and from every controller (the session player forwards it). [item]: a controller's "previous item", which
+     * offline only ever goes back a song (never restarts this one)
+     */
+    fun prev(item: Boolean = false) {
         val cur = q.current ?: return
-        if (!Net.offline) { player.seekToPrevious(); return }
+        if (!Net.offline) { if (item) player.seekToPreviousMediaItem() else player.seekToPrevious(); return }
         // offline: back to the previous song we can play, not onto one that isn't downloaded (that would skip forward again),
         // and never restarting a song that is still streaming from before the flip
         finishFill()
-        val n = q.items.size
         val restart = playable(cur.song) && player.currentPosition > player.maxSeekToPreviousPosition
-        val back = if (restart) null else (1 until n).map { (q.index - it + n) % n }.filter { q.repeat == 1 || it < q.index }.firstOrNull { playable(q.items[it].song) }
-        val to = back ?: if (playable(cur.song)) q.index else return
+        val to = offlinePrev(q.index, q.items.size, q.repeat == 1, restart, item) { playable(q.items[it].song) } ?: return
         if (to == q.index && offlineStream()) player.replaceMediaItem(to, mediaItem(cur)) // downloaded while it streamed: restart from the file
         player.seekTo(to, 0)
     }
@@ -440,7 +452,7 @@ object Audio {
     // ---- persistence ----
     fun persist() {
         val snap = q // immutable: serialised off the main thread (hundreds of songs of JSON), written in order
-        if (ready) player.repeatMode = repeatMode() // a queue edit can change what else is downloaded
+        if (ready) applyRepeat() // a queue edit can change what else is downloaded
         Store.p.edit().putInt("repeat", snap.repeat).putBoolean("shuffle", snap.shuffle).apply()
         updateButtons()
         writer.execute {
@@ -480,7 +492,7 @@ object Audio {
         if (saved.items.isEmpty()) return
         q = saved.copy(index = saved.index.coerceIn(saved.items.indices))
         load(Store.p.getLong("pos", 0))
-        player.repeatMode = repeatMode()
+        applyRepeat()
         player.prepare()
         restoredWasPlaying = Store.p.getBoolean("wasPlaying", false)
         if (restoredWasPlaying && Settings.resume) { player.play(); ensureService() }
@@ -517,9 +529,14 @@ class PlayerService : MediaSessionService() {
         // Play (rewind when ended, play) asks Audio.canPlay() first and a bare prepare only quiets a song that isn't downloaded, so offline it never streams a song that isn't downloaded
         val p = object : ForwardingPlayer(Audio.player) {
             override fun seekToPrevious() = Audio.prev()
-            override fun seekToPreviousMediaItem() { if (Net.offline) Audio.prev() else super.seekToPreviousMediaItem() }
+            override fun seekToPreviousMediaItem() = Audio.prev(item = true)
             // a lock screen / headset / Auto controller changing repeat: into the queue (the player's own mode can be masked, see repeatMode)
             override fun setRepeatMode(mode: Int) = Audio.setRepeat(when (mode) { Player.REPEAT_MODE_OFF -> 0; Player.REPEAT_MODE_ALL -> 1; else -> 2 })
+            // and they see the queue's mode: the player's own repeat events are dropped, Audio.applyRepeat tells them instead
+            override fun getRepeatMode() = Audio.shownRepeat()
+            override fun addListener(listener: Player.Listener) =
+                super.addListener(Audio.controllers.getOrPut(listener) { NoRepeatEvents(listener) })
+            override fun removeListener(listener: Player.Listener) = super.removeListener(Audio.controllers.remove(listener) ?: listener)
             override fun prepare() { Audio.prepareOffline(); super.prepare() }
             override fun seekTo(positionMs: Long) { Audio.seekable(positionMs)?.let { super.seekTo(it) } }
             override fun seekTo(mediaItemIndex: Int, positionMs: Long) {
@@ -562,4 +579,59 @@ class PlayerService : MediaSessionService() {
         session = null
         super.onDestroy()
     }
+}
+
+/**
+ * Offline Previous from [index] of [n]: the song to start, null to stay put. Restarting this one ([restart], more than 3 s in)
+ * or else the nearest one behind that can play, wrapping when repeating all; with none, this one again when it can play.
+ * [item] (a controller's "previous item") only ever goes back a song
+ */
+internal fun offlinePrev(index: Int, n: Int, repeatAll: Boolean, restart: Boolean, item: Boolean, playable: (Int) -> Boolean): Int? {
+    if (restart && !item) return index
+    return (1 until n).map { (index - it + n) % n }.firstOrNull { (repeatAll || it < index) && playable(it) } ?: index.takeIf { !item && playable(it) }
+}
+
+/**
+ * A session listener that hears every player event except the player's repeat mode, which can be masked (Audio.applyRepeat
+ * tells it the queue's instead). Every method is spelled out: Kotlin's `by` doesn't forward Java default methods
+ */
+@Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
+internal class NoRepeatEvents(private val l: Player.Listener) : Player.Listener {
+    override fun onRepeatModeChanged(repeatMode: Int) {}
+    override fun onEvents(player: Player, events: Player.Events) = l.onEvents(player, events)
+    override fun onTimelineChanged(timeline: Timeline, reason: Int) = l.onTimelineChanged(timeline, reason)
+    override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) = l.onMediaItemTransition(mediaItem, reason)
+    override fun onTracksChanged(tracks: Tracks) = l.onTracksChanged(tracks)
+    override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) = l.onMediaMetadataChanged(mediaMetadata)
+    override fun onPlaylistMetadataChanged(mediaMetadata: MediaMetadata) = l.onPlaylistMetadataChanged(mediaMetadata)
+    override fun onIsLoadingChanged(isLoading: Boolean) = l.onIsLoadingChanged(isLoading)
+    override fun onLoadingChanged(isLoading: Boolean) = l.onLoadingChanged(isLoading)
+    override fun onAvailableCommandsChanged(availableCommands: Player.Commands) = l.onAvailableCommandsChanged(availableCommands)
+    override fun onTrackSelectionParametersChanged(parameters: TrackSelectionParameters) = l.onTrackSelectionParametersChanged(parameters)
+    override fun onPlayerStateChanged(playWhenReady: Boolean, playbackState: Int) = l.onPlayerStateChanged(playWhenReady, playbackState)
+    override fun onPlaybackStateChanged(playbackState: Int) = l.onPlaybackStateChanged(playbackState)
+    override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) = l.onPlayWhenReadyChanged(playWhenReady, reason)
+    override fun onPlaybackSuppressionReasonChanged(playbackSuppressionReason: Int) = l.onPlaybackSuppressionReasonChanged(playbackSuppressionReason)
+    override fun onIsPlayingChanged(isPlaying: Boolean) = l.onIsPlayingChanged(isPlaying)
+    override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) = l.onShuffleModeEnabledChanged(shuffleModeEnabled)
+    override fun onPlayerError(error: PlaybackException) = l.onPlayerError(error)
+    override fun onPlayerErrorChanged(error: PlaybackException?) = l.onPlayerErrorChanged(error)
+    override fun onPositionDiscontinuity(reason: Int) = l.onPositionDiscontinuity(reason)
+    override fun onPositionDiscontinuity(oldPosition: Player.PositionInfo, newPosition: Player.PositionInfo, reason: Int) = l.onPositionDiscontinuity(oldPosition, newPosition, reason)
+    override fun onPlaybackParametersChanged(playbackParameters: PlaybackParameters) = l.onPlaybackParametersChanged(playbackParameters)
+    override fun onSeekBackIncrementChanged(seekBackIncrementMs: Long) = l.onSeekBackIncrementChanged(seekBackIncrementMs)
+    override fun onSeekForwardIncrementChanged(seekForwardIncrementMs: Long) = l.onSeekForwardIncrementChanged(seekForwardIncrementMs)
+    override fun onMaxSeekToPreviousPositionChanged(maxSeekToPreviousPositionMs: Long) = l.onMaxSeekToPreviousPositionChanged(maxSeekToPreviousPositionMs)
+    override fun onAudioSessionIdChanged(audioSessionId: Int) = l.onAudioSessionIdChanged(audioSessionId)
+    override fun onAudioAttributesChanged(audioAttributes: AudioAttributes) = l.onAudioAttributesChanged(audioAttributes)
+    override fun onVolumeChanged(volume: Float) = l.onVolumeChanged(volume)
+    override fun onSkipSilenceEnabledChanged(skipSilenceEnabled: Boolean) = l.onSkipSilenceEnabledChanged(skipSilenceEnabled)
+    override fun onDeviceInfoChanged(deviceInfo: DeviceInfo) = l.onDeviceInfoChanged(deviceInfo)
+    override fun onDeviceVolumeChanged(volume: Int, muted: Boolean) = l.onDeviceVolumeChanged(volume, muted)
+    override fun onVideoSizeChanged(videoSize: VideoSize) = l.onVideoSizeChanged(videoSize)
+    override fun onSurfaceSizeChanged(width: Int, height: Int) = l.onSurfaceSizeChanged(width, height)
+    override fun onRenderedFirstFrame() = l.onRenderedFirstFrame()
+    override fun onCues(cues: List<androidx.media3.common.text.Cue>) = l.onCues(cues)
+    override fun onCues(cueGroup: androidx.media3.common.text.CueGroup) = l.onCues(cueGroup)
+    override fun onMetadata(metadata: Metadata) = l.onMetadata(metadata)
 }
