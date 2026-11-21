@@ -1,6 +1,9 @@
 {
 "signin_tagline": "Kendi müziğin, her yerde.",
 "label_server": "Sunucu",
+"action_find_servers": "Bu ağdaki sunucuları bul",
+"finding_servers": "Sunucular aranıyor…",
+"no_servers_found": "Bu ağda sunucu bulunamadı.",
 "label_username": "Kullanıcı adı",
 "label_password": "Şifre",
 "action_sign_in": "Giriş yap",

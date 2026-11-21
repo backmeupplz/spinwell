@@ -2,6 +2,9 @@
 <resources>
     <string name="signin_tagline">موسيقاك الخاصة، أينما كنت.</string>
     <string name="label_server">الخادم</string>
+    <string name="action_find_servers">ابحث عن خوادم على هذه الشبكة</string>
+    <string name="finding_servers">جارٍ البحث عن خوادم…</string>
+    <string name="no_servers_found">لم يتم العثور على خوادم على هذه الشبكة.</string>
     <string name="label_username">اسم المستخدم</string>
     <string name="label_password">كلمة المرور</string>
     <string name="action_sign_in">تسجيل الدخول</string>

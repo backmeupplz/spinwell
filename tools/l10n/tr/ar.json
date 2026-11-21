@@ -1,6 +1,9 @@
 {
  "signin_tagline": "موسيقاك الخاصة، أينما كنت.",
  "label_server": "الخادم",
+ "action_find_servers": "ابحث عن خوادم على هذه الشبكة",
+ "finding_servers": "جارٍ البحث عن خوادم…",
+ "no_servers_found": "لم يتم العثور على خوادم على هذه الشبكة.",
  "label_username": "اسم المستخدم",
  "label_password": "كلمة المرور",
  "action_sign_in": "تسجيل الدخول",

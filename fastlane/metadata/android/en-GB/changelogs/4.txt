@@ -1,0 +1,1 @@
+Sign-in can now find music servers on your network, and a local address typed without http:// (like 192.168.1.5:4533) now connects over http instead of https. The mini player shows progress as a soft fill behind the whole bar. Also offline fixes: queued songs no longer stream after going offline, the end of the queue stops cleanly, and resuming keeps each song's position.

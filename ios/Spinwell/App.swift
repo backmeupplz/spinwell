@@ -59,6 +59,8 @@ struct SignIn: View {
     @State private var pass = ""
     @State private var busy = false
     @FocusState private var focus: Int?
+    @State private var finding = false
+    @State private var found: [LanServer]?
 
     var body: some View {
         ZStack {
@@ -73,6 +75,7 @@ struct SignIn: View {
                 VStack(spacing: 12) {
                     field("Server", prompt: Text(verbatim: "https://music.example.ts.net"), text: $server, tag: 0)
                         .keyboardType(.URL).textContentType(.URL)
+                    finder
                     field("Username", prompt: Text("Username"), text: $user, tag: 1).textContentType(.username)
                     SecureField("Password", text: $pass).focused($focus, equals: 2).submitLabel(.go)
                         .padding(14).glassEffect(.regular, in: .rect(cornerRadius: 14)).textContentType(.password)
@@ -91,6 +94,33 @@ struct SignIn: View {
             .padding(.horizontal, 24).frame(maxWidth: 480)
         }
         .animation(.smooth, value: app.signInError)
+    }
+
+    /// "Find servers on this network" under the Server field; tapping a found one fills the field.
+    private var finder: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Button {
+                finding = true; found = nil
+                Task { found = await Lan.find(); finding = false }
+            } label: {
+                HStack(spacing: 8) {
+                    if finding { ProgressView().controlSize(.small) }
+                    finding ? Text("Looking for servers…") : Text("Find servers on this network")
+                }.font(.subheadline)
+            }.disabled(finding).accessibilityIdentifier("find-servers")
+            if let found {
+                if found.isEmpty { Text("No servers found on this network.").font(.footnote).foregroundStyle(.secondary) }
+                ForEach(found) { f in
+                    Button { server = f.url; self.found = nil } label: {
+                        HStack {
+                            Text(verbatim: String(f.url.dropFirst("http://".count))).lineLimit(1)
+                            Spacer()
+                            Text(verbatim: f.name).font(.footnote).foregroundStyle(.secondary)
+                        }.padding(12).contentShape(Rectangle()).glassEffect(.regular, in: .rect(cornerRadius: 12))
+                    }.buttonStyle(.plain)
+                }
+            }
+        }.frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 4)
     }
 
     private func field(_ title: LocalizedStringKey, prompt: Text, text: Binding<String>, tag: Int) -> some View {

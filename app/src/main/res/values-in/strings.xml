@@ -2,6 +2,9 @@
 <resources>
     <string name="signin_tagline">Musik Anda sendiri, di mana saja.</string>
     <string name="label_server">Server</string>
+    <string name="action_find_servers">Cari server di jaringan ini</string>
+    <string name="finding_servers">Mencari server…</string>
+    <string name="no_servers_found">Tidak ada server di jaringan ini.</string>
     <string name="label_username">Nama pengguna</string>
     <string name="label_password">Sandi</string>
     <string name="action_sign_in">Masuk</string>

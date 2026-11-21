@@ -1,6 +1,9 @@
 {
 "signin_tagline": "Nhạc của riêng bạn, ở mọi nơi.",
 "label_server": "Máy chủ",
+"action_find_servers": "Tìm máy chủ trong mạng này",
+"finding_servers": "Đang tìm máy chủ…",
+"no_servers_found": "Không tìm thấy máy chủ nào trong mạng này.",
 "label_username": "Tên người dùng",
 "label_password": "Mật khẩu",
 "action_sign_in": "Đăng nhập",

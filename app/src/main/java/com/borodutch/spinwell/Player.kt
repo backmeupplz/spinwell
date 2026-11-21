@@ -103,6 +103,7 @@ fun BoxScope.PlayerSheet(exp: Animatable<Float, AnimationVector1D>, barH: Dp, mi
         val coverX1 = if (land) (W / 2f - cs) / 2f else (W - cs) / 2f
         val sidePad = cx0 + px(28.dp)
         val miniMargin = px(8.dp)
+        val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
 
         fun expand() = scope.launch { exp.animateTo(1f, spring(0.85f, Spring.StiffnessMediumLow)) }
         fun collapse() = scope.launch { exp.animateTo(0f, spring(0.9f, Spring.StiffnessMedium)) }
@@ -130,6 +131,9 @@ fun BoxScope.PlayerSheet(exp: Animatable<Float, AnimationVector1D>, barH: Dp, mi
                     val mini = domColor.copy(alpha = 0.30f).compositeOver(Color(0xFF16161C))
                     drawRect(mini, alpha = 1f - e)
                     drawRect(Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.55f).compositeOver(domColor), Color(0xFF0B0B0E))), alpha = e)
+                    // progress: a soft fill behind the whole mini, growing from the leading edge
+                    val pw = size.width * (pos.toFloat() / durMs).coerceIn(0f, 1f)
+                    drawRect(Color.White, Offset(if (rtl) size.width - pw else 0f, 0f), Size(pw, miniHpx), alpha = 0.10f * (1f - e * 4f).coerceIn(0f, 1f))
                 },
         ) {
             // mini: tap to expand, swipe sideways to skip
@@ -217,13 +221,6 @@ fun BoxScope.PlayerSheet(exp: Animatable<Float, AnimationVector1D>, barH: Dp, mi
                 val tint by remember { derivedStateOf { if (exp.value > 0.5f) Color.Black else Color.White } }
                 PlayPause(Audio.playing, tint, 30.dp)
             }
-
-            // thin progress along the mini's bottom edge
-            val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
-            Box(Modifier.align(Alignment.TopStart).offset { IntOffset(0, (miniHpx - px(3.dp)).roundToInt()) }.fillMaxWidth().height(3.dp).drawBehind {
-                val w = size.width * (pos.toFloat() / durMs).coerceIn(0f, 1f)
-                drawRect(Accent, topLeft = Offset(if (rtl) size.width - w else 0f, 0f), size = Size(w, size.height), alpha = (1f - exp.value * 4f).coerceIn(0f, 1f))
-            })
 
             if (fullShown) Box(Modifier.fillMaxSize().graphicsLayer { alpha = ((exp.value - 0.55f) * 2.4f).coerceIn(0f, 1f) }) {
                 // top bar

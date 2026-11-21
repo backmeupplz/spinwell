@@ -1,6 +1,9 @@
 {
   "signin_tagline": "Tu música, donde quieras.",
   "label_server": "Servidor",
+  "action_find_servers": "Buscar servidores en esta red",
+  "finding_servers": "Buscando servidores…",
+  "no_servers_found": "No se encontraron servidores en esta red.",
   "label_username": "Usuario",
   "label_password": "Contraseña",
   "action_sign_in": "Iniciar sesión",

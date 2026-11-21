@@ -2,6 +2,9 @@
 <resources>
     <string name="signin_tagline">Din egen musik, var som helst.</string>
     <string name="label_server">Server</string>
+    <string name="action_find_servers">Sök efter servrar i det här nätverket</string>
+    <string name="finding_servers">Söker efter servrar…</string>
+    <string name="no_servers_found">Inga servrar hittades i det här nätverket.</string>
     <string name="label_username">Användarnamn</string>
     <string name="label_password">Lösenord</string>
     <string name="action_sign_in">Logga in</string>

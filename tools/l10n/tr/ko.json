@@ -1,6 +1,9 @@
 {
  "signin_tagline": "나만의 음악을, 어디서나.",
  "label_server": "서버",
+ "action_find_servers": "이 네트워크에서 서버 찾기",
+ "finding_servers": "서버를 찾는 중…",
+ "no_servers_found": "이 네트워크에서 서버를 찾지 못했습니다.",
  "label_username": "사용자 이름",
  "label_password": "비밀번호",
  "action_sign_in": "로그인",

@@ -2,6 +2,9 @@
 <resources>
     <string name="signin_tagline">A sua própria música, onde quiser.</string>
     <string name="label_server">Servidor</string>
+    <string name="action_find_servers">Procurar servidores nesta rede</string>
+    <string name="finding_servers">A procurar servidores…</string>
+    <string name="no_servers_found">Nenhum servidor encontrado nesta rede.</string>
     <string name="label_username">Utilizador</string>
     <string name="label_password">Palavra-passe</string>
     <string name="action_sign_in">Iniciar sessão</string>

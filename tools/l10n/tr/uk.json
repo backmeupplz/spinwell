@@ -1,6 +1,9 @@
 {
   "signin_tagline": "Ваша музика, будь-де.",
   "label_server": "Сервер",
+  "action_find_servers": "Знайти сервери в цій мережі",
+  "finding_servers": "Шукаємо сервери…",
+  "no_servers_found": "У цій мережі серверів не знайдено.",
   "label_username": "Імʼя користувача",
   "label_password": "Пароль",
   "action_sign_in": "Увійти",

@@ -23,6 +23,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
@@ -89,7 +90,8 @@ fun SignIn() {
         val fieldColors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Accent, focusedLabelColor = Accent, cursorColor = Accent)
         OutlinedTextField(server, { server = it }, Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.label_server)) }, singleLine = true, colors = fieldColors,
             placeholder = { Text("https://music.example.ts.net", color = Muted.copy(alpha = 0.6f)) }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri))
-        Spacer(Modifier.height(12.dp))
+        ServerFinder { server = it }
+        Spacer(Modifier.height(4.dp))
         OutlinedTextField(user, { user = it }, Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.label_username)) }, singleLine = true, colors = fieldColors)
         Spacer(Modifier.height(12.dp))
         OutlinedTextField(pass, { pass = it }, Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.label_password)) }, singleLine = true, colors = fieldColors,
@@ -99,6 +101,29 @@ fun SignIn() {
         Spacer(Modifier.height(24.dp))
         Button(::go, Modifier.fillMaxWidth().height(52.dp), enabled = !busy, colors = ButtonDefaults.buttonColors(containerColor = Accent, contentColor = Color(0xFF16112E))) {
             if (busy) CircularProgressIndicator(Modifier.size(22.dp), Color(0xFF16112E), strokeWidth = 2.5.dp) else Text(stringResource(R.string.action_sign_in), fontWeight = FontWeight700)
+        }
+    }
+}
+
+/** "Find servers on this network" under the Server field; tapping a found one fills the field. */
+@Composable
+private fun ColumnScope.ServerFinder(pick: (String) -> Unit) {
+    val ctx = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var finding by remember { mutableStateOf(false) }
+    var found by remember { mutableStateOf<List<LanServer>?>(null) }
+    TextButton({ if (!finding) { finding = true; found = null; scope.launch { found = findServers(ctx); finding = false } } }, Modifier.align(Alignment.Start)) {
+        if (finding) { CircularProgressIndicator(Modifier.size(14.dp), Accent, strokeWidth = 2.dp); Spacer(Modifier.width(8.dp)) }
+        Text(stringResource(if (finding) R.string.finding_servers else R.string.action_find_servers), color = Accent)
+    }
+    found?.let { list ->
+        if (list.isEmpty()) Text(stringResource(R.string.no_servers_found), color = Muted, style = MaterialTheme.typography.bodySmall, modifier = Modifier.align(Alignment.Start).padding(horizontal = 12.dp))
+        list.forEach { f ->
+            Row(Modifier.fillMaxWidth().clip(androidx.compose.foundation.shape.RoundedCornerShape(10.dp)).clickable { pick(f.url); found = null }.padding(12.dp, 10.dp),
+                verticalAlignment = Alignment.CenterVertically) {
+                Text(f.url.removePrefix("http://"), Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(f.name, color = Muted, style = MaterialTheme.typography.bodySmall)
+            }
         }
     }
 }

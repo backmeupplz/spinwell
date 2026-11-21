@@ -2,6 +2,9 @@
 <resources>
     <string name="signin_tagline">你自己的音乐，随时随地。</string>
     <string name="label_server">服务器</string>
+    <string name="action_find_servers">查找此网络中的服务器</string>
+    <string name="finding_servers">正在查找服务器…</string>
+    <string name="no_servers_found">此网络中未找到服务器。</string>
     <string name="label_username">用户名</string>
     <string name="label_password">密码</string>
     <string name="action_sign_in">登录</string>

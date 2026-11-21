@@ -7,6 +7,18 @@
   "en": "Server",
   "comment": "Sign-in text field label"
  },
+ "action_find_servers": {
+  "en": "Find servers on this network",
+  "comment": "Sign-in: text button under the Server field that scans the local network for music servers"
+ },
+ "finding_servers": {
+  "en": "Looking for servers…",
+  "comment": "Sign-in: shown on that button while the scan runs"
+ },
+ "no_servers_found": {
+  "en": "No servers found on this network.",
+  "comment": "Sign-in: the scan finished without finding a server"
+ },
  "label_username": {
   "en": "Username",
   "comment": "Sign-in text field label"

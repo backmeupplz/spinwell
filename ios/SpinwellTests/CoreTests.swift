@@ -13,6 +13,16 @@ final class AuthTests: XCTestCase {
         XCTAssertEqual(a.token, "26719a1196d2a940705a59634eb18eab")
         XCTAssertEqual(a.server, "https://music.example.ts.net")
         XCTAssertEqual(Account.normalize("  http://192.168.1.2:4533// "), "http://192.168.1.2:4533")
+        XCTAssertEqual(Account.normalize("192.168.1.5:4533"), "http://192.168.1.5:4533")
+        XCTAssertEqual(Account.normalize("10.0.0.2/navidrome/"), "http://10.0.0.2/navidrome")
+        XCTAssertEqual(Account.normalize("172.16.0.1"), "http://172.16.0.1")
+        XCTAssertEqual(Account.normalize("172.32.0.1"), "https://172.32.0.1")
+        XCTAssertEqual(Account.normalize("100.101.2.3:4533"), "http://100.101.2.3:4533")
+        XCTAssertEqual(Account.normalize("nas:4533"), "http://nas:4533")
+        XCTAssertEqual(Account.normalize("localhost:4533"), "http://localhost:4533")
+        XCTAssertEqual(Account.normalize("music.local"), "http://music.local")
+        XCTAssertEqual(Account.normalize("8.8.8.8"), "https://8.8.8.8")
+        XCTAssertEqual(Account.normalize("https://192.168.1.5"), "https://192.168.1.5")
     }
 
     func testURLBuilding() throws {

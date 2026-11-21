@@ -1,6 +1,9 @@
 {
  "signin_tagline": "เพลงของคุณเอง ฟังได้ทุกที่",
  "label_server": "เซิร์ฟเวอร์",
+ "action_find_servers": "ค้นหาเซิร์ฟเวอร์ในเครือข่ายนี้",
+ "finding_servers": "กำลังค้นหาเซิร์ฟเวอร์…",
+ "no_servers_found": "ไม่พบเซิร์ฟเวอร์ในเครือข่ายนี้",
  "label_username": "ชื่อผู้ใช้",
  "label_password": "รหัสผ่าน",
  "action_sign_in": "ลงชื่อเข้าใช้",

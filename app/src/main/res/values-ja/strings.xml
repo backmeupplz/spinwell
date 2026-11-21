@@ -2,6 +2,9 @@
 <resources>
     <string name="signin_tagline">あなただけの音楽を、どこでも。</string>
     <string name="label_server">サーバー</string>
+    <string name="action_find_servers">このネットワークのサーバーを探す</string>
+    <string name="finding_servers">サーバーを探しています…</string>
+    <string name="no_servers_found">このネットワークにサーバーが見つかりません。</string>
     <string name="label_username">ユーザー名</string>
     <string name="label_password">パスワード</string>
     <string name="action_sign_in">ログイン</string>

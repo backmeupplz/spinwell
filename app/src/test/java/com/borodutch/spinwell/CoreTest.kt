@@ -21,6 +21,16 @@ class CoreTest {
         assertTrue(s.cover("al-1_x", 300).endsWith("id=al-1_x&size=300"))
         assertEquals("https://music.x.ts.net", normalizeServer("  music.x.ts.net/ "))
         assertEquals("http://10.0.2.2:4533", normalizeServer("http://10.0.2.2:4533/"))
+        assertEquals("http://192.168.1.5:4533", normalizeServer("192.168.1.5:4533"))
+        assertEquals("http://10.0.0.2/navidrome", normalizeServer("10.0.0.2/navidrome/"))
+        assertEquals("http://172.16.0.1", normalizeServer("172.16.0.1"))
+        assertEquals("https://172.32.0.1", normalizeServer("172.32.0.1"))
+        assertEquals("http://100.101.2.3:4533", normalizeServer("100.101.2.3:4533"))
+        assertEquals("http://nas:4533", normalizeServer("nas:4533"))
+        assertEquals("http://localhost:4533", normalizeServer("localhost:4533"))
+        assertEquals("http://music.local", normalizeServer("music.local"))
+        assertEquals("https://8.8.8.8", normalizeServer("8.8.8.8"))
+        assertEquals("https://192.168.1.5", normalizeServer("https://192.168.1.5"))
     }
 
     @Test fun cacheKeyIgnoresAuth() {

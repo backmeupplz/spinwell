@@ -2,6 +2,9 @@
 <resources>
     <string name="signin_tagline">Kendi müziğin, her yerde.</string>
     <string name="label_server">Sunucu</string>
+    <string name="action_find_servers">Bu ağdaki sunucuları bul</string>
+    <string name="finding_servers">Sunucular aranıyor…</string>
+    <string name="no_servers_found">Bu ağda sunucu bulunamadı.</string>
     <string name="label_username">Kullanıcı adı</string>
     <string name="label_password">Şifre</string>
     <string name="action_sign_in">Giriş yap</string>

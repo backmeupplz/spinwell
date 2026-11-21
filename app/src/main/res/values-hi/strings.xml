@@ -2,6 +2,9 @@
 <resources>
     <string name="signin_tagline">आपका अपना संगीत, कहीं भी।</string>
     <string name="label_server">सर्वर</string>
+    <string name="action_find_servers">इस नेटवर्क पर सर्वर खोजें</string>
+    <string name="finding_servers">सर्वर खोजे जा रहे हैं…</string>
+    <string name="no_servers_found">इस नेटवर्क पर कोई सर्वर नहीं मिला।</string>
     <string name="label_username">उपयोगकर्ता नाम</string>
     <string name="label_password">पासवर्ड</string>
     <string name="action_sign_in">साइन इन करें</string>

@@ -1,6 +1,9 @@
 {
 "signin_tagline": "Din egen musik, var som helst.",
 "label_server": "Server",
+"action_find_servers": "Sök efter servrar i det här nätverket",
+"finding_servers": "Söker efter servrar…",
+"no_servers_found": "Inga servrar hittades i det här nätverket.",
 "label_username": "Användarnamn",
 "label_password": "Lösenord",
 "action_sign_in": "Logga in",

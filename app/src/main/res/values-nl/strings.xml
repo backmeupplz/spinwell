@@ -2,6 +2,9 @@
 <resources>
     <string name="signin_tagline">Je eigen muziek, overal.</string>
     <string name="label_server">Server</string>
+    <string name="action_find_servers">Servers op dit netwerk zoeken</string>
+    <string name="finding_servers">Servers zoeken…</string>
+    <string name="no_servers_found">Geen servers gevonden op dit netwerk.</string>
     <string name="label_username">Gebruikersnaam</string>
     <string name="label_password">Wachtwoord</string>
     <string name="action_sign_in">Inloggen</string>

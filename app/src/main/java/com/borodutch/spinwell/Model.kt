@@ -11,11 +11,21 @@ fun md5(s: String) = MessageDigest.getInstance("MD5").digest(s.toByteArray()).jo
 fun sha256(s: String) = MessageDigest.getInstance("SHA-256").digest(s.toByteArray()).joinToString("") { "%02x".format(it) }
 fun authToken(password: String, salt: String) = md5(password + salt)
 
-/** "music.example.ts.net/" -> "https://music.example.ts.net" */
+/** "music.example.ts.net/" -> "https://music.example.ts.net"; a LAN address typed bare ("192.168.1.5:4533") gets http:// */
 fun normalizeServer(s: String): String {
     val t = s.trim().trimEnd('/')
-    if (t.isEmpty()) return t
-    return if ("://" in t) t else "https://$t"
+    if (t.isEmpty() || "://" in t) return t
+    return (if (isLanHost(t.substringBefore('/').substringBeforeLast(':'))) "http://" else "https://") + t
+}
+
+/** Home servers on these are plain http: a one-word name ("nas", "localhost"), *.local, a private/loopback/link-local/CGNAT IPv4. */
+fun isLanHost(host: String): Boolean {
+    val h = host.lowercase()
+    if ('.' !in h || h.endsWith(".local")) return true
+    val n = h.split('.').map { it.toIntOrNull() ?: return false }
+    if (n.size != 4 || n.any { it !in 0..255 }) return false
+    val (a, b) = n
+    return a == 10 || a == 127 || (a == 172 && b in 16..31) || (a == 192 && b == 168) || (a == 169 && b == 254) || (a == 100 && b in 64..127)
 }
 
 class Session(val server: String, val user: String, val token: String, val salt: String) {

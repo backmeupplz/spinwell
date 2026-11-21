@@ -1,6 +1,9 @@
 {
  "signin_tagline": "あなただけの音楽を、どこでも。",
  "label_server": "サーバー",
+ "action_find_servers": "このネットワークのサーバーを探す",
+ "finding_servers": "サーバーを探しています…",
+ "no_servers_found": "このネットワークにサーバーが見つかりません。",
  "label_username": "ユーザー名",
  "label_password": "パスワード",
  "action_sign_in": "ログイン",

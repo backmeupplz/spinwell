@@ -2,6 +2,9 @@
 <resources>
     <string name="signin_tagline">Nhạc của riêng bạn, ở mọi nơi.</string>
     <string name="label_server">Máy chủ</string>
+    <string name="action_find_servers">Tìm máy chủ trong mạng này</string>
+    <string name="finding_servers">Đang tìm máy chủ…</string>
+    <string name="no_servers_found">Không tìm thấy máy chủ nào trong mạng này.</string>
     <string name="label_username">Tên người dùng</string>
     <string name="label_password">Mật khẩu</string>
     <string name="action_sign_in">Đăng nhập</string>

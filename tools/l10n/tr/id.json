@@ -1,6 +1,9 @@
 {
 "signin_tagline": "Musik Anda sendiri, di mana saja.",
 "label_server": "Server",
+"action_find_servers": "Cari server di jaringan ini",
+"finding_servers": "Mencari server…",
+"no_servers_found": "Tidak ada server di jaringan ini.",
 "label_username": "Nama pengguna",
 "label_password": "Sandi",
 "action_sign_in": "Masuk",

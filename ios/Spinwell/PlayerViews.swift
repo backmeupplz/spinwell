@@ -31,14 +31,16 @@ struct MiniPlayer: View {
             Button { player.next() } label: { Image(systemName: "forward.fill").font(.body).frame(width: 34, height: 36) }.buttonStyle(.plain).accessibilityLabel("Next")
         }
         .padding(.horizontal, 14)
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .contentShape(Rectangle())
-        .overlay(alignment: .bottom) {
+        .background {
+            // progress: a soft fill behind the whole bar, growing from the leading edge
             GeometryReader { g in
-                Capsule().fill(.white.opacity(0.55)).frame(width: g.size.width * min(1, player.pos / max(player.duration, 1)), height: 2)
+                Rectangle().fill(.white.opacity(0.13)).frame(width: g.size.width * min(1, player.pos / max(player.duration, 1)))
                     .frame(maxWidth: .infinity, alignment: .leading)
-            }.frame(height: 2).padding(.horizontal, 16)
+            }
         }
+        .clipShape(Capsule())
         .offset(x: drag * 0.4)
         .gesture(DragGesture(minimumDistance: 14).onChanged { drag = $0.translation.width }.onEnded { v in
             let dx = v.translation.width, dy = v.translation.height

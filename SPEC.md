@@ -19,7 +19,8 @@ whose project layout, cover cache and download design we reuse.
 - Base `<server>/rest/<method>?u=<user>&t=<md5(password+salt)>&s=<salt>&v=1.16.1&c=Spinwell&f=json`.
   At sign-in, generate a random salt, compute the token, call `ping`, and store server + user + token + salt
   (never the password). iOS: Keychain. Android: app-private SharedPreferences.
-- Server URL normalization: trim spaces and trailing `/`, add `https://` when no scheme is given.
+- Server URL normalization: trim spaces and trailing `/`; when no scheme is given, add `http://` for a LAN address (a one-word
+  name like `nas` or `localhost`, `*.local`, a private, loopback, link-local or CGNAT IPv4) and `https://` for anything else.
 - Errors: `subsonic-response.status == "failed"` with `error.code`/`message`; code 40/41 = wrong credentials → back to sign-in with the message.
 - Methods used: `ping`, `getOpenSubsonicExtensions` (call once per launch online; gate `getLyricsBySongId` on
   `songLyrics`, `getTopSongs`-by-id on `topSongsByArtistId`), `getArtists`, `getArtist`, `getArtistInfo2`, `getTopSongs`,
@@ -124,6 +125,11 @@ on every screen. Settings open from a gear on Home.
 
 - **Sign in:** app name + glyph, fields Server (placeholder `https://music.example.ts.net`), Username, Password
   (masked), Sign in button with progress; clear error text (unreachable / wrong password / not a Subsonic server).
+  Under Server, "Find servers on this network" sends an unauthenticated `ping` to every address of the phone's Wi-Fi /24 on
+  ports 4533 (Navidrome), 4040 (Subsonic/Airsonic) and 4747 (gonic), 128 at a time with ~1 s timeouts (Navidrome doesn't
+  announce itself, and multicast needs an Apple entitlement). Anything answering with a `subsonic-response` is listed as
+  `ip:port` + `Type version`; tapping one fills Server with `http://ip:port`. None found: "No servers found on this network."
+  On iOS the first scan raises the Local Network prompt and finds nothing until it's answered; the button stays to try again.
 - **Density:** the app is compact, in the way of Apple Music / Spotify lists: list rows 56 dp/pt with 40 dp thumbnails and 16 side
   padding; section titles 20 sp; screen titles 24 sp; body 15 sp; pills and buttons 40 dp tall (touch targets stay 44/48);
   covers 6 (thumbs), 8 (cards), 10-12 (heroes); spacing steps 4/8/12/16/24; empty states are an icon and one sentence.
@@ -163,7 +169,7 @@ on every screen. Settings open from a gear on Home.
   (or remove it when saved); the row springs back. **Song row menu** (long-press or `…`; also the `…` in the full player's top
   bar): Play next, Add to queue, Download / Remove download, Favorite/Unfavorite, Go to album, Go to artist, Song info (format,
   bitrate, sample rate, bit depth, size, path, play count).
-- **Mini player:** cover thumb, title + artist, play/pause, thin progress line along its bottom edge; swipe left/right
+- **Mini player:** cover thumb, title + artist, play/pause, progress as a soft fill behind the whole bar, growing from the leading edge; swipe left/right
   skips; tap or swipe up expands into the full player.
 - **Full player:** background = vertical gradient from the cover's dominant color to near-black, crossfading on
   track change. Large cover (rounded 12, shadow) that shrinks to ~85 % with a spring when paused; swipe the cover

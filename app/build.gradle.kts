@@ -15,8 +15,8 @@ android {
         applicationId = "com.borodutch.spinwell"
         minSdk = 29
         targetSdk = 36
-        versionCode = 3
-        versionName = "1.0.1"
+        versionCode = 4
+        versionName = "1.0.2"
     }
     signingConfigs {
         if (keys.isNotEmpty()) create("upload") {

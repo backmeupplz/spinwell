@@ -15,12 +15,26 @@ struct Account: Codable, Equatable {
     static func randomSalt() -> String { String((0..<12).map { _ in "abcdefghijklmnopqrstuvwxyz0123456789".randomElement()! }) }
     static func md5(_ s: String) -> String { Insecure.MD5.hash(data: Data(s.utf8)).map { String(format: "%02x", $0) }.joined() }
 
-    /// Trim spaces and trailing slashes, `https://` when no scheme was typed.
+    /// Trim spaces and trailing slashes; with no scheme typed, `http://` for a LAN address, else `https://`.
     static func normalize(_ s: String) -> String {
         var t = s.trimmingCharacters(in: .whitespacesAndNewlines)
         while t.hasSuffix("/") { t.removeLast() }
-        if !t.isEmpty, !t.lowercased().hasPrefix("http://"), !t.lowercased().hasPrefix("https://") { t = "https://" + t }
+        if !t.isEmpty, !t.lowercased().hasPrefix("http://"), !t.lowercased().hasPrefix("https://") {
+            var host = Substring(t.prefix { $0 != "/" })
+            if let c = host.lastIndex(of: ":") { host = host[..<c] }
+            t = (isLan(String(host)) ? "http://" : "https://") + t
+        }
         return t
+    }
+
+    /// Home servers on these are plain http: a one-word name ("nas", "localhost"), *.local, a private/loopback/link-local/CGNAT IPv4.
+    static func isLan(_ host: String) -> Bool {
+        let h = host.lowercased()
+        if !h.contains(".") || h.hasSuffix(".local") { return true }
+        let n = h.split(separator: ".", omittingEmptySubsequences: false).map { Int($0) ?? -1 }
+        guard n.count == 4, n.allSatisfy({ (0...255).contains($0) }) else { return false }
+        let (a, b) = (n[0], n[1])
+        return a == 10 || a == 127 || (a == 172 && (16...31).contains(b)) || (a == 192 && b == 168) || (a == 169 && b == 254) || (a == 100 && (64...127).contains(b))
     }
 
     var host: String { URL(string: server)?.host() ?? server }
@@ -123,3 +137,53 @@ extension Song {
 }
 
 func albumBadge(_ songs: [Song]) -> String? { songs.max { $0.qualityRank < $1.qualityRank }?.badge }
+
+struct LanServer: Identifiable, Sendable { let url: String; let name: String; var id: String { url } }
+
+/// Subsonic servers on this phone's Wi-Fi: an unauthenticated `ping` to every address of its /24 on the usual ports
+/// (Navidrome 4533, Subsonic/Airsonic 4040, gonic 4747); Navidrome doesn't announce itself. The first scan raises the
+/// Local Network prompt and finds nothing until it's answered, so the button stays there to try again.
+enum Lan {
+    static func find() async -> [LanServer] {
+        guard let net = wifiPrefix() else { return [] }
+        let c = URLSessionConfiguration.ephemeral
+        c.timeoutIntervalForRequest = 1
+        let s = URLSession(configuration: c)
+        defer { s.invalidateAndCancel() }
+        let urls = (1...254).flatMap { i in [4533, 4040, 4747].map { "http://\(net).\(i):\($0)" } }
+        var found: [LanServer] = []
+        await withTaskGroup(of: LanServer?.self) { g in
+            var next = 0
+            for u in urls.prefix(128) { g.addTask { await probe(u, s) }; next += 1 }
+            for await r in g {
+                if let r { found.append(r) }
+                if next < urls.count { let u = urls[next]; next += 1; g.addTask { await probe(u, s) } }
+            }
+        }
+        return found.sorted { urls.firstIndex(of: $0.url)! < urls.firstIndex(of: $1.url)! }
+    }
+
+    private static func probe(_ base: String, _ s: URLSession) async -> LanServer? {
+        guard let u = URL(string: base + "/rest/ping?f=json"), let (d, _) = try? await s.data(from: u),
+              let j = try? JSONSerialization.jsonObject(with: d) as? [String: Any], let r = j["subsonic-response"] as? [String: Any] else { return nil }
+        let name = [(r["type"] as? String)?.capitalized, (r["serverVersion"] as? String)?.split(separator: " ").first.map(String.init)].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " ")
+        return LanServer(url: base, name: name.isEmpty ? "Subsonic" : name)
+    }
+
+    /// "192.168.1" for a phone at 192.168.1.23 on Wi-Fi (en0).
+    private static func wifiPrefix() -> String? {
+        var list: UnsafeMutablePointer<ifaddrs>?
+        guard getifaddrs(&list) == 0 else { return nil }
+        defer { freeifaddrs(list) }
+        var p = list
+        while let a = p?.pointee {
+            if String(cString: a.ifa_name) == "en0", let sa = a.ifa_addr, sa.pointee.sa_family == UInt8(AF_INET) {
+                var host = [CChar](repeating: 0, count: Int(NI_MAXHOST))
+                guard getnameinfo(sa, socklen_t(sa.pointee.sa_len), &host, socklen_t(host.count), nil, 0, NI_NUMERICHOST) == 0 else { return nil }
+                return String(cString: host).split(separator: ".").prefix(3).joined(separator: ".")
+            }
+            p = a.ifa_next
+        }
+        return nil
+    }
+}

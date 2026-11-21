@@ -2,6 +2,9 @@
 <resources>
     <string name="signin_tagline">Ваша музыка, где угодно.</string>
     <string name="label_server">Сервер</string>
+    <string name="action_find_servers">Найти серверы в этой сети</string>
+    <string name="finding_servers">Ищем серверы…</string>
+    <string name="no_servers_found">В этой сети серверов не найдено.</string>
     <string name="label_username">Имя пользователя</string>
     <string name="label_password">Пароль</string>
     <string name="action_sign_in">Войти</string>

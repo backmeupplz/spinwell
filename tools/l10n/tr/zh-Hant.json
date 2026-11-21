@@ -1,6 +1,9 @@
 {
 "signin_tagline": "你的音樂，隨處聆聽。",
 "label_server": "伺服器",
+"action_find_servers": "尋找此網路上的伺服器",
+"finding_servers": "正在尋找伺服器…",
+"no_servers_found": "此網路上找不到伺服器。",
 "label_username": "使用者名稱",
 "label_password": "密碼",
 "action_sign_in": "登入",

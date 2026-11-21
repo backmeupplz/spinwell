@@ -1,6 +1,9 @@
 {
 "signin_tagline": "Je eigen muziek, overal.",
 "label_server": "Server",
+"action_find_servers": "Servers op dit netwerk zoeken",
+"finding_servers": "Servers zoeken…",
+"no_servers_found": "Geen servers gevonden op dit netwerk.",
 "label_username": "Gebruikersnaam",
 "label_password": "Wachtwoord",
 "action_sign_in": "Inloggen",
